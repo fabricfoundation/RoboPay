@@ -43,12 +43,12 @@ type ZenohEvent struct {
 // The middleware runs after the handler so the response status is included.
 func ZenohPublishMiddleware(pub *ZenohSessionPublisher, keyExpr string, logger *zap.Logger) internal.Middleware {
 	return func(next internal.Handler) internal.Handler {
-		return func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
-			status, respHeaders, respBody := next(method, headers, body)
+		return func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+			status, respHeaders, respBody := next(method, path, headers, body)
 
 			event := ZenohEvent{
 				Method:  method,
-				Path:    keyExpr,
+				Path:    path,
 				Headers: headers,
 				Body:    body,
 				Status:  status,

@@ -30,8 +30,8 @@ type Envelope struct {
 
 ## Config
 
-- `ROBOT_ID` (required)
-- `PROXY_WS_URL` (required, example: `wss://proxy.example.com/ws/robot`)
+- `ROBOT_ID` (required if `-id` is not provided)
+- `PROXY_WS_URL` (required if `-proxy-ws-url` is not provided, example: `wss://proxy.example.com/ws/robot`)
 
 ## Run
 
@@ -39,6 +39,7 @@ type Envelope struct {
 go mod tidy
 go test ./...
 ROBOT_ID=robot-123 PROXY_WS_URL=wss://proxy.example.com/ws/robot go run ./cmd
+go run ./cmd -id robot-123 -proxy-ws-url wss://proxy.example.com/ws/robot
 ```
 
 ## Demo handlers

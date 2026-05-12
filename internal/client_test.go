@@ -55,8 +55,8 @@ func TestRouteSpecificMiddleware(t *testing.T) {
 
 	appendHeader := func(name, value string) Middleware {
 		return func(next Handler) Handler {
-			return func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
-				status, respHeaders, respBody := next(method, headers, body)
+			return func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+				status, respHeaders, respBody := next(method, path, headers, body)
 				if respHeaders == nil {
 					respHeaders = map[string]string{}
 				}
@@ -66,11 +66,11 @@ func TestRouteSpecificMiddleware(t *testing.T) {
 		}
 	}
 
-	router.Register("GET", "/with-middleware", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+	router.Register("GET", "/with-middleware", func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 		return 200, map[string]string{"content-type": "text/plain"}, []byte("ok")
 	}, appendHeader("x-route-middleware", "enabled"))
 
-	router.Register("GET", "/without-middleware", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+	router.Register("GET", "/without-middleware", func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 		return 200, map[string]string{"content-type": "text/plain"}, []byte("ok")
 	})
 

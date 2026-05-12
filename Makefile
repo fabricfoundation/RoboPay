@@ -50,7 +50,7 @@ build: download-zenohc
 	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build -o $(BINARY_CLIENT) $(BINARY_ENTRY)
 
 run: download-zenohc
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(BINARY_ENTRY) -id=test-robot
+	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(BINARY_ENTRY) -id=test-robot -proxy-ws-url ws://localhost:8080/api/core/ws/robot
 
 download-zenohc:
 	@echo "Downloading zenoh-c $(ZENOH_C_VERSION) for $(ZENOH_PLATFORM)..."

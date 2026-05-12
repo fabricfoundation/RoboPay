@@ -18,6 +18,7 @@ import (
 
 func main() {
 	robotID := flag.String("id", "", "Robot ID (required)")
+	proxyWSURLFlag := flag.String("proxy-ws-url", "", "Proxy WebSocket URL (required)")
 	flag.Parse()
 
 	logger, _ := zap.NewProduction()
@@ -34,9 +35,12 @@ func main() {
 		logger.Fatal("robot ID is required: pass -id flag or set ROBOT_ID env var")
 	}
 
-	proxyWSURL := os.Getenv("PROXY_WS_URL")
+	proxyWSURL := *proxyWSURLFlag
 	if proxyWSURL == "" {
-		logger.Fatal("PROXY_WS_URL is required, e.g. wss://proxy.example.com/ws/robot")
+		proxyWSURL = os.Getenv("PROXY_WS_URL")
+	}
+	if proxyWSURL == "" {
+		logger.Fatal("proxy ws url is required: pass -proxy-ws-url flag or set PROXY_WS_URL env var")
 	}
 
 	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)

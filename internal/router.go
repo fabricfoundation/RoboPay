@@ -3,7 +3,7 @@ package internal
 import "fmt"
 
 // Handler processes an incoming HTTP-request envelope and returns the response parts.
-type Handler func(method string, headers map[string]string, body []byte) (status int, respHeaders map[string]string, respBody []byte)
+type Handler func(method string, path string, headers map[string]string, body []byte) (status int, respHeaders map[string]string, respBody []byte)
 
 // Middleware wraps a Handler, returning a new Handler with added behavior.
 type Middleware func(Handler) Handler
@@ -46,17 +46,17 @@ func (r *Router) Handle(path string, method string, headers map[string]string, b
 		}
 		return 404, nil, nil, fmt.Errorf("no handler registered for path %q", path)
 	}
-	status, respHeaders, respBody := handler(method, headers, body)
+	status, respHeaders, respBody := handler(method, path, headers, body)
 	return status, respHeaders, respBody, nil
 }
 
 // RegisterDemoHandlers adds /ping and /echo demo handlers.
 func RegisterDemoHandlers(router *Router, middlewares ...Middleware) {
-	router.Register("GET", "/ping", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+	router.Register("GET", "/ping", func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 		return 200, map[string]string{"content-type": "text/plain"}, []byte("pong")
 	}, middlewares...)
 
-	router.Register("POST", "/echo", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+	router.Register("POST", "/echo", func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 		return 200, map[string]string{"content-type": "application/octet-stream"}, body
 	}, middlewares...)
 }
