@@ -50,6 +50,47 @@ func TestUnknownPath(t *testing.T) {
 	}
 }
 
+func TestRouteSpecificMiddleware(t *testing.T) {
+	router := NewRouter()
+
+	appendHeader := func(name, value string) Middleware {
+		return func(next Handler) Handler {
+			return func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+				status, respHeaders, respBody := next(method, headers, body)
+				if respHeaders == nil {
+					respHeaders = map[string]string{}
+				}
+				respHeaders[name] = value
+				return status, respHeaders, respBody
+			}
+		}
+	}
+
+	router.Register("GET", "/with-middleware", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+		return 200, map[string]string{"content-type": "text/plain"}, []byte("ok")
+	}, appendHeader("x-route-middleware", "enabled"))
+
+	router.Register("GET", "/without-middleware", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
+		return 200, map[string]string{"content-type": "text/plain"}, []byte("ok")
+	})
+
+	_, withHeaders, _, err := router.Handle("/with-middleware", "GET", nil, nil)
+	if err != nil {
+		t.Fatalf("expected no error for route with middleware, got %v", err)
+	}
+	if got := withHeaders["x-route-middleware"]; got != "enabled" {
+		t.Fatalf("expected route-specific middleware header, got %q", got)
+	}
+
+	_, withoutHeaders, _, err := router.Handle("/without-middleware", "GET", nil, nil)
+	if err != nil {
+		t.Fatalf("expected no error for route without middleware, got %v", err)
+	}
+	if _, ok := withoutHeaders["x-route-middleware"]; ok {
+		t.Fatal("expected middleware header to be absent on route without middleware")
+	}
+}
+
 func TestNextBackoff(t *testing.T) {
 	if got := nextBackoff(1 * time.Second); got != 2*time.Second {
 		t.Fatalf("expected 2s, got %v", got)

@@ -5,6 +5,9 @@ import "fmt"
 // Handler processes an incoming HTTP-request envelope and returns the response parts.
 type Handler func(method string, headers map[string]string, body []byte) (status int, respHeaders map[string]string, respBody []byte)
 
+// Middleware wraps a Handler, returning a new Handler with added behavior.
+type Middleware func(Handler) Handler
+
 // Router is a simple path-based handler registry.
 type Router struct {
 	handlers map[string]Handler
@@ -16,9 +19,17 @@ func NewRouter() *Router {
 }
 
 // Register adds a handler for the given method + path combination.
-func (r *Router) Register(method string, path string, handler Handler) {
+func (r *Router) Register(method, path string, handler Handler, middlewares ...Middleware) {
 	key := method + " " + path
-	r.handlers[key] = handler
+	r.handlers[key] = applyMiddlewares(handler, middlewares...)
+}
+
+func applyMiddlewares(handler Handler, middlewares ...Middleware) Handler {
+	wrapped := handler
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		wrapped = middlewares[i](wrapped)
+	}
+	return wrapped
 }
 
 // Handle dispatches to the registered handler for method + path. Returns 405 if the
@@ -41,12 +52,12 @@ func (r *Router) Handle(path string, method string, headers map[string]string, b
 }
 
 // RegisterDemoHandlers adds /ping and /echo demo handlers.
-func RegisterDemoHandlers(router *Router) {
+func RegisterDemoHandlers(router *Router, middlewares ...Middleware) {
 	router.Register("GET", "/ping", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 		return 200, map[string]string{"content-type": "text/plain"}, []byte("pong")
-	})
+	}, middlewares...)
 
 	router.Register("POST", "/echo", func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 		return 200, map[string]string{"content-type": "application/octet-stream"}, body
-	})
+	}, middlewares...)
 }

@@ -7,11 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/eclipse-zenoh/zenoh-go/zenoh"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	"robot-autonomous-payment/tunnel"
-	"robot-autonomous-payment/tunnel/handlers"
+	"github.com/fabricfoundation/robot-tunnel-client/tunnel"
+	"github.com/fabricfoundation/robot-tunnel-client/tunnel/handlers"
+	"github.com/fabricfoundation/robot-tunnel-client/tunnel/middleware"
 )
 
 func main() {
@@ -38,9 +40,19 @@ func main() {
 		logger.Fatal("PROXY_WS_URL is required, e.g. wss://proxy.example.com/ws/robot")
 	}
 
+	// Initialize Zenoh session
+	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
+	if err != nil {
+		logger.Fatal("failed to open zenoh session", zap.Error(err))
+	}
+	defer session.Close(nil)
+
+	zenohPub := middleware.NewZenohSessionPublisher(session)
+	zenohEvents := middleware.ZenohPublishMiddleware(zenohPub, "robot/tunnel/events", logger)
+
 	router := tunnel.NewRouter()
-	tunnel.RegisterDemoHandlers(router)
-	handlers.RegisterAll(router, *robotID)
+	tunnel.RegisterDemoHandlers(router, zenohEvents)
+	handlers.RegisterAll(router, *robotID, zenohEvents)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

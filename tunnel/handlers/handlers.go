@@ -1,10 +1,10 @@
 package handlers
 
-import "robot-autonomous-payment/tunnel"
+import "github.com/fabricfoundation/robot-tunnel-client/tunnel"
 
 // RegisterAll registers all real handlers on the router.
-func RegisterAll(router *tunnel.Router, robotID string) {
-	router.Register("GET", "/id", RobotID(robotID))
+func RegisterAll(router *tunnel.Router, robotID string, middlewares ...tunnel.Middleware) {
+	router.Register("GET", "/id", RobotID(robotID), middlewares...)
 }
 
 // RobotID returns a handler that responds with the robot's ID.
