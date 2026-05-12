@@ -1,10 +1,13 @@
 package internal
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"runtime/debug"
 	"sync"
@@ -28,18 +31,18 @@ type Envelope struct {
 type Client struct {
 	wsBaseURL string
 	robotID   string
-	router    *Router
+	handler   http.Handler
 	dialer    *websocket.Dialer
 
 	writeMu sync.Mutex
 	logger  *zap.Logger
 }
 
-func NewClient(wsBaseURL string, robotID string, router *Router, logger *zap.Logger) *Client {
+func NewClient(wsBaseURL string, robotID string, handler http.Handler, logger *zap.Logger) *Client {
 	return &Client{
 		wsBaseURL: wsBaseURL,
 		robotID:   robotID,
-		router:    router,
+		handler:   handler,
 		logger:    logger,
 		dialer:    websocket.DefaultDialer,
 	}
@@ -152,18 +155,38 @@ func (c *Client) dispatchRequest(ctx context.Context, conn *websocket.Conn, requ
 		}
 	}()
 
-	status, headers, body, err := c.router.Handle(request.Path, request.Method, request.Headers, request.Body)
+	reqURL, err := url.Parse(request.Path)
 	if err != nil {
-		response.Status = status
-		response.Error = err.Error()
-		response.Headers = headers
-		response.Body = body
+		response.Status = http.StatusBadRequest
+		response.Error = fmt.Sprintf("invalid path: %v", err)
 		return
 	}
 
-	response.Status = status
-	response.Headers = headers
-	response.Body = body
+	req := &http.Request{
+		Method: request.Method,
+		URL:    reqURL,
+		Header: make(http.Header),
+	}
+	req.Body = io.NopCloser(bytes.NewReader(request.Body))
+
+	for k, v := range request.Headers {
+		req.Header.Set(k, v)
+	}
+
+	recorder := httptest.NewRecorder()
+	c.handler.ServeHTTP(recorder, req)
+
+	res := recorder.Result()
+	response.Status = res.StatusCode
+	response.Headers = make(map[string]string)
+	for k, v := range res.Header {
+		if len(v) > 0 {
+			response.Headers[k] = v[0]
+		}
+	}
+	
+	bodyBytes, _ := io.ReadAll(res.Body)
+	response.Body = bodyBytes
 }
 
 func (c *Client) writeEnvelope(conn *websocket.Conn, envelope Envelope) error {

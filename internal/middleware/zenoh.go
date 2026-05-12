@@ -1,12 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 
 	"github.com/eclipse-zenoh/zenoh-go/zenoh"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-
-	"github.com/fabricfoundation/robot-tunnel-client/internal"
 )
 
 // ZenohSessionPublisher publishes messages using a Zenoh session.
@@ -38,35 +39,52 @@ type ZenohEvent struct {
 	Status  int               `json:"status"`
 }
 
-// ZenohPublishMiddleware returns a middleware that publishes a ZenohEvent
+// ZenohPublishMiddleware returns a gin middleware that publishes a ZenohEvent
 // to the given key expression for every request that passes through it.
 // The middleware runs after the handler so the response status is included.
-func ZenohPublishMiddleware(pub *ZenohSessionPublisher, keyExpr string, logger *zap.Logger) internal.Middleware {
-	return func(next internal.Handler) internal.Handler {
-		return func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
-			status, respHeaders, respBody := next(method, path, headers, body)
+func ZenohPublishMiddleware(pub *ZenohSessionPublisher, keyExpr string, logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Read body to publish
+		var bodyBytes []byte
+		if c.Request.Body != nil {
+			bodyBytes, _ = io.ReadAll(c.Request.Body)
+			// Restore the io.ReadCloser to its original state
+			c.Request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		}
 
-			event := ZenohEvent{
-				Method:  method,
-				Path:    path,
-				Headers: headers,
-				Body:    body,
-				Status:  status,
-			}
-			data, err := json.Marshal(event)
-			if err != nil {
-				logger.Warn("zenoh middleware: failed to marshal event", zap.Error(err))
-				return status, respHeaders, respBody
-			}
+		// Process request
+		c.Next()
 
-			if err := pub.Publish(keyExpr, data); err != nil {
-				logger.Warn("zenoh middleware: publish failed",
-					zap.String("key", keyExpr),
-					zap.Error(err),
-				)
+		// Extract headers
+		headers := make(map[string]string)
+		for k, v := range c.Request.Header {
+			if len(v) > 0 {
+				headers[k] = v[0]
 			}
+		}
 
-			return status, respHeaders, respBody
+		event := ZenohEvent{
+			Method:  c.Request.Method,
+			Path:    c.Request.URL.Path,
+			Headers: headers,
+			Status:  c.Writer.Status(),
+		}
+
+		if len(bodyBytes) > 0 {
+			event.Body = bodyBytes
+		}
+
+		data, err := json.Marshal(event)
+		if err != nil {
+			logger.Warn("zenoh middleware: failed to marshal event", zap.Error(err))
+			return
+		}
+
+		if err := pub.Publish(keyExpr, data); err != nil {
+			logger.Warn("zenoh middleware: publish failed",
+				zap.String("key", keyExpr),
+				zap.Error(err),
+			)
 		}
 	}
 }

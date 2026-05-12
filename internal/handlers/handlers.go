@@ -1,10 +1,31 @@
 package handlers
 
-import "github.com/fabricfoundation/robot-tunnel-client/internal"
+import (
+	"net/http"
+	"time"
 
-// RobotID returns a handler that responds with the robot's ID.
-func RobotID(robotID string) internal.Handler {
-	return func(method string, path string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
-		return 200, map[string]string{"content-type": "text/plain"}, []byte(robotID)
+	"github.com/gin-gonic/gin"
+)
+
+func GetWeather(c *gin.Context) {
+	city := c.DefaultQuery("city", "San Francisco")
+
+	weatherData := map[string]map[string]interface{}{
+		"San Francisco": {"weather": "foggy", "temperature": 60},
+		"New York":      {"weather": "cloudy", "temperature": 55},
+		"London":        {"weather": "rainy", "temperature": 50},
+		"Tokyo":         {"weather": "clear", "temperature": 65},
 	}
+
+	data, exists := weatherData[city]
+	if !exists {
+		data = map[string]interface{}{"weather": "sunny", "temperature": 70}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"city":        city,
+		"weather":     data["weather"],
+		"temperature": data["temperature"],
+		"timestamp":   time.Now().Format(time.RFC3339),
+	})
 }
