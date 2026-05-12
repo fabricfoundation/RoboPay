@@ -1,4 +1,4 @@
-package tunnel
+package internal
 
 import "fmt"
 
@@ -38,7 +38,6 @@ func (r *Router) Handle(path string, method string, headers map[string]string, b
 	key := method + " " + path
 	handler, ok := r.handlers[key]
 	if !ok {
-		// check if path exists under any method → 405
 		for k := range r.handlers {
 			pathStart := len(k) - len(path)
 			if pathStart > 0 && k[pathStart-1] == ' ' && k[len(k)-len(path):] == path {

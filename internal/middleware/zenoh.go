@@ -6,21 +6,16 @@ import (
 	"github.com/eclipse-zenoh/zenoh-go/zenoh"
 	"go.uber.org/zap"
 
-	"github.com/fabricfoundation/robot-tunnel-client/tunnel"
+	"github.com/fabricfoundation/robot-tunnel-client/internal"
 )
 
-// Publisher is an abstraction for publishing messages (e.g. to Zenoh).
-// Implementations must be safe for concurrent use.
-type Publisher interface {
-	Publish(keyExpr string, payload []byte) error
-}
-
-// ZenohSessionPublisher implements Publisher using a Zenoh session.
+// ZenohSessionPublisher publishes messages using a Zenoh session.
+// It is safe for concurrent use as long as the underlying session is.
 type ZenohSessionPublisher struct {
 	session zenoh.Session
 }
 
-// NewZenohSessionPublisher wraps an open Zenoh session as a Publisher.
+// NewZenohSessionPublisher wraps an open Zenoh session.
 func NewZenohSessionPublisher(session zenoh.Session) *ZenohSessionPublisher {
 	return &ZenohSessionPublisher{session: session}
 }
@@ -46,8 +41,8 @@ type ZenohEvent struct {
 // ZenohPublishMiddleware returns a middleware that publishes a ZenohEvent
 // to the given key expression for every request that passes through it.
 // The middleware runs after the handler so the response status is included.
-func ZenohPublishMiddleware(pub Publisher, keyExpr string, logger *zap.Logger) tunnel.Middleware {
-	return func(next tunnel.Handler) tunnel.Handler {
+func ZenohPublishMiddleware(pub *ZenohSessionPublisher, keyExpr string, logger *zap.Logger) internal.Middleware {
+	return func(next internal.Handler) internal.Handler {
 		return func(method string, headers map[string]string, body []byte) (int, map[string]string, []byte) {
 			status, respHeaders, respBody := next(method, headers, body)
 
@@ -68,12 +63,6 @@ func ZenohPublishMiddleware(pub Publisher, keyExpr string, logger *zap.Logger) t
 				logger.Warn("zenoh middleware: publish failed",
 					zap.String("key", keyExpr),
 					zap.Error(err),
-				)
-			} else {
-				logger.Debug("zenoh middleware: published event",
-					zap.String("key", keyExpr),
-					zap.String("method", method),
-					zap.Int("status", status),
 				)
 			}
 

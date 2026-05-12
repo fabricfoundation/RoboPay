@@ -38,7 +38,7 @@ type Envelope struct {
 ```bash
 go mod tidy
 go test ./...
-ROBOT_ID=robot-123 PROXY_WS_URL=wss://proxy.example.com/ws/robot go run .
+ROBOT_ID=robot-123 PROXY_WS_URL=wss://proxy.example.com/ws/robot go run ./cmd
 ```
 
 ## Demo handlers

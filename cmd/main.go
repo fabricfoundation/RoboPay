@@ -11,9 +11,9 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	"github.com/fabricfoundation/robot-tunnel-client/tunnel"
-	"github.com/fabricfoundation/robot-tunnel-client/tunnel/handlers"
-	"github.com/fabricfoundation/robot-tunnel-client/tunnel/middleware"
+	"github.com/fabricfoundation/robot-tunnel-client/internal"
+	"github.com/fabricfoundation/robot-tunnel-client/internal/handlers"
+	"github.com/fabricfoundation/robot-tunnel-client/internal/middleware"
 )
 
 func main() {
@@ -27,7 +27,6 @@ func main() {
 		logger.Warn("failed to load .env file", zap.Error(err))
 	}
 
-	// CLI flag takes priority; fall back to env var
 	if *robotID == "" {
 		*robotID = os.Getenv("ROBOT_ID")
 	}
@@ -40,7 +39,6 @@ func main() {
 		logger.Fatal("PROXY_WS_URL is required, e.g. wss://proxy.example.com/ws/robot")
 	}
 
-	// Initialize Zenoh session
 	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
 	if err != nil {
 		logger.Fatal("failed to open zenoh session", zap.Error(err))
@@ -50,18 +48,18 @@ func main() {
 	zenohPub := middleware.NewZenohSessionPublisher(session)
 	zenohEvents := middleware.ZenohPublishMiddleware(zenohPub, "robot/tunnel/events", logger)
 
-	router := tunnel.NewRouter()
-	tunnel.RegisterDemoHandlers(router, zenohEvents)
+	router := internal.NewRouter()
+	internal.RegisterDemoHandlers(router, zenohEvents)
 	RegisterAllRoutes(router, *robotID, zenohEvents)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	client := tunnel.NewClient(proxyWSURL, *robotID, router, logger)
+	client := internal.NewClient(proxyWSURL, *robotID, router, logger)
 	client.Run(ctx)
 }
 
 // RegisterAllRoutes registers all real handlers on the router.
-func RegisterAllRoutes(router *tunnel.Router, robotID string, middlewares ...tunnel.Middleware) {
+func RegisterAllRoutes(router *internal.Router, robotID string, middlewares ...internal.Middleware) {
 	router.Register("GET", "/id", handlers.RobotID(robotID), middlewares...)
 }

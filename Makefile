@@ -1,6 +1,7 @@
 .PHONY: download-zenohc build run test clean help tidy lint
 
 BINARY_CLIENT=bin/robot-tunnel-client
+BINARY_ENTRY=./cmd
 
 ZENOH_C_VERSION=1.9.0
 ZENOH_C_DIR=.zenoh-c
@@ -46,10 +47,10 @@ help:
 
 build: download-zenohc
 	@mkdir -p bin
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build -o $(BINARY_CLIENT) .
+	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build -o $(BINARY_CLIENT) $(BINARY_ENTRY)
 
 run: download-zenohc
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run . -id=test-robot
+	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(BINARY_ENTRY) -id=test-robot
 
 download-zenohc:
 	@echo "Downloading zenoh-c $(ZENOH_C_VERSION) for $(ZENOH_PLATFORM)..."
