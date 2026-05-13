@@ -4,25 +4,64 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/eclipse-zenoh/zenoh-go/zenoh"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-type ZenohPublisher interface {
+const (
+	RobotActionTopic = "robot/tunnel/action"
+)
+
+type zenohPublisher interface {
 	Publish(keyExpr string, payload []byte) error
 }
 
-type Handlers struct {
-	ZenohPublisher ZenohPublisher
-	Logger         *zap.Logger
+type zenohSessionPublisher struct {
+	session zenoh.Session
 }
 
-func NewHandlers(zenohPublisher ZenohPublisher, logger *zap.Logger) *Handlers {
+func (z *zenohSessionPublisher) Publish(keyExpr string, payload []byte) error {
+	ke, err := zenoh.NewKeyExpr(keyExpr)
+	if err != nil {
+		return err
+	}
+	return z.session.Put(ke, zenoh.NewZBytes(payload), nil)
+}
+
+var (
+	zenohOnce      sync.Once
+	zenohPub       zenohPublisher
+	zenohInitError error
+)
+
+func getZenohPublisher() (zenohPublisher, error) {
+	zenohOnce.Do(func() {
+		session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
+		if err != nil {
+			zenohInitError = err
+			return
+		}
+		zenohPub = &zenohSessionPublisher{session: session}
+	})
+
+	if zenohInitError != nil {
+		return nil, zenohInitError
+	}
+
+	return zenohPub, nil
+}
+
+type Handlers struct {
+	Logger *zap.Logger
+}
+
+func NewHandlers(logger *zap.Logger) *Handlers {
 	return &Handlers{
-		ZenohPublisher: zenohPublisher,
-		Logger:         logger,
+		Logger: logger,
 	}
 }
 
@@ -67,8 +106,11 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		h.Logger.Warn("failed to marshal action event", zap.Error(err))
-	} else if h.ZenohPublisher != nil {
-		if err := h.ZenohPublisher.Publish("robot/tunnel/action", eventBytes); err != nil {
+	} else {
+		pub, err := getZenohPublisher()
+		if err != nil {
+			h.Logger.Warn("failed to initialize zenoh publisher", zap.Error(err))
+		} else if err := pub.Publish(RobotActionTopic, eventBytes); err != nil {
 			h.Logger.Warn("failed to publish action event", zap.Error(err))
 		}
 	}

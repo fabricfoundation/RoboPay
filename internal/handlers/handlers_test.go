@@ -13,7 +13,7 @@ import (
 func TestPostAction_ValidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	h := NewHandlers(nil, zap.NewNop())
+	h := NewHandlers(zap.NewNop())
 	router.POST("/action", h.PostAction)
 
 	req := httptest.NewRequest(http.MethodPost, "/action", bytes.NewBufferString(`{"command":"start"}`))
@@ -29,7 +29,7 @@ func TestPostAction_ValidJSON(t *testing.T) {
 func TestPostAction_InvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	h := NewHandlers(nil, zap.NewNop())
+	h := NewHandlers(zap.NewNop())
 	router.POST("/action", h.PostAction)
 
 	req := httptest.NewRequest(http.MethodPost, "/action", bytes.NewBufferString(`{"command":`))

@@ -22,14 +22,13 @@ import (
 	"github.com/fabricfoundation/robot-tunnel-client/config"
 	"github.com/fabricfoundation/robot-tunnel-client/internal"
 	"github.com/fabricfoundation/robot-tunnel-client/internal/handlers"
-	"github.com/fabricfoundation/robot-tunnel-client/internal/middleware"
 )
 
 const (
 	ProxyWSURL     = "ws://localhost:8080/api/core/ws/robot"
 	FacilitatorURL = "https://x402.org/facilitator"
+	RobotConfigTopicPrefix = "robot/config/"
 )
-
 
 func main() {
 	configPath := flag.String("config", "config.json", "Path to config file")
@@ -53,10 +52,8 @@ func main() {
 	}
 	defer session.Close(nil)
 
-	zenohPub := middleware.NewZenohSessionPublisher(session)
-
 	restartCh := make(chan struct{}, 1)
-	subTopic := "robot/config/" + cfg.RobotID
+	subTopic := RobotConfigTopicPrefix + cfg.RobotID
 	ke, err := zenoh.NewKeyExpr(subTopic)
 	if err != nil {
 		logger.Fatal("failed to create key expression", zap.Error(err))
@@ -105,7 +102,7 @@ func main() {
 	defer cancel()
 
 	for {
-		router := setupRouter(cfg, zenohPub, logger)
+		router := setupRouter(cfg, logger)
 		client := internal.NewClient(ProxyWSURL, cfg.RobotID, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)
@@ -129,11 +126,8 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, zenohPub *middleware.ZenohSessionPublisher, logger *zap.Logger) *gin.Engine {
-	zenohEvents := middleware.ZenohPublishMiddleware(zenohPub, "robot/tunnel/events", logger)
-
+func setupRouter(cfg *config.Config, logger *zap.Logger) *gin.Engine {
 	router := gin.New()
-	router.Use(zenohEvents)
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
@@ -182,7 +176,7 @@ func setupRouter(cfg *config.Config, zenohPub *middleware.ZenohSessionPublisher,
 		Timeout: 30 * time.Second,
 	}))
 
-	h := handlers.NewHandlers(zenohPub, logger)
+	h := handlers.NewHandlers(logger)
 	RegisterAllRoutes(router, h)
 
 	return router
