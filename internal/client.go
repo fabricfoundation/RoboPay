@@ -185,6 +185,8 @@ func (c *Client) dispatchRequest(ctx context.Context, conn *websocket.Conn, requ
 		}
 	}
 	
+	c.logger.Info("sending response envelope", zap.String("id", request.ID), zap.Any("headers", response.Headers), zap.Int("status", response.Status))
+	
 	bodyBytes, _ := io.ReadAll(res.Body)
 	response.Body = bodyBytes
 }

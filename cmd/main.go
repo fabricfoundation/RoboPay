@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"os"
 	"os/signal"
@@ -53,6 +54,82 @@ func main() {
 	defer session.Close(nil)
 
 	zenohPub := middleware.NewZenohSessionPublisher(session)
+
+	restartCh := make(chan struct{}, 1)
+	subTopic := "robot/config/" + cfg.RobotID
+	ke, err := zenoh.NewKeyExpr(subTopic)
+	if err != nil {
+		logger.Fatal("failed to create key expression", zap.Error(err))
+	}
+	sub, err := session.DeclareSubscriber(ke, zenoh.Closure[zenoh.Sample]{
+		Call: func(sample zenoh.Sample) {
+			var partialCfg struct {
+				EVMPayeeAddress *string `json:"evm_payee_address"`
+				Price           *string `json:"price"`
+				Network         *string `json:"network"`
+			}
+			if err := json.Unmarshal(sample.Payload().Bytes(), &partialCfg); err != nil {
+				logger.Warn("failed to parse config update", zap.Error(err))
+				return
+			}
+
+			updated := false
+			if partialCfg.EVMPayeeAddress != nil && *partialCfg.EVMPayeeAddress != cfg.EVMPayeeAddress {
+				cfg.EVMPayeeAddress = *partialCfg.EVMPayeeAddress
+				updated = true
+			}
+			if partialCfg.Price != nil && *partialCfg.Price != cfg.Price {
+				cfg.Price = *partialCfg.Price
+				updated = true
+			}
+			if partialCfg.Network != nil && *partialCfg.Network != cfg.Network {
+				cfg.Network = *partialCfg.Network
+				updated = true
+			}
+
+			if updated {
+				logger.Info("config updated via zenoh, signaling restart")
+				select {
+				case restartCh <- struct{}{}:
+				default:
+				}
+			}
+		},
+	}, nil)
+	if err != nil {
+		logger.Fatal("failed to declare config subscriber", zap.Error(err))
+	}
+	defer sub.Undeclare()
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	for {
+		router := setupRouter(cfg, zenohPub, logger)
+		client := internal.NewClient(ProxyWSURL, cfg.RobotID, router, logger)
+
+		clientCtx, clientCancel := context.WithCancel(ctx)
+
+		go func() {
+			select {
+			case <-restartCh:
+				logger.Info("restarting internal client to apply new config...")
+				clientCancel()
+			case <-clientCtx.Done():
+			}
+		}()
+
+		client.Run(clientCtx)
+		clientCancel()
+
+		if ctx.Err() != nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func setupRouter(cfg *config.Config, zenohPub *middleware.ZenohSessionPublisher, logger *zap.Logger) *gin.Engine {
 	zenohEvents := middleware.ZenohPublishMiddleware(zenohPub, "robot/tunnel/events", logger)
 
 	router := gin.New()
@@ -82,18 +159,6 @@ func main() {
 	})
 
 	routes := x402http.RoutesConfig{
-		"GET /weather": {
-			Accepts: x402http.PaymentOptions{
-				{
-					Scheme:  "exact",
-					Price:   cfg.Price,
-					Network: x402.Network(cfg.Network),
-					PayTo:   cfg.EVMPayeeAddress,
-				},
-			},
-			Description: "Get weather data for a city",
-			MimeType:    "application/json",
-		},
 		"POST /action": {
 			Accepts: x402http.PaymentOptions{
 				{
@@ -120,15 +185,10 @@ func main() {
 	h := handlers.NewHandlers(zenohPub, logger)
 	RegisterAllRoutes(router, h)
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	client := internal.NewClient(ProxyWSURL, cfg.RobotID, router, logger)
-	client.Run(ctx)
+	return router
 }
 
 // RegisterAllRoutes registers all real handlers on the router.
 func RegisterAllRoutes(router *gin.Engine, h *handlers.Handlers) {
-	router.GET("/weather", h.GetWeather)
 	router.POST("/action", h.PostAction)
 }
