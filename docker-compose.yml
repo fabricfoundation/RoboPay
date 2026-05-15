@@ -1,0 +1,15 @@
+services:
+  robot-tunnel-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: robot-tunnel-client:latest
+    container_name: robot-tunnel-client
+    restart: unless-stopped
+    environment:
+      GIN_MODE: release
+      PROXY_WS_URL: wss://api.fabric.foundation/api/core/ws/robot
+      FACILITATOR_URL: https://x402.org/facilitator
+    volumes:
+      - ./config.json:/app/config.json:ro
+    command: ["-config", "/app/config.json"]

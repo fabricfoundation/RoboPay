@@ -1,0 +1,6 @@
+{
+  "robot_id": "test-robot",
+  "evm_payee_address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "price": "$0.002",
+  "network": "eip155:84532"
+}
