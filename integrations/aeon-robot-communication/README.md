@@ -2,7 +2,23 @@
 
 Independent AEON BNB x402 robot action gateway for local integration proof.
 
-This repository is self-contained. It does not depend on `robopay-agent-skill`, and it does not modify `robot-tunnel-client` or `bnb-x402`.
+This integration project is self-contained. It does not depend on `robopay-agent-skill`, and it does not modify the root `robot-tunnel-client` Go service or `bnb-x402`.
+
+## Source And History
+
+This directory was imported from:
+
+```text
+https://github.com/fabricfoundation/Aeon-robot-communication
+```
+
+Source commit:
+
+```text
+a96c5a2 docs: add M2 validation report
+```
+
+Because this project is imported as a subdirectory inside `robot-tunnel-client`, Git records the import here as new files in this repository. The original per-commit development history remains in the source repository above.
 
 ## What This Proves
 
