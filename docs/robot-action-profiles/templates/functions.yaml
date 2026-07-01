@@ -1,0 +1,27 @@
+schemaVersion: agent-functions.v1
+
+functions:
+  - name: list_robot_skills
+    method: GET
+    url: /v1/robots/{robotId}/skills
+
+  - name: request_robot_action
+    method: POST
+    url: /v1/robots/{robotId}/actions
+    body:
+      skillId: string
+      params: object
+      idempotencyKey: string
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: payment-required
+
+  - name: submit_paid_robot_action
+    method: POST
+    url: /v1/robots/{robotId}/actions
+    headers:
+      X-PAYMENT: string
+    body:
+      skillId: string
+      params: object
+      idempotencyKey: string

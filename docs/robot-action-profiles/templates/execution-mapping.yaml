@@ -1,0 +1,20 @@
+schemaVersion: execution-mapping.v1
+
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+
+mappings:
+  move_forward:
+    output: ros2_twist
+    topic: /cmd_vel
+    linear.x: "$params.speed"
+    angular.z: 0
+    durationSec: "$params.durationSec"
+
+  stop:
+    output: ros2_twist
+    topic: /cmd_vel
+    linear.x: 0
+    angular.z: 0
+    durationSec: 0

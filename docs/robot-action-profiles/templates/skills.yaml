@@ -1,0 +1,21 @@
+schemaVersion: robot-skills.v1
+profileId: unitree.g1.om1-sim-g1.v1
+
+skills:
+  - skillId: move_forward
+    description: Move the robot forward for a bounded duration.
+    params:
+      durationSec:
+        type: number
+        min: 0.1
+        max: 5
+      speed:
+        type: number
+        min: 0
+        max: 0.5
+    paymentRequired: true
+
+  - skillId: stop
+    description: Stop robot motion immediately.
+    params: {}
+    paymentRequired: false

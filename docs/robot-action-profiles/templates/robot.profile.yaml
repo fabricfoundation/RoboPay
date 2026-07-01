@@ -1,0 +1,18 @@
+schemaVersion: robot-profile.v1
+vendor: unitree
+robotModel: g1
+robotType: om1-sim-g1
+profileId: unitree.g1.om1-sim-g1.v1
+profileVersion: 1.0.0
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  bridge: om1
+  ros2:
+    cmdVelTopic: /cmd_vel
+
+maintainers:
+  - github: example-maintainer
+
+status: experimental

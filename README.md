@@ -43,6 +43,31 @@ type Envelope struct {
 }
 ```
 
+## Robot Action Profile Contributions
+
+Robot vendors and downstream teams can describe their robot capabilities using
+Robot Action Profiles. These profiles tell agents what a robot can do, how to
+call actions, which actions require payment, and how accepted actions are
+delivered to the robot runtime.
+
+Start here:
+
+```text
+docs/robot-action-profiles/contribution-guidelines.md
+```
+
+Templates are available under:
+
+```text
+docs/robot-action-profiles/templates/
+```
+
+Submitted profiles should live under:
+
+```text
+registry/vendors/<vendor>/<robotModel>/<profileId>/
+```
+
 ## Configuration
 
 ### Config file (`config.json`)
