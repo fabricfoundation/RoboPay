@@ -26,7 +26,6 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 
 The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
 
----
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 
