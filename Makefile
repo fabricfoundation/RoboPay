@@ -1,6 +1,7 @@
 .PHONY: download-zenohc build run test clean help tidy lint
 
-BINARY_CLIENT=bin/robot-tunnel-client
+TUNNEL_DIR=tunnel
+BINARY_CLIENT=$(shell pwd)/bin/robot-tunnel-client
 BINARY_ENTRY=./cmd
 
 ZENOH_C_VERSION=1.9.0
@@ -47,10 +48,10 @@ help:
 
 build: download-zenohc
 	@mkdir -p bin
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build -o $(BINARY_CLIENT) $(BINARY_ENTRY)
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build -o $(BINARY_CLIENT) $(BINARY_ENTRY)
 
 run: download-zenohc
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(BINARY_ENTRY)
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(BINARY_ENTRY)
 
 download-zenohc:
 	@echo "Downloading zenoh-c $(ZENOH_C_VERSION) for $(ZENOH_PLATFORM)..."
@@ -72,17 +73,17 @@ download-zenohc:
 	fi
 
 test: download-zenohc
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test -p 8 -v ./...
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test -p 8 -v ./...
 
 test-coverage: download-zenohc
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test -p 8 -v -coverprofile=coverage.out ./...
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test -p 8 -v -coverprofile=coverage.out ./...
 
 lint: download-zenohc
-	$(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib golangci-lint run --timeout=5m
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib golangci-lint run --timeout=5m
 
 tidy:
-	go mod tidy
-	go mod verify
+	cd $(TUNNEL_DIR) && go mod tidy
+	cd $(TUNNEL_DIR) && go mod verify
 
 clean:
 	rm -rf bin/
