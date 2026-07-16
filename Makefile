@@ -36,9 +36,14 @@ endif
 
 ZENOH_URL=https://github.com/eclipse-zenoh/zenoh-c/releases/download/$(ZENOH_C_VERSION)/zenoh-c-$(ZENOH_C_VERSION)-$(ZENOH_PLATFORM)-standalone.zip
 
+# CGO_LDFLAGS is applied to every cgo package, so keep it to the search path
+# only — zenoh-go's own "#cgo LDFLAGS: -lzenohc" links the library, and the
+# rpath is injected once at the final link via GO_LDFLAGS to avoid duplicate
+# ld warnings.
 export CGO_ENABLED=1
 export CGO_CFLAGS=-I$(ZENOH_C_ABS_DIR)/include
-export CGO_LDFLAGS=-L$(ZENOH_C_ABS_DIR)/lib -lzenohc -Wl,-rpath,$(ZENOH_C_ABS_DIR)/lib
+export CGO_LDFLAGS=-L$(ZENOH_C_ABS_DIR)/lib
+GO_LDFLAGS=-ldflags "-extldflags '-Wl,-rpath,$(ZENOH_C_ABS_DIR)/lib'"
 
 .DEFAULT_GOAL := help
 
@@ -62,10 +67,10 @@ help:
 
 build: download-zenohc
 	@mkdir -p bin
-	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build -o $(BINARY_CLIENT) $(BINARY_ENTRY)
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go build $(GO_LDFLAGS) -o $(BINARY_CLIENT) $(BINARY_ENTRY)
 
 run: download-zenohc
-	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(BINARY_ENTRY)
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go run $(GO_LDFLAGS) $(BINARY_ENTRY)
 
 download-zenohc:
 	@echo "Downloading zenoh-c $(ZENOH_C_VERSION) for $(ZENOH_PLATFORM)..."
@@ -87,10 +92,10 @@ download-zenohc:
 	fi
 
 test: download-zenohc
-	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test -p 8 -v ./...
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test $(GO_LDFLAGS) -p 8 -v ./...
 
 test-coverage: download-zenohc
-	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test -p 8 -v -coverprofile=coverage.out ./...
+	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib go test $(GO_LDFLAGS) -p 8 -v -coverprofile=coverage.out ./...
 
 lint: download-zenohc
 	cd $(TUNNEL_DIR) && $(DYLD_VAR)=$(ZENOH_C_ABS_DIR)/lib golangci-lint run --timeout=5m
