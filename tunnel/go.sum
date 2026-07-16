@@ -231,8 +231,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.3.1 h1:waO7eEiFDwidsBN6agj1vJQ4AG7lh2yqXyOXqhgQuyY=
 github.com/ugorji/go/codec v1.3.1/go.mod h1:pRBVtBSKl77K30Bv8R2P+cLSGaTtex6fsA2Wjqmfxj4=
-github.com/unibaseio/aip-go-sdk v0.0.0-20260716203530-f16ac86fa826 h1:utOJPcTsL4q02y7enQftnHOoYZsfea1DcShy3Q8yME8=
-github.com/unibaseio/aip-go-sdk v0.0.0-20260716203530-f16ac86fa826/go.mod h1:o+rJGVpI8UEWayqFQ8YyIXo2aJsrdU7gkN881V/GVHg=
+github.com/unibaseio/aip-go-sdk v0.0.0-20260716210644-024763def441 h1:xRzw8oeVESLWkyxIyDY3asoz1BvREYyL30m2LLoPdX8=
+github.com/unibaseio/aip-go-sdk v0.0.0-20260716210644-024763def441/go.mod h1:o+rJGVpI8UEWayqFQ8YyIXo2aJsrdU7gkN881V/GVHg=
 github.com/urfave/cli/v2 v2.27.5 h1:WoHEJLdsXr6dDWoJgMq/CboDmyY/8HMMH1fTECbih+w=
 github.com/urfave/cli/v2 v2.27.5/go.mod h1:3Sevf16NykTbInEnD0yKkjDAeZDS0A6bzhBH5hrMvTQ=
 github.com/x402-foundation/x402/go v0.0.0-20260512144511-7c239c42f5dd h1:rSGTqN02wCjWtbUVt+Xu+4F+MoxPTEB7jo5QR/XQxb4=
