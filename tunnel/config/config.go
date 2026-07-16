@@ -61,6 +61,19 @@ var (
 	networkRegex = regexp.MustCompile(`^[a-z0-9]{3,8}:[-_a-zA-Z0-9]{1,32}$`)
 )
 
+// chainPresets are the networks selectable via the CHAIN env var. A preset
+// drives both the x402 payment network (CAIP-2) and the AIP registration
+// chain ID; AIP_CHAIN_ID still overrides the latter individually.
+var chainPresets = map[string]struct {
+	Network string
+	ChainID int
+}{
+	"bsc-testnet":  {"eip155:97", 97},
+	"bsc-mainnet":  {"eip155:56", 56},
+	"base-sepolia": {"eip155:84532", 84532},
+	"base-mainnet": {"eip155:8453", 8453},
+}
+
 func LoadConfig(path string) (*Config, error) {
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -86,6 +99,15 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("invalid price format: %q, expected format like $0.001", cfg.Price)
 	}
 
+	defaultChainID := DefaultAIPChainID
+	if chain := os.Getenv("CHAIN"); chain != "" {
+		preset, ok := chainPresets[strings.ToLower(chain)]
+		if !ok {
+			return nil, fmt.Errorf("invalid CHAIN %q: valid values are bsc-testnet, bsc-mainnet, base-sepolia, base-mainnet", chain)
+		}
+		cfg.Network = preset.Network
+		defaultChainID = preset.ChainID
+	}
 	if cfg.Network == "" {
 		cfg.Network = "eip155:8453" // Base mainnet CAIP-2 ID
 	}
@@ -97,14 +119,14 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("evm_payee_address is required")
 	}
 
-	if err := loadAIPConfig(&cfg); err != nil {
+	if err := loadAIPConfig(&cfg, defaultChainID); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-func loadAIPConfig(cfg *Config) error {
+func loadAIPConfig(cfg *Config, defaultChainID int) error {
 	cfg.AIPEnabled = getBoolEnv("AIP_ENABLED", false)
 
 	cfg.AIPUserID = os.Getenv("AIP_USER_ID")
@@ -114,7 +136,7 @@ func loadAIPConfig(cfg *Config) error {
 	cfg.AIPPublicBaseURL = getEnvOrDefault("AIP_PUBLIC_BASE_URL", DefaultAIPPublicBaseURL)
 	cfg.AIPAgentName = getEnvOrDefault("AIP_AGENT_NAME", "Robot "+cfg.RobotID)
 
-	cfg.AIPChainID = DefaultAIPChainID
+	cfg.AIPChainID = defaultChainID
 	if v := os.Getenv("AIP_CHAIN_ID"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil {
