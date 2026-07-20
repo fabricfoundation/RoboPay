@@ -27,9 +27,8 @@ import (
 	"github.com/fabricfoundation/tunnel/internal/handlers"
 )
 
-const (
-	RobotConfigTopicPrefix = "robot/config/"
-)
+// RobotConfigTopicPrefix is the Zenoh topic prefix for runtime config updates.
+const RobotConfigTopicPrefix = "robot/config/"
 
 func main() {
 	configPath := flag.String("config", "config.json", "Path to config file")
