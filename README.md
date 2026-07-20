@@ -155,3 +155,6 @@ ws connected to proxy           robot_id=<id>
 Actions received via AIP are published to the same Zenoh topic
 (`robot/tunnel/action`) as paid x402 actions, so the bridge and robot-side
 safety logic are identical for both paths.
+
+
+
