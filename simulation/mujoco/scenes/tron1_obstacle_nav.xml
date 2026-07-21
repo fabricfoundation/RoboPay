@@ -1,0 +1,169 @@
+<!--
+  LimX TRON1 Obstacle Navigation Scene for MuJoCo.
+
+  This scene contains:
+  - LimX TRON1 humanoid robot
+  - 3 box obstacles in a corridor configuration
+  - Goal marker
+  - Ground plane with friction
+
+  TRON1 Velocity Limits:
+    vx: [0, 0.8] m/s (forward only)
+    wz: [-0.3, 0.3] rad/s
+
+  Used for Tier 1 RoboPay bounty validation.
+-->
+<mujoco model="tron1_obstacle_navigation">
+  <compiler angle="radian" meshdir="." autolimits="true"/>
+
+  <option timestep="0.001" gravity="0 0 -9.81" integrator="implicitfast">
+    <flag sensornoise="disable"/>
+  </option>
+
+  <default>
+    <joint armature="0.01" damping="0.1"/>
+    <geom condim="4" friction="1.0 0.005 0.0001"/>
+    <motor ctrllimited="true"/>
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.4 0.4 0.4" rgb2="0.5 0.5 0.5" width="512" height="512"/>
+    <material name="grid_mat" texture="grid" texrepeat="10 10" reflectance="0.1"/>
+    <material name="obstacle_mat" rgba="0.8 0.2 0.2 1"/>
+    <material name="goal_mat" rgba="0.2 0.8 0.2 0.5"/>
+    <material name="robot_mat" rgba="0.2 0.4 0.7 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Ground -->
+    <geom name="ground" type="plane" size="20 20 0.1" material="grid_mat"/>
+    <light name="top_light" pos="0 0 10" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <light name="side_light" pos="5 5 5" dir="-1 -1 -1" diffuse="0.4 0.4 0.4"/>
+
+    <!-- LimX TRON1 Humanoid Robot -->
+    <body name="torso" pos="0 0 0.78">
+      <inertial mass="35.0" pos="0 0 0" diaginertia="1.0 1.0 1.0"/>
+      <geom name="torso_geom" type="capsule" size="0.15" fromto="0 -0.12 0 0 0.12 0" material="robot_mat"/>
+
+      <!-- Head -->
+      <body name="head" pos="0 0 0.25">
+        <inertial mass="2.0" pos="0 0 0" diaginertia="0.1 0.1 0.1"/>
+        <geom name="head_geom" type="sphere" size="0.12" material="robot_mat"/>
+      </body>
+
+      <!-- Left Arm -->
+      <body name="left_upper_arm" pos="0 0.2 0.1">
+        <inertial mass="2.0" pos="0 0 -0.15" diaginertia="0.05 0.05 0.05"/>
+        <joint name="left_shoulder_pitch" type="hinge" axis="1 0 0" range="-3.14 3.14"/>
+        <geom name="left_upper_arm_geom" type="capsule" size="0.04" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+
+        <body name="left_lower_arm" pos="0 0 -0.3">
+          <inertial mass="1.5" pos="0 0 -0.15" diaginertia="0.03 0.03 0.03"/>
+          <joint name="left_elbow" type="hinge" axis="0 1 0" range="-2.5 0"/>
+          <geom name="left_lower_arm_geom" type="capsule" size="0.035" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+        </body>
+      </body>
+
+      <!-- Right Arm -->
+      <body name="right_upper_arm" pos="0 -0.2 0.1">
+        <inertial mass="2.0" pos="0 0 -0.15" diaginertia="0.05 0.05 0.05"/>
+        <joint name="right_shoulder_pitch" type="hinge" axis="1 0 0" range="-3.14 3.14"/>
+        <geom name="right_upper_arm_geom" type="capsule" size="0.04" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+
+        <body name="right_lower_arm" pos="0 0 -0.3">
+          <inertial mass="1.5" pos="0 0 -0.15" diaginertia="0.03 0.03 0.03"/>
+          <joint name="right_elbow" type="hinge" axis="0 1 0" range="-2.5 0"/>
+          <geom name="right_lower_arm_geom" type="capsule" size="0.035" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+        </body>
+      </body>
+
+      <!-- Left Leg -->
+      <body name="left_thigh" pos="0 0.1 -0.2">
+        <inertial mass="5.0" pos="0 0 -0.2" diaginertia="0.1 0.1 0.1"/>
+        <joint name="left_hip_pitch" type="hinge" axis="1 0 0" range="-1.5 1.5"/>
+        <geom name="left_thigh_geom" type="capsule" size="0.06" fromto="0 0 0 0 0 -0.4" material="robot_mat"/>
+
+        <body name="left_shin" pos="0 0 -0.4">
+          <inertial mass="4.0" pos="0 0 -0.2" diaginertia="0.08 0.08 0.08"/>
+          <joint name="left_knee" type="hinge" axis="0 1 0" range="-2.5 0"/>
+          <geom name="left_shin_geom" type="capsule" size="0.05" fromto="0 0 0 0 0 -0.4" material="robot_mat"/>
+
+          <body name="left_foot" pos="0 0 -0.4">
+            <inertial mass="1.0" pos="0 0 -0.03" diaginertia="0.01 0.01 0.01"/>
+            <joint name="left_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
+            <geom name="left_foot_geom" type="box" size="0.08 0.04 0.03" pos="0 0 -0.03" material="robot_mat"/>
+            <site name="left_foot_site" pos="0 0 -0.06"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- Right Leg -->
+      <body name="right_thigh" pos="0 -0.1 -0.2">
+        <inertial mass="5.0" pos="0 0 -0.2" diaginertia="0.1 0.1 0.1"/>
+        <joint name="right_hip_pitch" type="hinge" axis="1 0 0" range="-1.5 1.5"/>
+        <geom name="right_thigh_geom" type="capsule" size="0.06" fromto="0 0 0 0 0 -0.4" material="robot_mat"/>
+
+        <body name="right_shin" pos="0 0 -0.4">
+          <inertial mass="4.0" pos="0 0 -0.2" diaginertia="0.08 0.08 0.08"/>
+          <joint name="right_knee" type="hinge" axis="0 1 0" range="-2.5 0"/>
+          <geom name="right_shin_geom" type="capsule" size="0.05" fromto="0 0 0 0 0 -0.4" material="robot_mat"/>
+
+          <body name="right_foot" pos="0 0 -0.4">
+            <inertial mass="1.0" pos="0 0 -0.03" diaginertia="0.01 0.01 0.01"/>
+            <joint name="right_ankle" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
+            <geom name="right_foot_geom" type="box" size="0.08 0.04 0.03" pos="0 0 -0.03" material="robot_mat"/>
+            <site name="right_foot_site" pos="0 0 -0.06"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- Free joint for base locomotion -->
+      <freejoint name="root"/>
+    </body>
+
+    <!-- Obstacles -->
+    <body name="obstacle_1" pos="2.5 0 0.5" mocap="true">
+      <geom name="obs1_geom" type="box" size="0.5 0.5 0.5" material="obstacle_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <body name="obstacle_2" pos="5.0 1.5 0.5" mocap="true">
+      <geom name="obs2_geom" type="box" size="0.4 0.4 0.6" material="obstacle_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <body name="obstacle_3" pos="7.0 -1.0 0.5" mocap="true">
+      <geom name="obs3_geom" type="cylinder" size="0.3 0.5" material="obstacle_mat" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Goal marker -->
+    <body name="goal" pos="10.0 0 0.05">
+      <geom name="goal_geom" type="cylinder" size="0.3 0.05" material="goal_mat" contype="0" conaffinity="0"/>
+      <site name="goal_site" pos="0 0 0.05"/>
+    </body>
+  </worldbody>
+
+  <!-- Sensors for metrics -->
+  <sensor>
+    <framepos name="torso_pos" objtype="body" objname="torso"/>
+    <framevel name="torso_vel" objtype="body" objname="torso"/>
+    <touch name="left_foot_touch" site="left_foot_site"/>
+    <touch name="right_foot_touch" site="right_foot_site"/>
+    <framepos name="goal_pos" objtype="site" objname="goal_site"/>
+  </sensor>
+
+  <!-- Actuators for locomotion (clamped to TRON1 limits) -->
+  <actuator>
+    <motor name="root_x" joint="root" gear="1 0 0 0 0 0" ctrlrange="0 80"/>
+    <motor name="root_y" joint="root" gear="0 1 0 0 0 0" ctrlrange="-30 30"/>
+    <motor name="root_yaw" joint="root" gear="0 0 0 0 0 1" ctrlrange="-30 30"/>
+    <position name="left_hip_act" joint="left_hip_pitch" kp="200" ctrlrange="-1.5 1.5"/>
+    <position name="left_knee_act" joint="left_knee" kp="200" ctrlrange="-2.5 0"/>
+    <position name="left_ankle_act" joint="left_ankle" kp="50" ctrlrange="-0.5 0.5"/>
+    <position name="right_hip_act" joint="right_hip_pitch" kp="200" ctrlrange="-1.5 1.5"/>
+    <position name="right_knee_act" joint="right_knee" kp="200" ctrlrange="-2.5 0"/>
+    <position name="right_ankle_act" joint="right_ankle" kp="50" ctrlrange="-0.5 0.5"/>
+    <position name="left_shoulder_act" joint="left_shoulder_pitch" kp="100" ctrlrange="-3.14 3.14"/>
+    <position name="left_elbow_act" joint="left_elbow" kp="100" ctrlrange="-2.5 0"/>
+    <position name="right_shoulder_act" joint="right_shoulder_pitch" kp="100" ctrlrange="-3.14 3.14"/>
+    <position name="right_elbow_act" joint="right_elbow" kp="100" ctrlrange="-2.5 0"/>
+  </actuator>
+</mujoco>
