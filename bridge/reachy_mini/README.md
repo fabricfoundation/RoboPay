@@ -88,7 +88,13 @@ bridge/reachy_mini/
 ## Reproduce
 
 ```bash
-# Terminal 1 — start the bridge
+# Option A: ROS2 (Ubuntu / colcon workspace)
+cd RoboPay/bridge
+colcon build
+source install/setup.bash
+ros2 launch mujoco_sim_bridge_reachy_mini mujoco_sim_bridge.launch.py
+
+# Option B: Standalone Python (Windows / macOS / Linux)
 python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/main.py
 
 # Terminal 2 — end-to-end link test (bridge must be running)
