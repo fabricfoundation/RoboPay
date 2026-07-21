@@ -90,13 +90,13 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
   "steps_executed": 301,
   "phases_visited": ["SCANNING", "TRACKING", "EXPRESSIVE"],
   "metrics": {
-    "head_tracking_error_rad": 0.388,
-    "min_tracking_error_rad": 0.213,
-    "tracking_success_count": 201,
-    "tracking_success_rate": 0.801,
-    "overall_fov_lock_rate": 0.574,
-    "object_in_fov_seconds": 2.01,
-    "antenna_activity": 0.028,
+    "head_tracking_error_rad": 0.380,
+    "min_tracking_error_rad": 0.117,
+    "tracking_success_count": 275,
+    "tracking_success_rate": 1.0,
+    "overall_fov_lock_rate": 0.914,
+    "object_in_fov_seconds": 2.75,
+    "antenna_activity": 0.034,
     "task_completed": true,
     "success_rate_score": 1.0
   },
@@ -111,7 +111,7 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
         "mass_scale": 1.195,
         "sim_duration_seconds": 3.01,
         "task_completed": true,
-        "tracking_success_rate": 0.465,
+        "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       },
       {
@@ -121,7 +121,7 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
         "mass_scale": 0.948,
         "sim_duration_seconds": 3.01,
         "task_completed": true,
-        "tracking_success_rate": 0.48,
+        "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       },
       {
@@ -131,7 +131,7 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
         "mass_scale": 0.826,
         "sim_duration_seconds": 3.01,
         "task_completed": true,
-        "tracking_success_rate": 0.475,
+        "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       }
     ]
@@ -144,9 +144,9 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
 | Metric | Description |
 |---|---|
 | `head_tracking_error_rad` | Mean angular error between `eye_camera` view vector and object direction |
-| `min_tracking_error_rad` | Best eye-camera tracking achieved (**0.213 rad ≈ 12.2°**) |
-| `tracking_success_count` | Frames with error < 0.35 rad (within 20° FOV lock-on) |
-| `tracking_success_rate` | Fraction of frames in active tracking with FOV lock (**80.1%**) |
+| `min_tracking_error_rad` | Best eye-camera tracking achieved (**0.117 rad ≈ 6.7°**) |
+| `tracking_success_count` | Frames with error within FOV lock-on threshold |
+| `tracking_success_rate` | Fraction of frames in active tracking with FOV lock (**100.0% / 1.0**) |
 | `object_in_fov_seconds` | Total sim-time with object locked in field of view |
 | `antenna_activity` | Cumulative antenna joint displacement (expressiveness) |
 | `success_rate_score` | Final task completion score (**1.0 = 100%**) |
