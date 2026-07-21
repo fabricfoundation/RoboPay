@@ -20,6 +20,7 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 │   └── config.json  # robot_id, payee address, price, network
 ├── bridge/          # ROS2 bridge: Zenoh action events → robot /cmd_vel
 │   ├── common/zenoh_bridge/                 # shared Zenoh + action parsing
+│   ├── dobot/cra/isaac_sim_bridge/          # Dobot CRA robot arm
 │   └── unitree/{g1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
 └── Makefile         # builds/runs the tunnel and the bridge
 ```
@@ -53,10 +54,10 @@ source .venv/bin/activate
 uv pip install eclipse-zenoh
 
 make bridge-build
-make bridge-run                 # defaults to G1; ROBOT=go2 or ROBOT=tron1 to switch
+make bridge-run                 # defaults to G1; ROBOT=go2, ROBOT=tron1, or ROBOT=cra to switch
 ```
 
-Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, and `isaac_sim_bridge_tron1` (G1 is validated; Go2 and Tron1 are placeholders). The adapter subscribes to the Zenoh topic `robot/tunnel/action` and republishes mapped velocities on ROS2 `/cmd_vel`.
+Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, `isaac_sim_bridge_tron1`, and `isaac_sim_bridge_cra` (G1 is validated; Go2 and Tron1 are placeholders; CRA is a collaborative robot arm). The adapter subscribes to the Zenoh topic `robot/tunnel/action` and republishes mapped velocities on ROS2 `/cmd_vel`.
 
 ## 3. Start the tunnel
 
