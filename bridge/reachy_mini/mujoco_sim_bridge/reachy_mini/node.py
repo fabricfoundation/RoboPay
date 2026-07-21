@@ -150,3 +150,18 @@ class ReachyMiniBridgeNode:
             self._sub.undeclare()
             self._pub.undeclare()
             self._session.close()
+
+
+def main(args=None):
+    try:
+        import rclpy
+        rclpy.init(args=args)
+    except Exception:
+        pass
+
+    bridge = ReachyMiniBridgeNode()
+    bridge.spin()
+
+
+if __name__ == "__main__":
+    main()
