@@ -15,7 +15,7 @@ sys.path.insert(0, _BRIDGE_SRC)
 OUTPUT_FILE = r"C:\Users\Kauker\Documents\antigravity\friendly-bardeen\RoboPay\bridge\reachy_mini\mujoco_sim_bridge\src\simulation\webots_sim2sim_result.json"
 
 TARGETS = ["apple", "croissant", "duck"]
-MAX_PER_TARGET = 3.5
+MAX_PER_TARGET = 4.0
 
 from controller import Supervisor
 from policy.controller import ReachyTaskPolicy
@@ -57,8 +57,6 @@ def main():
     timestep  = int(robot.getBasicTimeStep())
 
     yaw_motor = robot.getDevice("yaw_body")
-    yaw_motor.setPosition(float('inf'))
-    yaw_motor.setVelocity(0.0)
     yaw_sensor = robot.getDevice("yaw_body_sensor")
     yaw_sensor.enable(timestep)
 
@@ -85,8 +83,9 @@ def main():
             phase_history.append(phase)
             last_summary = metrics.update(obs)
 
-            err = float(action[0]) - yaw_sensor.getValue()
-            yaw_motor.setVelocity(float(np.clip(3.0 * err, -2.5, 2.5)))
+            # Position control directly on rotational motor
+            target_yaw = float(action[0])
+            yaw_motor.setPosition(target_yaw)
 
             if elapsed >= MAX_PER_TARGET:
                 break
@@ -99,6 +98,7 @@ def main():
             "min_tracking_error_rad":round(float(s["min_tracking_error_rad"]), 4),
             "success_rate_score":    round(float(s["success_rate_score"]), 4),
         })
+        print(f"[WebotsController] {target_name.upper()} done: tracking_rate={s['tracking_success_rate']:.2f}")
 
     avg_score = float(np.mean([r["success_rate_score"] for r in all_results]))
     result = {
@@ -115,6 +115,7 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(result, f, indent=2)
 
+    print(f"[WebotsController] ALL DONE! score={avg_score:.3f}")
     robot.simulationQuit(0)
 
 
