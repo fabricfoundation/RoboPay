@@ -17,7 +17,7 @@ The Reachy Mini is an **expressive social robot** — it has no arms. Its actuat
 | `right_antenna` | Right expressiveness antenna | passive |
 | `left_antenna` | Left expressiveness antenna | passive |
 
-The skill demonstrated here is **active object tracking** — the robot locates the `apple` object in the scene, rotates its torso to point toward it, and expresses recognition through animated head movement and antennae.
+The skill demonstrated here is **active object tracking** — the robot locates the target object in the scene, rotates its torso to point toward it, and expresses recognition through animated head movement and antennae.
 
 ---
 
@@ -30,7 +30,7 @@ Fabric Proxy (cloud)
 Tunnel (tunnel/ — Go)
     │  publishes Zenoh topic: robot/tunnel/action
     ▼
-Bridge (this package — Python)
+Bridge (ROS2 / Python — mujoco_sim_bridge_reachy_mini)
     │  receives ActionEvent → runs FSM policy on official Reachy Mini MJCF
     ▼
 MuJoCo (official reachy_mini package scene — apple, duck, croissant, table)
@@ -155,12 +155,24 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
 
 ## Repository Layout
 
+Matches the official ROS2 `ament_python` package layout:
+
 ```
 bridge/reachy_mini/
 ├── mujoco_sim_bridge/
-│   ├── main.py                     # Bridge entrypoint (run this)
+│   ├── package.xml                 # ROS2 ament_python package manifest
+│   ├── setup.py                    # ROS2 package setup & console scripts
+│   ├── setup.cfg                   # ROS2 script installation targets
+│   ├── launch/
+│   │   └── mujoco_sim_bridge.launch.py  # ROS2 Launch file
+│   ├── config/
+│   │   └── default.yaml            # ROS2 YAML parameters
+│   ├── resource/
+│   │   └── mujoco_sim_bridge_reachy_mini # ROS2 ament resource marker
+│   ├── main.py                     # Standalone Python entrypoint
+│   ├── visualize.py                # 3D interactive viewer GUI
 │   ├── reachy_mini/
-│   │   ├── node.py                 # Zenoh subscriber node
+│   │   ├── node.py                 # ROS2 / Zenoh subscriber node
 │   │   └── mapper.py               # ActionEvent → task mapper
 │   └── src/
 │       ├── simulation/
@@ -187,13 +199,22 @@ pip install -r requirements.txt
 pip install "reachy-mini[mujoco]" eclipse-zenoh
 ```
 
-> **Note**: The `reachy-mini` package provides the official robot MJCF with all STL mesh assets — no manual model download required.
-
 ---
 
 ## Running the Bridge
 
-### Option 1 — Local testing (two terminals)
+### Option A — ROS2 Humble Launch (Ubuntu / ROS2)
+
+```bash
+# Build with colcon
+colcon build --packages-select mujoco_sim_bridge_reachy_mini
+source install/setup.bash
+
+# Run via ROS2 launch
+ros2 launch mujoco_sim_bridge_reachy_mini mujoco_sim_bridge.launch.py
+```
+
+### Option B — Direct Python Execution (Cross-Platform: Windows, macOS, Linux)
 
 **Terminal 1 — Start the bridge:**
 ```bash
@@ -207,12 +228,6 @@ python RoboPay/bridge/reachy_mini/test_publisher.py --action look_at_apple
 python RoboPay/bridge/reachy_mini/test_publisher.py --action object_tracking
 python RoboPay/bridge/reachy_mini/test_publisher.py --action wave
 ```
-
-The bridge receives the event, loads the official Reachy Mini MJCF, runs the FSM policy, and publishes metrics. The publisher terminal prints the full JSON result.
-
-### Option 2 — With the real Fabric Tunnel (Linux/Go)
-
-Follow the tunnel setup from [`tunnel/README.md`](../../../tunnel/README.md), then start the bridge as above.
 
 ---
 
@@ -231,14 +246,3 @@ All actions map to the `object_tracking` task (the robot's actual skill set):
 ## Sim-to-Sim Validation
 
 The bridge automatically runs 3 physics-variation trials with randomised friction (×0.75–1.25) and apple mass (×0.80–1.20) to validate policy robustness. Results are reported under `sim_to_sim_validation` in the metrics payload.
-
----
-
-## Design Notes
-
-- **Official model**: Loads `scenes/minimal.xml` from the installed `reachy-mini` package, with real STL meshes, accurate inertia tensors, and calibrated servo parameters (`kp`, `forcerange`).
-- **No ROS2 required**: Uses `eclipse-zenoh` (Python) directly — runs on Windows, macOS, and Linux.
-- **Headless MuJoCo**: No display server needed.
-- **Same bridge pattern as G1**: `node.py` mirrors `bridge/unitree/g1/isaac_sim_bridge/g1/node.py`.
-- **Policy-driven (not replay)**: `yaw_body` target is computed each step from live object positions in simulation state.
-- **True Eye Alignment**: Computes view vector from `eye_camera` for accurate angular tracking (`min_tracking_error = 12.2°`).
