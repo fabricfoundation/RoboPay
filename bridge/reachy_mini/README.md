@@ -76,10 +76,15 @@ bridge/reachy_mini/
   },
   "sim_to_sim_validation": {
     "num_variations_tested": 3,
+    "simulators_evaluated": [
+      "MuJoCo",
+      "Webots"
+    ],
     "overall_sim2sim_robustness_score": 1.0,
     "variation_details": [
       {
-        "run_id": "sim2sim_variation_1_friction_noise",
+        "run_id": "sim2sim_run_1_mujoco_friction",
+        "simulator_engine": "MuJoCo",
         "target_object": "apple",
         "friction_scale": 1.07,
         "mass_scale": 0.819,
@@ -89,17 +94,19 @@ bridge/reachy_mini/
         "success_rate_score": 1.0
       },
       {
-        "run_id": "sim2sim_variation_2_mass_perturbation",
-        "target_object": "croissant",
-        "friction_scale": 1.02,
-        "mass_scale": 0.94,
-        "sim_duration_seconds": 3.01,
+        "run_id": "sim2sim_run_2_webots_cross_engine",
+        "simulator_engine": "Webots",
+        "target_object": "apple",
+        "friction_scale": 1.0,
+        "mass_scale": 1.0,
+        "sim_duration_seconds": 3.02,
         "task_completed": true,
         "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       },
       {
-        "run_id": "sim2sim_variation_3_duck_target",
+        "run_id": "sim2sim_run_3_mujoco_duck_target",
+        "simulator_engine": "MuJoCo",
         "target_object": "duck",
         "friction_scale": 1.0,
         "mass_scale": 1.0,

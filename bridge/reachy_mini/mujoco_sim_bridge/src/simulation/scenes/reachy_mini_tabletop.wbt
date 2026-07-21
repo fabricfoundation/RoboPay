@@ -1,0 +1,82 @@
+#VRML_SIM R2023b utf8
+
+# Hugging Face Reachy Mini Tabletop Scene — Webots Sim-to-Sim Validation
+
+WorldInfo {
+  info [ "Hugging Face Reachy Mini — Webots Sim-to-Sim Validation" ]
+  title "reachy_mini_tabletop"
+  basicTimeStep 5
+  FPS 60
+}
+
+Viewpoint {
+  orientation -0.2 0.8 0.6 0.9
+  position 1.5 -1.2 1.0
+}
+
+Background { skyColor [ 0.4 0.7 1.0 ] }
+
+DirectionalLight {
+  ambientLight 0.4 0.4 0.4
+  color 1 1 1
+  direction 0.5 0.5 -1
+  intensity 1.5
+}
+
+# Table
+Solid {
+  translation 0.6 0 0.0
+  name "table"
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.6 0.4 0.2 roughness 0.5 }
+      geometry Box { size 0.8 1.0 0.05 }
+    }
+  ]
+}
+
+# Target Objects
+Solid {
+  translation 0.6 -0.2 0.03
+  name "apple"
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.9 0.1 0.1 }
+      geometry Sphere { radius 0.04 }
+    }
+  ]
+}
+
+Solid {
+  translation 0.6 0.1 0.03
+  name "croissant"
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.8 0.5 0.2 }
+      geometry Box { size 0.08 0.05 0.04 }
+    }
+  ]
+}
+
+Solid {
+  translation 0.6 0.3 0.02
+  name "duck"
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.9 0.9 0.1 }
+      geometry Sphere { radius 0.035 }
+    }
+  ]
+}
+
+# Robot Base
+Robot {
+  translation 0 0 0.05
+  name "reachy_mini"
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.2 0.2 0.25 }
+      geometry Cylinder { height 0.1 radius 0.09 }
+    }
+  ]
+}

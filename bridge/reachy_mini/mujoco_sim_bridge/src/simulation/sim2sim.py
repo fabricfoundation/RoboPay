@@ -1,13 +1,19 @@
 import numpy as np
-import mujoco
+import os
+import sys
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+
+from webots_env import ReachyMiniWebotsEnvironment
 
 
 class Sim2SimValidator:
-    """Sim-to-Sim validation runner for Reachy Mini head-tracking task.
+    """Multi-simulator & physical variation Sim-to-Sim validator.
 
-    Evaluates policy generalization across 3 randomized physical conditions
-    (surface friction, body mass perturbation, alternate target object) to guarantee
-    robustness against simulation dynamics variations.
+    Validates policy generalization across both MuJoCo physics perturbations
+    and cross-simulator Webots execution.
     """
 
     def __init__(self, env_cls, policy_cls, metrics_cls):
@@ -18,7 +24,7 @@ class Sim2SimValidator:
     def run_validation(self, num_runs: int = 3) -> dict:
         results = []
 
-        # Run 1: Friction noise perturbation (Apple target)
+        # Run 1: MuJoCo Physics (Friction scale + mass perturbation)
         env1     = self.env_cls()
         policy1  = self.policy_cls()
         metrics1 = self.metrics_cls()
@@ -27,6 +33,7 @@ class Sim2SimValidator:
         mass_scale     = float(np.random.uniform(0.80, 1.20))
         env1.model.geom_friction[:, 0] *= friction_scale
 
+        import mujoco
         apple_id = mujoco.mj_name2id(env1.model, mujoco.mjtObj.mjOBJ_BODY, "apple")
         if apple_id >= 0:
             env1.model.body_mass[apple_id] *= mass_scale
@@ -46,7 +53,8 @@ class Sim2SimValidator:
 
         summary1 = metrics1.get_summary()
         results.append({
-            "run_id":                "sim2sim_variation_1_friction_noise",
+            "run_id":                "sim2sim_run_1_mujoco_friction",
+            "simulator_engine":      "MuJoCo",
             "target_object":         "apple",
             "friction_scale":        round(friction_scale, 3),
             "mass_scale":            round(mass_scale, 3),
@@ -56,16 +64,12 @@ class Sim2SimValidator:
             "success_rate_score":    round(float(summary1["success_rate_score"]), 3),
         })
 
-        # Run 2: Mass noise perturbation (Croissant target)
-        env2     = self.env_cls()
+        # Run 2: Webots Cross-Simulator Engine Validation
+        env2     = ReachyMiniWebotsEnvironment(target_object="apple")
         policy2  = self.policy_cls()
         metrics2 = self.metrics_cls()
 
-        friction_scale2 = float(np.random.uniform(0.80, 1.20))
-        mass_scale2     = float(np.random.uniform(0.85, 1.15))
-        env2.model.geom_friction[:, 0] *= friction_scale2
-
-        obs2 = env2.reset(target_object="croissant")
+        obs2 = env2.reset(target_object="apple")
         policy2.reset()
         metrics2.reset(obs2)
 
@@ -80,17 +84,18 @@ class Sim2SimValidator:
 
         summary2 = metrics2.get_summary()
         results.append({
-            "run_id":                "sim2sim_variation_2_mass_perturbation",
-            "target_object":         "croissant",
-            "friction_scale":        round(friction_scale2, 3),
-            "mass_scale":            round(mass_scale2, 3),
+            "run_id":                "sim2sim_run_2_webots_cross_engine",
+            "simulator_engine":      "Webots",
+            "target_object":         "apple",
+            "friction_scale":        1.000,
+            "mass_scale":            1.000,
             "sim_duration_seconds":  round(float(obs2["sim_time"]), 2),
             "task_completed":        summary2["task_completed"],
             "tracking_success_rate": round(float(summary2["tracking_success_rate"]), 3),
             "success_rate_score":    round(float(summary2["success_rate_score"]), 3),
         })
 
-        # Run 3: Multi-target verification (Duck target)
+        # Run 3: MuJoCo Multi-Target Verification (Duck target)
         env3     = self.env_cls()
         policy3  = self.policy_cls()
         metrics3 = self.metrics_cls()
@@ -110,7 +115,8 @@ class Sim2SimValidator:
 
         summary3 = metrics3.get_summary()
         results.append({
-            "run_id":                "sim2sim_variation_3_duck_target",
+            "run_id":                "sim2sim_run_3_mujoco_duck_target",
+            "simulator_engine":      "MuJoCo",
             "target_object":         "duck",
             "friction_scale":        1.000,
             "mass_scale":            1.000,
@@ -123,6 +129,7 @@ class Sim2SimValidator:
         avg_score = float(np.mean([r["success_rate_score"] for r in results]))
         return {
             "num_variations_tested":            len(results),
+            "simulators_evaluated":             ["MuJoCo", "Webots"],
             "overall_sim2sim_robustness_score": round(avg_score, 3),
             "variation_details":                results,
         }
