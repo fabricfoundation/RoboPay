@@ -1,0 +1,16 @@
+schemaVersion: robot-profile.v1
+vendor: unitree
+robotModel: go2
+robotType: mujoco-webots-sim
+profileId: unitree.go2.mujoco-webots-sim.v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: tunnel (this repo, Go) + simulation/go2/robopay_link.py
+  simulators: [mujoco, webots]
+maintainers:
+  - github: HipeeX
+status: experimental
+scope: simulator-only

@@ -1,0 +1,46 @@
+{
+ "actionId": "act_example",
+ "robotId": "test-robot",
+ "skillId": "navigate_to",
+ "params": {
+  "goal": [
+   10.0,
+   0.0
+  ],
+  "obstacles": [
+   [
+    "box",
+    2.5,
+    0,
+    0.5,
+    0.5,
+    0.5
+   ],
+   [
+    "box",
+    5.0,
+    1.5,
+    0.4,
+    0.4,
+    0.6
+   ],
+   [
+    "cylinder",
+    7.0,
+    -1.0,
+    0.3,
+    0.5
+   ]
+  ]
+ },
+ "paramsHash": "e781d5959b659c8e66d787dccf717601b268dccffa1c3b726298be47f007fc45",
+ "idempotencyKey": "example-navigate-001",
+ "payment": {
+  "scheme": "exact",
+  "network": "eip155:84532",
+  "payer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "amountUSDC": "0.002",
+  "txHash": "0xabababababababababababababababababababababababababababababababab",
+  "simulated": true
+ }
+}
