@@ -1,19 +1,26 @@
+"""Sim-to-Sim validator: MuJoCo physics variations + real Webots subprocess."""
+import json
+import mujoco
 import numpy as np
 import os
+import subprocess
 import sys
+import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-if _HERE not in sys.path:
-    sys.path.insert(0, _HERE)
 
-from webots_env import ReachyMiniWebotsEnvironment
+_WEBOTS_EXE  = r"C:\Users\Kauker\AppData\Local\Programs\Webots\msys64\mingw64\bin\webots.exe"
+_WEBOTS_WBT  = os.path.normpath(os.path.join(_HERE, "scenes", "reachy_mini_tabletop.wbt"))
+_WEBOTS_JSON = os.path.normpath(os.path.join(_HERE, "webots_sim2sim_result.json"))
+_WEBOTS_TIMEOUT = 90  # seconds
 
 
 class Sim2SimValidator:
-    """Multi-simulator & physical variation Sim-to-Sim validator.
+    """Multi-simulator Sim-to-Sim validator.
 
-    Validates policy generalization across both MuJoCo physics perturbations
-    and cross-simulator Webots execution.
+    Run 1: MuJoCo with randomized friction + mass perturbation (apple target).
+    Run 2: Real Webots R2023b subprocess — same policy, same scene, 3 targets.
+    Run 3: MuJoCo with alternate target (duck) to verify multi-object tracking.
     """
 
     def __init__(self, env_cls, policy_cls, metrics_cls):
@@ -21,112 +28,175 @@ class Sim2SimValidator:
         self.policy_cls  = policy_cls
         self.metrics_cls = metrics_cls
 
+    # ── private helpers ────────────────────────────────────────────────────────
+
+    def _run_mujoco(self, target_object: str, friction_scale: float,
+                    mass_scale: float, run_id: str) -> dict:
+        env     = self.env_cls()
+        policy  = self.policy_cls()
+        metrics = self.metrics_cls()
+
+        env.model.geom_friction[:, 0] *= friction_scale
+        body_id = mujoco.mj_name2id(env.model, mujoco.mjtObj.mjOBJ_BODY, target_object)
+        if body_id >= 0:
+            env.model.body_mass[body_id] *= mass_scale
+
+        obs = env.reset(target_object=target_object)
+        policy.reset()
+        metrics.reset(obs)
+
+        last = {}
+        while obs["sim_time"] < 8.0:
+            action, _ = policy.compute_action(obs, last)
+            env.set_control(action)
+            obs  = env.step(steps=5)
+            last = metrics.update(obs)
+            if last.get("task_completed", False):
+                break
+
+        s = metrics.get_summary()
+        return {
+            "run_id":                run_id,
+            "simulator_engine":      "MuJoCo",
+            "target_object":         target_object,
+            "friction_scale":        round(friction_scale, 3),
+            "mass_scale":            round(mass_scale, 3),
+            "sim_duration_seconds":  round(float(obs["sim_time"]), 2),
+            "task_completed":        s["task_completed"],
+            "tracking_success_rate": round(float(s["tracking_success_rate"]), 3),
+            "success_rate_score":    round(float(s["success_rate_score"]), 3),
+        }
+
+    def _run_webots_subprocess(self) -> dict:
+        """Launch the real Webots binary in batch/fast mode and collect results."""
+        # Remove stale result file if present
+        if os.path.exists(_WEBOTS_JSON):
+            os.remove(_WEBOTS_JSON)
+
+        if not os.path.isfile(_WEBOTS_EXE):
+            print("[Sim2Sim] Webots executable not found — skipping Webots run.")
+            return self._webots_fallback()
+
+        cmd = [
+            _WEBOTS_EXE,
+            "--batch",
+            "--mode=fast",
+            "--no-rendering",
+            _WEBOTS_WBT,
+        ]
+
+        print("[Sim2Sim] Launching Webots subprocess …")
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+            )
+        except Exception as exc:
+            print(f"[Sim2Sim] Failed to start Webots: {exc}")
+            return self._webots_fallback()
+
+        # Poll until result JSON appears or timeout
+        t0 = time.time()
+        while time.time() - t0 < _WEBOTS_TIMEOUT:
+            if os.path.exists(_WEBOTS_JSON):
+                time.sleep(0.5)   # let the controller finish writing
+                break
+            if proc.poll() is not None:
+                break
+            time.sleep(1.0)
+
+        # Terminate Webots (it may already have quit via simulationQuit)
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except Exception:
+            pass
+
+        if not os.path.exists(_WEBOTS_JSON):
+            print("[Sim2Sim] Webots result not found — falling back to Python sim.")
+            return self._webots_fallback()
+
+        try:
+            with open(_WEBOTS_JSON) as f:
+                raw = json.load(f)
+            print(f"[Sim2Sim] Webots result loaded: score={raw.get('success_rate_score', '?')}")
+            raw["run_id"]           = "sim2sim_run_2_webots_subprocess"
+            raw["simulator_engine"] = "Webots"
+            return raw
+        except Exception as exc:
+            print(f"[Sim2Sim] Failed to read Webots result: {exc}")
+            return self._webots_fallback()
+
+    def _webots_fallback(self) -> dict:
+        """Python-level Webots approximation when subprocess is unavailable."""
+        from webots_env import ReachyMiniWebotsEnvironment
+        env     = ReachyMiniWebotsEnvironment(target_object="apple")
+        policy  = self.policy_cls()
+        metrics = self.metrics_cls()
+
+        obs = env.reset(target_object="apple")
+        policy.reset()
+        metrics.reset(obs)
+
+        last = {}
+        while obs["sim_time"] < 8.0:
+            action, _ = policy.compute_action(obs, last)
+            env.set_control(action)
+            obs  = env.step(steps=5)
+            last = metrics.update(obs)
+            if last.get("task_completed", False):
+                break
+
+        s = metrics.get_summary()
+        return {
+            "run_id":                "sim2sim_run_2_webots_fallback",
+            "simulator_engine":      "Webots (Python approximation)",
+            "target_object":         "apple",
+            "sim_duration_seconds":  round(float(obs["sim_time"]), 2),
+            "task_completed":        s["task_completed"],
+            "tracking_success_rate": round(float(s["tracking_success_rate"]), 3),
+            "success_rate_score":    round(float(s["success_rate_score"]), 3),
+        }
+
+    # ── public ─────────────────────────────────────────────────────────────────
+
     def run_validation(self, num_runs: int = 3) -> dict:
         results = []
 
-        # Run 1: MuJoCo Physics (Friction scale + mass perturbation)
-        env1     = self.env_cls()
-        policy1  = self.policy_cls()
-        metrics1 = self.metrics_cls()
-
+        # Run 1 — MuJoCo, friction + mass noise, apple
         friction_scale = float(np.random.uniform(0.75, 1.25))
         mass_scale     = float(np.random.uniform(0.80, 1.20))
-        env1.model.geom_friction[:, 0] *= friction_scale
+        results.append(self._run_mujoco(
+            target_object="apple",
+            friction_scale=friction_scale,
+            mass_scale=mass_scale,
+            run_id="sim2sim_run_1_mujoco_apple",
+        ))
 
-        import mujoco
-        apple_id = mujoco.mj_name2id(env1.model, mujoco.mjtObj.mjOBJ_BODY, "apple")
-        if apple_id >= 0:
-            env1.model.body_mass[apple_id] *= mass_scale
+        # Run 2 — MuJoCo, friction + mass noise, croissant
+        friction_scale2 = float(np.random.uniform(0.75, 1.25))
+        mass_scale2     = float(np.random.uniform(0.80, 1.20))
+        results.append(self._run_mujoco(
+            target_object="croissant",
+            friction_scale=friction_scale2,
+            mass_scale=mass_scale2,
+            run_id="sim2sim_run_2_mujoco_croissant",
+        ))
 
-        obs1 = env1.reset(target_object="apple")
-        policy1.reset()
-        metrics1.reset(obs1)
+        # Run 3 — Real Webots subprocess (apple + croissant + duck)
+        results.append(self._run_webots_subprocess())
 
-        last_summary1 = {}
-        while obs1["sim_time"] < 8.0:
-            action, _ = policy1.compute_action(obs1, last_summary1)
-            env1.set_control(action)
-            obs1          = env1.step(steps=5)
-            last_summary1 = metrics1.update(obs1)
-            if last_summary1.get("task_completed", False):
-                break
+        # Run 4 — MuJoCo, duck target, nominal physics
+        results.append(self._run_mujoco(
+            target_object="duck",
+            friction_scale=1.0,
+            mass_scale=1.0,
+            run_id="sim2sim_run_4_mujoco_duck",
+        ))
 
-        summary1 = metrics1.get_summary()
-        results.append({
-            "run_id":                "sim2sim_run_1_mujoco_friction",
-            "simulator_engine":      "MuJoCo",
-            "target_object":         "apple",
-            "friction_scale":        round(friction_scale, 3),
-            "mass_scale":            round(mass_scale, 3),
-            "sim_duration_seconds":  round(float(obs1["sim_time"]), 2),
-            "task_completed":        summary1["task_completed"],
-            "tracking_success_rate": round(float(summary1["tracking_success_rate"]), 3),
-            "success_rate_score":    round(float(summary1["success_rate_score"]), 3),
-        })
-
-        # Run 2: Webots Cross-Simulator Engine Validation
-        env2     = ReachyMiniWebotsEnvironment(target_object="apple")
-        policy2  = self.policy_cls()
-        metrics2 = self.metrics_cls()
-
-        obs2 = env2.reset(target_object="apple")
-        policy2.reset()
-        metrics2.reset(obs2)
-
-        last_summary2 = {}
-        while obs2["sim_time"] < 8.0:
-            action, _ = policy2.compute_action(obs2, last_summary2)
-            env2.set_control(action)
-            obs2          = env2.step(steps=5)
-            last_summary2 = metrics2.update(obs2)
-            if last_summary2.get("task_completed", False):
-                break
-
-        summary2 = metrics2.get_summary()
-        results.append({
-            "run_id":                "sim2sim_run_2_webots_cross_engine",
-            "simulator_engine":      "Webots",
-            "target_object":         "apple",
-            "friction_scale":        1.000,
-            "mass_scale":            1.000,
-            "sim_duration_seconds":  round(float(obs2["sim_time"]), 2),
-            "task_completed":        summary2["task_completed"],
-            "tracking_success_rate": round(float(summary2["tracking_success_rate"]), 3),
-            "success_rate_score":    round(float(summary2["success_rate_score"]), 3),
-        })
-
-        # Run 3: MuJoCo Multi-Target Verification (Duck target)
-        env3     = self.env_cls()
-        policy3  = self.policy_cls()
-        metrics3 = self.metrics_cls()
-
-        obs3 = env3.reset(target_object="duck")
-        policy3.reset()
-        metrics3.reset(obs3)
-
-        last_summary3 = {}
-        while obs3["sim_time"] < 8.0:
-            action, _ = policy3.compute_action(obs3, last_summary3)
-            env3.set_control(action)
-            obs3          = env3.step(steps=5)
-            last_summary3 = metrics3.update(obs3)
-            if last_summary3.get("task_completed", False):
-                break
-
-        summary3 = metrics3.get_summary()
-        results.append({
-            "run_id":                "sim2sim_run_3_mujoco_duck_target",
-            "simulator_engine":      "MuJoCo",
-            "target_object":         "duck",
-            "friction_scale":        1.000,
-            "mass_scale":            1.000,
-            "sim_duration_seconds":  round(float(obs3["sim_time"]), 2),
-            "task_completed":        summary3["task_completed"],
-            "tracking_success_rate": round(float(summary3["tracking_success_rate"]), 3),
-            "success_rate_score":    round(float(summary3["success_rate_score"]), 3),
-        })
-
-        avg_score = float(np.mean([r["success_rate_score"] for r in results]))
+        avg_score = float(np.mean([r.get("success_rate_score", 0.0) for r in results]))
         return {
             "num_variations_tested":            len(results),
             "simulators_evaluated":             ["MuJoCo", "Webots"],
