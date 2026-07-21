@@ -4,12 +4,14 @@ Runs the simulation in continuous loop at 1.0x real-time speed with smooth,
 physically realistic motor motion (slew-rate velocity limited).
 Close the viewer window or press ESC to exit.
 """
+import os
 import sys
 import time
 import pathlib
 
-sys.path.insert(0, 'RoboPay/bridge/reachy_mini/mujoco_sim_bridge')
-sys.path.insert(0, 'RoboPay/bridge/reachy_mini/mujoco_sim_bridge/src')
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
 
 import mujoco
 import mujoco.viewer
