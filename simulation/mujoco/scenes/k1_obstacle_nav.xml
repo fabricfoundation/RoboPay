@@ -6,7 +6,7 @@
 <mujoco model="booster-k1_obstacle_navigation">
   <compiler angle="radian" meshdir="." autolimits="true"/>
   <option timestep="0.001" gravity="0 0 -9.81" integrator="implicitfast">
-    <flag sensornoise="disable"/>
+    <flag/>
   </option>
   <default>
     <joint armature="0.01" damping="0.1"/>
@@ -101,10 +101,6 @@
   </worldbody>
   <sensor>
     <framepos name="torso_pos" objtype="body" objname="torso"/>
-    <framevel name="torso_vel" objtype="body" objname="torso"/>
-    <touch name="left_foot_touch" site="left_foot_site"/>
-    <touch name="right_foot_touch" site="right_foot_site"/>
-    <framepos name="goal_pos" objtype="site" objname="goal_site"/>
   </sensor>
   <actuator>
     <motor name="root_x" joint="root" gear="1 0 0 0 0 0" ctrlrange="-100 100"/>
