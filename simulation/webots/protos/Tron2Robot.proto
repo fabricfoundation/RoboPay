@@ -1,0 +1,117 @@
+# VRML_SEGMENT_INLINE
+# LimX TRON2 Webots PROTO for Sim-to-Sim validation.
+# Simplified humanoid model matching MuJoCo scene.
+PROTO TRON2Robot [
+  field SFVec3f    translation  0 0 0.78
+  field SFRotation rotation     0 0 1 0
+  field SFString   name         "limx-tron2"
+]
+{
+  DEF TRON2 Robot {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    children [
+      # Torso
+      DEF TORSO Solid {
+        children [
+          Capsule {
+            height 0.3
+            radius 0.15
+            appearance PBRAppearance {
+              baseColor 0.3 0.3 0.3
+              roughness 0.6
+            }
+          }
+          # Head
+          Solid {
+            translation 0 0 0.25
+            children [
+              Sphere {
+                radius 0.12
+                appearance PBRAppearance {
+                  baseColor 0.3 0.3 0.3
+                }
+              }
+            ]
+          }
+          # Left Leg
+          Solid {
+            translation 0 0.1 -0.2
+            children [
+              Capsule {
+                height 0.4
+                radius 0.06
+                appearance PBRAppearance { baseColor 0.3 0.3 0.3 }
+              }
+              Solid {
+                translation 0 0 -0.4
+                children [
+                  Capsule {
+                    height 0.4
+                    radius 0.05
+                    appearance PBRAppearance { baseColor 0.3 0.3 0.3 }
+                  }
+                  Solid {
+                    translation 0 0 -0.4
+                    children [
+                      Box {
+                        size 0.16 0.08 0.06
+                        appearance PBRAppearance { baseColor 0.3 0.3 0.3 }
+                      }
+                    ]
+                    name "left_foot"
+                  }
+                ]
+              }
+            ]
+          }
+          # Right Leg
+          Solid {
+            translation 0 -0.1 -0.2
+            children [
+              Capsule {
+                height 0.4
+                radius 0.06
+                appearance PBRAppearance { baseColor 0.3 0.3 0.3 }
+              }
+              Solid {
+                translation 0 0 -0.4
+                children [
+                  Capsule {
+                    height 0.4
+                    radius 0.05
+                    appearance PBRAppearance { baseColor 0.3 0.3 0.3 }
+                  }
+                  Solid {
+                    translation 0 0 -0.4
+                    children [
+                      Box {
+                        size 0.16 0.08 0.06
+                        appearance PBRAppearance { baseColor 0.3 0.3 0.3 }
+                      }
+                    ]
+                    name "right_foot"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+        name "torso"
+        physics Physics {
+          mass 35.0
+          inertiaMatrix [
+            1.0 0 0
+            0 1.0 0
+            0 0 1.0
+          ]
+        }
+      }
+    ]
+    physics Physics {
+      mass 50.0
+    }
+    controller "limx-tron2_navigation"
+  }
+}
