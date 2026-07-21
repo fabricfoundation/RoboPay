@@ -32,6 +32,14 @@ _ae_mod  = _ilu.module_from_spec(_ae_spec)
 _ae_spec.loader.exec_module(_ae_mod)
 parse_action_event = _ae_mod.parse_action_event
 
+try:
+    import rclpy
+    from rclpy.node import Node as ROSNode
+    HAS_ROS2 = True
+except ImportError:
+    HAS_ROS2 = False
+    ROSNode = object
+
 logger = logging.getLogger("ReachyMiniBridgeNode")
 
 
@@ -39,10 +47,17 @@ ZENOH_TOPIC_ACTION  = "robot/tunnel/action"
 ZENOH_TOPIC_METRICS = "robot/reachy_mini/metrics"
 
 
-class ReachyMiniBridgeNode:
-    """Zenoh subscriber node for Reachy Mini MuJoCo simulation bridge."""
+class ReachyMiniBridgeNode(ROSNode):
+    """Zenoh subscriber node for Reachy Mini MuJoCo simulation bridge.
+    
+    Inherits from rclpy.node.Node when ROS2 is installed, or functions as a
+    standalone Zenoh subscriber node when running outside ROS2 environment.
+    """
 
     def __init__(self, zenoh_listen: str = "tcp/127.0.0.1:7447"):
+        if HAS_ROS2:
+            super().__init__("mujoco_sim_bridge_reachy_mini")
+
         self._mapper  = ReachyMapper()
         self._env     = ReachyMiniEnvironment()
         self._policy  = ReachyTaskPolicy()
@@ -62,8 +77,20 @@ class ReachyMiniBridgeNode:
         # Publisher for metrics
         self._pub = self._session.declare_publisher(ZENOH_TOPIC_METRICS)
 
-        logger.info(f"Bridge node ready. Listening on Zenoh topic: {ZENOH_TOPIC_ACTION}")
-        logger.info(f"Metrics will be published to: {ZENOH_TOPIC_METRICS}")
+        self._log_info(f"Bridge node ready. Listening on Zenoh topic: {ZENOH_TOPIC_ACTION}")
+        self._log_info(f"Metrics will be published to: {ZENOH_TOPIC_METRICS}")
+
+    def _log_info(self, msg: str):
+        if HAS_ROS2 and hasattr(self, "get_logger"):
+            self.get_logger().info(msg)
+        else:
+            logger.info(msg)
+
+    def _log_error(self, msg: str):
+        if HAS_ROS2 and hasattr(self, "get_logger"):
+            self.get_logger().error(msg)
+        else:
+            logger.error(msg)
 
     def _on_action(self, sample):
         """Callback triggered when tunnel publishes an ActionEvent via Zenoh."""
@@ -71,13 +98,13 @@ class ReachyMiniBridgeNode:
         event = parse_action_event(raw)
 
         if event is None:
-            logger.error("Failed to parse ActionEvent payload.")
+            self._log_error("Failed to parse ActionEvent payload.")
             return
 
-        logger.info(f"ActionEvent received — action='{event.action}' params={event.params}")
+        self._log_info(f"ActionEvent received — action='{event.action}' params={event.params}")
 
         task = self._mapper.map(event)
-        logger.info(f"Mapped to task: '{task}' — starting MuJoCo execution...")
+        self._log_info(f"Mapped to task: '{task}' — starting MuJoCo execution...")
 
         # Determine target object from params (default: apple)
         target_object = event.params.get("target_object", "apple")
@@ -86,8 +113,8 @@ class ReachyMiniBridgeNode:
         # Publish metrics back over Zenoh
         payload = json.dumps(result).encode()
         self._pub.put(payload)
-        logger.info(f"Metrics published to '{ZENOH_TOPIC_METRICS}'")
-        logger.info(f"Result: {json.dumps(result, indent=2)}")
+        self._log_info(f"Metrics published to '{ZENOH_TOPIC_METRICS}'")
+        self._log_info(f"Result: {json.dumps(result, indent=2)}")
 
     def _run_simulation(
         self, task: str, params: dict, target_object: str = "apple"
@@ -111,7 +138,7 @@ class ReachyMiniBridgeNode:
             step_count  += 1
 
             if last_summary["task_completed"]:
-                logger.info(f"Task complete at t={obs['sim_time']:.2f}s  phase={phase}")
+                self._log_info(f"Task complete at t={obs['sim_time']:.2f}s  phase={phase}")
                 break
 
         final_metrics = self._metrics.get_summary()
@@ -137,30 +164,45 @@ class ReachyMiniBridgeNode:
             "sim_to_sim_validation": sim2sim,
         }
 
+    def destroy_node(self):
+        """Clean up Zenoh subscriber and publisher resources."""
+        try:
+            self._sub.undeclare()
+            self._pub.undeclare()
+            self._session.close()
+        except Exception:
+            pass
+        if HAS_ROS2 and hasattr(super(), "destroy_node"):
+            super().destroy_node()
+
     def spin(self):
-        """Block and wait for Zenoh action events."""
-        logger.info("Spinning — waiting for ActionEvents from Fabric tunnel...")
+        """Block and wait for Zenoh action events (standalone mode)."""
+        self._log_info("Spinning — waiting for ActionEvents from Fabric tunnel...")
         try:
             import time
             while True:
                 time.sleep(0.1)
         except KeyboardInterrupt:
-            logger.info("Shutting down bridge node.")
+            self._log_info("Shutting down bridge node.")
         finally:
-            self._sub.undeclare()
-            self._pub.undeclare()
-            self._session.close()
+            self.destroy_node()
 
 
 def main(args=None):
-    try:
-        import rclpy
+    if HAS_ROS2:
         rclpy.init(args=args)
-    except Exception:
-        pass
-
-    bridge = ReachyMiniBridgeNode()
-    bridge.spin()
+        node = ReachyMiniBridgeNode()
+        try:
+            rclpy.spin(node)
+        except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
+            pass
+        finally:
+            node.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+    else:
+        bridge = ReachyMiniBridgeNode()
+        bridge.spin()
 
 
 if __name__ == "__main__":
