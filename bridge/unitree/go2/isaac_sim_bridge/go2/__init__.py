@@ -1,4 +1,1 @@
-from .node import main
-from .mapper import Go2Mapper
-
-__all__ = ["main", "Go2Mapper"]
+"""Go2 bridge package - Isaac Sim adapter for Fabric RoboPay."""
