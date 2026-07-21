@@ -1,0 +1,103 @@
+#VRML_SIM R2023b utf8
+
+# Deep Robotics M20 Pro Obstacle Navigation World for Webots Sim-to-Sim Validation.
+# Same obstacle layout as MuJoCo scene for comparison.
+
+WorldInfo {
+  info [
+    "Deep Robotics M20 Pro Obstacle Navigation - Webots Sim-to-Sim Validation"
+  ]
+  title "deep-robotics-m20-pro_obstacle_nav"
+  basicTimeStep 1
+  FPS 60
+}
+Viewpoint {
+  orientation -0.5 -0.5 -0.5 1.2
+  position 5 -8 6
+  follow "deep-robotics-m20-pro"
+}
+TexturedBackground {
+  skyColor [
+    0.4 0.7 1
+  ]
+}
+TexturedBackgroundLight {
+  castShadows TRUE
+}
+RectangleArena {
+  floorSize 20 20
+  floorTileSize 1 1
+  wallHeight 0.5
+}
+
+# Goal marker
+Solid {
+  translation 10 0 0.05
+  children [
+    Cylinder {
+      height 0.1
+      radius 0.3
+      appearance PBRAppearance {
+        baseColor 0.2 0.8 0.2
+        transparency 0.5
+      }
+    }
+  ]
+  name "goal"
+}
+
+# Obstacles
+Solid {
+  translation 2.5 0 0.5
+  children [
+    Box {
+      size 1.0 1.0 1.0
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+    }
+  ]
+  name "obstacle_1"
+  physics Physics {
+    mass 0
+  }
+}
+
+Solid {
+  translation 5.0 1.5 0.5
+  children [
+    Box {
+      size 0.8 0.8 1.2
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+    }
+  ]
+  name "obstacle_2"
+  physics Physics {
+    mass 0
+  }
+}
+
+Solid {
+  translation 7.0 -1.0 0.5
+  children [
+    Cylinder {
+      height 1.0
+      radius 0.3
+      appearance PBRAppearance {
+        baseColor 0.8 0.2 0.2
+      }
+    }
+  ]
+  name "obstacle_3"
+  physics Physics {
+    mass 0
+  }
+}
+
+# Pro Robot
+DEF Pro ProRobot {
+  translation 0 0 0.78
+  name "deep-robotics-m20-pro"
+}
