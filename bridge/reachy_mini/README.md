@@ -1,63 +1,116 @@
 # Hugging Face Reachy Mini — MuJoCo & Webots Simulation Bridge (`bridge/reachy_mini`)
 
-This package implements the **Fabric RoboPay simulation bridge (`mujoco_sim_bridge_reachy_mini`)** for the **Hugging Face Reachy Mini** robot.
+A paid action on the tunnel's Zenoh topic starts an object-tracking episode on the official Hugging Face Reachy Mini model, validated in two simulators.
 
-Submitted for the **Hugging Face Reachy Mini Tier 1 — Simulator Skill Execution Bounty**.
-
----
-
-## 🌟 Key Features
-
-1. **Official Hugging Face / Pollen Robotics Models**
-   - **MuJoCo:** Loads official MJCF scene directly from installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`).
-   - **Webots:** Includes a VRML scene (`scenes/reachy_mini_tabletop.wbt`) matching the tabletop layout (apple, croissant, duck, table).
-
-2. **Expressive Social Skill Execution (`object_tracking`)**
-   - 4-phase Finite State Machine (FSM): `SCANNING` ➔ `TRACKING` ➔ `EXPRESSIVE` ➔ `DONE`.
-   - Slew-rate limiting and exponential low-pass filtering on all actuators for smooth, realistic servo movement.
-   - Celebration dance with antenna animation once target lock is confirmed.
-
-3. **Dual-Engine Cross-Simulator Sim-to-Sim Validation (`MuJoCo` ➔ `Webots`)**
-   - Automated `Sim2SimValidator` evaluates policy generalization across **both MuJoCo and Webots physics engines**:
-     - **Run 1 (MuJoCo):** Randomized friction & mass perturbations.
-     - **Run 2 (Webots):** Real Webots physics engine execution across target objects (`apple`, `croissant`, `duck`).
-     - **Run 3 (MuJoCo):** Multi-target tracking verification.
-
-4. **Zenoh Tunnel Integration**
-   - Subscribes to `robot/tunnel/action` for `ActionEvent` payloads.
-   - Publishes structured JSON telemetry to `robot/reachy_mini/metrics`.
-
----
-
-## 📁 Repository Structure
-
-```text
-bridge/reachy_mini/
-├── README.md
-├── test_publisher.py               # Local Zenoh ActionEvent simulator
-└── mujoco_sim_bridge/
-    ├── main.py                     # Standalone bridge entrypoint
-    ├── visualize.py                # 3D interactive real-time viewer
-    ├── reachy_mini/
-    │   ├── node.py                 # ReachyMiniBridgeNode (Zenoh pub/sub)
-    │   └── mapper.py               # Action mapping
-    └── src/
-        ├── policy/
-        │   └── controller.py       # ReachyTaskPolicy (4-phase FSM + motor filter)
-        └── simulation/
-            ├── environment.py      # ReachyMiniEnvironment (MuJoCo wrapper)
-            ├── webots_env.py       # ReachyMiniWebotsEnvironment
-            ├── metrics.py          # SimulationMetricsTracker
-            ├── sim2sim.py          # Sim2SimValidator (MuJoCo + Webots cross-validation)
-            ├── scenes/
-            │   └── reachy_mini_tabletop.wbt
-            └── controllers/
-                └── reachy_mini_controller/
+```
+paid action (x402 / AIP) → tunnel → Zenoh robot/tunnel/action
+→ subscriber → FSM (SCANNING → TRACKING → EXPRESSIVE) → yaw_body + Stewart neck
+→ MuJoCo (official MJCF) / Webots R2023b (VRML scene + dedicated controller)
 ```
 
 ---
 
-## 📊 Sample Telemetry Payload (`robot/reachy_mini/metrics`)
+## Against the requirements
+
+**Simulation only:** everything runs headless, no hardware SDKs. The robot has no arms — all actions are mapped to the expressive head-tracking skill (`object_tracking`).
+
+**Approved simulators:** MuJoCo loads the official model from the installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`, 9 actuators: 1 `yaw_body` torso + 6 Stewart neck + 2 antennae). Webots R2023b runs the same policy via a dedicated controller in `scenes/controllers/reachy_mini_controller/` against a VRML scene with matching object layout (apple, croissant, duck, table).
+
+**No replay:** the FSM closes the loop on live physics state — it reads `head_xmat` and `target_pos` from the simulator every step and computes a P-controller yaw command from scratch. No recorded trajectory anywhere in the codebase. `test_sim2sim.py` verifies both engines reach `task_completed: true` independently.
+
+**Sim-to-sim:** `test_sim2sim.py` launches the real Webots binary (`--batch --mode=fast --no-rendering`) as a subprocess, runs the same FSM controller inside Webots physics, reads the result JSON produced by the controller, and compares against MuJoCo. The committed `scenes/reachy_mini_tabletop.wbt` uses the same object positions as the MuJoCo scene.
+
+| target    | simulator | tracked | success_rate | min_error_rad | time    |
+|-----------|-----------|---------|--------------|---------------|---------|
+| apple     | MuJoCo    | yes     | 1.0          | 0.117         | 3.01 s  |
+| croissant | MuJoCo    | yes     | 1.0          | 0.196         | 3.01 s  |
+| duck      | MuJoCo    | yes     | 1.0          | 0.210         | 3.01 s  |
+| apple     | Webots    | yes     | 1.0          | 0.340         | 4.00 s  |
+| croissant | Webots    | yes     | 1.0          | 0.196         | 4.00 s  |
+| duck      | Webots    | yes     | 1.0          | 0.473         | 4.00 s  |
+
+Overall sim-to-sim robustness score: **1.0** (`simulation/webots_sim2sim_result.json`).
+
+---
+
+## RoboPay integration
+
+Two tests exercise the payment integration:
+
+**`test_payment_gate.py`** builds and runs the tunnel binary against a local config and asserts that an unpaid `POST /action` is rejected with HTTP 402 (x402 payment requirements returned in the response body) while nothing appears on the robot topic. Malformed JSON returns 400 before reaching the payment gate.
+
+**`test_link.py`** proves the tunnel's Zenoh session is live (`robot/config/<id>` put accepted), then publishes a paid-action event with the exact `handlers.PostAction` schema and asserts the robot runs the episode and returns metrics with `execution_status: SUCCESS`, `task_completed: true`, and `overall_sim2sim_robustness_score ≥ 0.9`. Both payment rails (x402 `POST /action` and AIP) publish to the same Zenoh topic, which is why the simulation subscribes there.
+
+```
+test_payment_gate.py (requires tunnel binary):
+  unpaid POST /action → 402 + payment requirements ✓
+  malformed JSON      → 400                        ✓
+
+test_link.py (requires bridge running):
+  robot/config/<id> put → Zenoh session live        ✓
+  paid ActionEvent      → metrics SUCCESS, score 1.0 ✓
+```
+
+---
+
+## Repository structure
+
+```text
+bridge/reachy_mini/
+├── README.md
+├── test_publisher.py                     # Zenoh ActionEvent simulator
+├── test_payment_gate.py                  # x402 payment gate tests (needs tunnel binary)
+├── test_link.py                          # end-to-end Zenoh paid action test
+└── mujoco_sim_bridge/
+    ├── main.py                           # Bridge entrypoint
+    ├── visualize.py                      # 3D real-time viewer (MuJoCo)
+    ├── reachy_mini/
+    │   ├── node.py                       # Zenoh pub/sub node
+    │   └── mapper.py                     # Action → task mapping
+    └── src/
+        ├── policy/
+        │   └── controller.py             # ReachyTaskPolicy (FSM + motor filter)
+        └── simulation/
+            ├── environment.py            # ReachyMiniEnvironment (MuJoCo)
+            ├── webots_env.py             # ReachyMiniWebotsEnvironment (fallback)
+            ├── metrics.py                # SimulationMetricsTracker
+            ├── sim2sim.py                # Sim2SimValidator (4 runs, 2 simulators)
+            ├── test_sim2sim.py           # Sim-to-sim verification script
+            ├── scenes/
+            │   ├── reachy_mini_tabletop.wbt
+            │   └── controllers/
+            │       └── reachy_mini_controller/
+            └── webots_sim2sim_result.json
+```
+
+---
+
+## Reproduce
+
+```bash
+# Terminal 1 — start the bridge
+python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/main.py
+
+# Terminal 2 — end-to-end link test (bridge must be running)
+python RoboPay/bridge/reachy_mini/test_link.py
+
+# Sim-to-sim test (runs real Webots subprocess + MuJoCo, needs Webots R2023b)
+cd RoboPay/bridge/reachy_mini/mujoco_sim_bridge/src
+python simulation/test_sim2sim.py
+
+# Payment gate test (needs tunnel binary: cd tunnel && go build -o tunnel_bin ./cmd)
+python RoboPay/bridge/reachy_mini/test_payment_gate.py
+
+# 3D viewer (MuJoCo)
+python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/visualize.py
+
+# Webots GUI — open scene and press Play
+# RoboPay/bridge/reachy_mini/mujoco_sim_bridge/src/simulation/scenes/reachy_mini_tabletop.wbt
+```
+
+---
+
+## Sample telemetry (`robot/reachy_mini/metrics`)
 
 ```json
 {
@@ -68,95 +121,21 @@ bridge/reachy_mini/
   "execution_status": "SUCCESS",
   "sim_duration_seconds": 3.01,
   "steps_executed": 301,
-  "phases_visited": [
-    "EXPRESSIVE",
-    "SCANNING",
-    "TRACKING"
-  ],
+  "phases_visited": ["EXPRESSIVE", "SCANNING", "TRACKING"],
   "metrics": {
-    "head_tracking_error_rad": 0.3808,
-    "min_tracking_error_rad": 0.1172,
+    "head_tracking_error_rad": 0.381,
+    "min_tracking_error_rad": 0.117,
     "tracking_success_count": 275,
     "tracking_success_rate": 1.0,
     "overall_fov_lock_rate": 0.914,
     "object_in_fov_seconds": 2.75,
-    "antenna_activity": 0.034,
     "task_completed": true,
     "success_rate_score": 1.0
   },
   "sim_to_sim_validation": {
-    "num_variations_tested": 3,
-    "simulators_evaluated": [
-      "MuJoCo",
-      "Webots"
-    ],
-    "overall_sim2sim_robustness_score": 1.0,
-    "variation_details": [
-      {
-        "run_id": "sim2sim_run_1_mujoco_friction",
-        "simulator_engine": "MuJoCo",
-        "target_object": "apple",
-        "friction_scale": 1.07,
-        "mass_scale": 0.819,
-        "sim_duration_seconds": 3.01,
-        "task_completed": true,
-        "tracking_success_rate": 1.0,
-        "success_rate_score": 1.0
-      },
-      {
-        "run_id": "sim2sim_run_2_webots_cross_engine",
-        "simulator_engine": "Webots",
-        "targets_tracked": [
-          "apple",
-          "croissant",
-          "duck"
-        ],
-        "phases_visited": [
-          "EXPRESSIVE",
-          "SCANNING",
-          "TRACKING"
-        ],
-        "sim_duration_seconds": 10.5,
-        "task_completed": true,
-        "tracking_success_rate": 1.0,
-        "success_rate_score": 1.0,
-        "per_target": [
-          { "target_object": "apple", "tracking_success_rate": 1.0 },
-          { "target_object": "croissant", "tracking_success_rate": 1.0 },
-          { "target_object": "duck", "tracking_success_rate": 1.0 }
-        ]
-      },
-      {
-        "run_id": "sim2sim_run_3_mujoco_duck_target",
-        "simulator_engine": "MuJoCo",
-        "target_object": "duck",
-        "friction_scale": 1.0,
-        "mass_scale": 1.0,
-        "sim_duration_seconds": 3.01,
-        "task_completed": true,
-        "tracking_success_rate": 1.0,
-        "success_rate_score": 1.0
-      }
-    ]
+    "num_variations_tested": 4,
+    "simulators_evaluated": ["MuJoCo", "Webots"],
+    "overall_sim2sim_robustness_score": 1.0
   }
 }
-```
-
----
-
-## 🚀 How to Run
-
-### 1. Run Standalone Bridge (Terminal 1)
-```bash
-python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/main.py
-```
-
-### 2. Send Test Action via Zenoh (Terminal 2)
-```bash
-python RoboPay/bridge/reachy_mini/test_publisher.py --action look_at_apple
-```
-
-### 3. Launch 3D Real-Time Visualizer
-```bash
-python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/visualize.py
 ```
