@@ -108,7 +108,7 @@ Solid {
 Robot {
   translation 0 0 0.0
   name "reachy_mini"
-  controller "<generic>"
+  controller "reachy_mini_controller"
   supervisor TRUE
   children [
 
