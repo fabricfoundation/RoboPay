@@ -1,3 +1,2 @@
 #!/bin/bash
-echo "No MuJoCo Menagerie model available for atlas."
-echo "Using simplified model from scenes/ directory."
+echo "No MuJoCo Menagerie model for AGIBot X2. Using simplified model."
