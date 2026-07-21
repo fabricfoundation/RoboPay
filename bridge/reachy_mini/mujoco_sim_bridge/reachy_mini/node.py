@@ -13,20 +13,9 @@ import os
 import zenoh
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_src_dir = os.path.normpath(os.path.join(_HERE, "..", "src"))
-if not os.path.isdir(_src_dir):
-    _cur = _HERE
-    for _ in range(6):
-        _cand = os.path.normpath(os.path.join(_cur, "src"))
-        if os.path.isdir(_cand):
-            _src_dir = _cand
-            break
-        _cur = os.path.dirname(_cur)
-
-if os.path.isdir(_src_dir):
-    if _src_dir in sys.path:
-        sys.path.remove(_src_dir)
-    sys.path.insert(0, _src_dir)
+_pkg_dir = os.path.normpath(os.path.join(_HERE, ".."))
+if _pkg_dir not in sys.path:
+    sys.path.insert(0, _pkg_dir)
 
 from simulation.environment import ReachyMiniEnvironment
 from simulation.metrics     import SimulationMetricsTracker
