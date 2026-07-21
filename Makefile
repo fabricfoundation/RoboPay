@@ -9,7 +9,13 @@ BINARY_ENTRY=./cmd
 BRIDGE_DIR=bridge
 ROS_DISTRO?=humble
 ROBOT?=g1
-BRIDGE_PKG=isaac_sim_bridge_$(ROBOT)
+ifeq ($(ROBOT),reachy_mini)
+	BRIDGE_PKG=mujoco_sim_bridge_reachy_mini
+	LAUNCH_FILE=mujoco_sim_bridge.launch.py
+else
+	BRIDGE_PKG=isaac_sim_bridge_$(ROBOT)
+	LAUNCH_FILE=isaac_sim_bridge.launch.py
+endif
 RMW_IMPLEMENTATION?=rmw_cyclonedds_cpp
 
 ZENOH_C_VERSION=1.9.0
@@ -109,7 +115,7 @@ bridge-build:
 
 bridge-run:
 	cd $(BRIDGE_DIR) && . /opt/ros/$(ROS_DISTRO)/setup.sh && . install/setup.sh && \
-		RMW_IMPLEMENTATION=$(RMW_IMPLEMENTATION) ros2 launch $(BRIDGE_PKG) isaac_sim_bridge.launch.py
+		RMW_IMPLEMENTATION=$(RMW_IMPLEMENTATION) ros2 launch $(BRIDGE_PKG) $(LAUNCH_FILE)
 
 bridge-clean:
 	rm -rf $(BRIDGE_DIR)/build $(BRIDGE_DIR)/install $(BRIDGE_DIR)/log
