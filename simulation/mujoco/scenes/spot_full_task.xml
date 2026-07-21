@@ -1,0 +1,46 @@
+<mujoco model="spot_full_task">
+  <include file="../models/unitree_g1/scene.xml"/>
+
+  <worldbody>
+    <!-- Navigation obstacles -->
+    <body name="wall_left" pos="3 2 0.5" mocap="true">
+      <geom name="wall_l" type="box" size="0.2 3 0.5" rgba="0.8 0.2 0.2 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="wall_right" pos="3 -2 0.5" mocap="true">
+      <geom name="wall_r" type="box" size="0.2 3 0.5" rgba="0.8 0.2 0.2 1" contype="1" conaffinity="1"/>
+    </body>
+    <body name="obstacle_box" pos="5 0 0.3" mocap="true">
+      <geom name="obs_box" type="box" size="0.3 0.3 0.3" rgba="0.9 0.5 0.1 1" contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Pick-and-place objects -->
+    <body name="red_cube" pos="6 0.5 0.05">
+      <freejoint name="red_cube_joint"/>
+      <geom name="red_cube_geom" type="box" size="0.04 0.04 0.04" rgba="0.9 0.1 0.1 1" mass="0.1"/>
+    </body>
+    <body name="blue_cube" pos="6 -0.5 0.05">
+      <freejoint name="blue_cube_joint"/>
+      <geom name="blue_cube_geom" type="box" size="0.04 0.04 0.04" rgba="0.1 0.1 0.9 1" mass="0.1"/>
+    </body>
+
+    <!-- Place targets -->
+    <body name="target_a" pos="8 0.5 0.01">
+      <geom name="target_a_geom" type="cylinder" size="0.08 0.005" rgba="0.9 0.1 0.1 0.3" contype="0" conaffinity="0"/>
+    </body>
+    <body name="target_b" pos="8 -0.5 0.01">
+      <geom name="target_b_geom" type="cylinder" size="0.08 0.005" rgba="0.1 0.1 0.9 0.3" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- Navigation goal -->
+    <body name="nav_goal" pos="10 0 0.01">
+      <geom name="nav_goal_geom" type="cylinder" size="0.3 0.005" rgba="0.1 0.9 0.1 0.3" contype="0" conaffinity="0"/>
+      <site name="nav_goal_site" pos="0 0 0.01"/>
+    </body>
+  </worldbody>
+
+  <sensor>
+    <framepos name="pelvis_pos" objtype="body" objname="pelvis"/>
+    <framepos name="red_cube_pos" objtype="body" objname="red_cube"/>
+    <framepos name="blue_cube_pos" objtype="body" objname="blue_cube"/>
+  </sensor>
+</mujoco>
