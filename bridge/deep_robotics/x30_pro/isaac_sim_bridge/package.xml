@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>isaac_sim_bridge_x30_pro</name>
+  <version>0.1.0</version>
+  <description>Deep Robotics X30 Pro Isaac Sim bridge for Fabric RoboPay</description>
+  <maintainer email="dev@fabric.foundation">fabricfoundation</maintainer>
+  <license>MIT</license>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <build_tool_depend>ament_python</build_tool_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>
