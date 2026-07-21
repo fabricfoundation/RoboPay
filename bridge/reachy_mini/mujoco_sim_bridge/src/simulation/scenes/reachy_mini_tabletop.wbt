@@ -1,7 +1,7 @@
 #VRML_SIM R2023b utf8
 
 # Hugging Face Reachy Mini Tabletop Tracking Scene — Webots Sim-to-Sim Validation
-# Matches the MuJoCo scene layout (table, apple, croissant, duck, Reachy Mini robot).
+# Full 3D Reachy Mini model geometry (base, torso, Stewart neck, head sphere, eyes, antennae).
 
 WorldInfo {
   info [
@@ -109,19 +109,139 @@ Solid {
   name "duck"
 }
 
-# Reachy Mini Robot
+# Reachy Mini Robot (Full 3D Geometry)
 Robot {
   translation 0 0 0.05
   children [
-    # Base
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0.2 0.2 0.25
-      }
-      geometry Cylinder {
-        height 0.1
-        radius 0.09
-      }
+    # Base Foot Print
+    Solid {
+      translation 0 0 0.0
+      name "base_foot"
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 0.2 0.2 0.25
+            roughness 0.4
+          }
+          geometry Cylinder {
+            height 0.1
+            radius 0.09
+          }
+        }
+      ]
+    }
+    # Torso (Yaw Body)
+    Solid {
+      translation 0 0 0.12
+      name "torso_yaw"
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 0.9 0.9 0.95
+            roughness 0.2
+          }
+          geometry Cylinder {
+            height 0.16
+            radius 0.06
+          }
+        }
+        # Neck Base / Stewart Plate
+        Solid {
+          translation 0 0 0.12
+          name "neck_base"
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.3 0.3 0.4
+                roughness 0.5
+              }
+              geometry Cylinder {
+                height 0.02
+                radius 0.045
+              }
+            }
+            # Head (xl_330 equivalent)
+            Solid {
+              translation 0 0 0.10
+              name "head"
+              children [
+                # Head Sphere
+                Shape {
+                  appearance PBRAppearance {
+                    baseColor 0.95 0.95 1.0
+                    roughness 0.1
+                  }
+                  geometry Sphere {
+                    radius 0.075
+                  }
+                }
+                # Left Eye
+                Solid {
+                  translation 0.065 -0.03 0.02
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0.1 0.1 0.1
+                        roughness 0.1
+                      }
+                      geometry Sphere {
+                        radius 0.012
+                      }
+                    }
+                  ]
+                }
+                # Right Eye
+                Solid {
+                  translation 0.065 0.03 0.02
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0.1 0.1 0.1
+                        roughness 0.1
+                      }
+                      geometry Sphere {
+                        radius 0.012
+                      }
+                    }
+                  ]
+                }
+                # Left Antenna
+                Solid {
+                  translation 0.0 0.035 0.08
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0.2 0.6 1.0
+                        roughness 0.3
+                      }
+                      geometry Capsule {
+                        height 0.08
+                        radius 0.006
+                      }
+                    }
+                  ]
+                }
+                # Right Antenna
+                Solid {
+                  translation 0.0 -0.035 0.08
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0.2 0.6 1.0
+                        roughness 0.3
+                      }
+                      geometry Capsule {
+                        height 0.08
+                        radius 0.006
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
   name "reachy_mini"
