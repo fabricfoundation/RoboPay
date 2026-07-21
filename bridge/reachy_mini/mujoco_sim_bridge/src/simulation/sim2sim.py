@@ -93,14 +93,14 @@ class Sim2SimValidator:
         }
 
     def _run_webots_subprocess(self) -> dict:
-        """Launch the real Webots binary in batch/fast mode and collect results."""
+        """Launch real Webots subprocess in batch mode to run official Reachy Mini controller."""
+        if not _WEBOTS_EXE or not os.path.isfile(_WEBOTS_EXE):
+            print("[Sim2Sim] Webots executable not found — using Python Webots simulation fallback")
+            return self._webots_fallback()
+
         # Remove stale result file if present
         if os.path.exists(_WEBOTS_JSON):
             os.remove(_WEBOTS_JSON)
-
-        if not os.path.isfile(_WEBOTS_EXE):
-            print("[Sim2Sim] Webots executable not found — skipping Webots run.")
-            return self._webots_fallback()
 
         cmd = [
             _WEBOTS_EXE,
@@ -156,7 +156,10 @@ class Sim2SimValidator:
 
     def _webots_fallback(self) -> dict:
         """Python-level Webots approximation when subprocess is unavailable."""
-        from webots_env import ReachyMiniWebotsEnvironment
+        try:
+            from simulation.webots_env import ReachyMiniWebotsEnvironment
+        except ImportError:
+            from webots_env import ReachyMiniWebotsEnvironment
         env     = ReachyMiniWebotsEnvironment(target_object="apple")
         policy  = self.policy_cls()
         metrics = self.metrics_cls()
