@@ -14,7 +14,7 @@ import zenoh
 
 # Allow imports from src/ subdirectory
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(_HERE, "src"))
+sys.path.insert(0, os.path.normpath(os.path.join(_HERE, "..", "src")))
 
 from simulation.environment import ReachyMiniEnvironment
 from simulation.metrics     import SimulationMetricsTracker
@@ -48,9 +48,9 @@ class ReachyMiniBridgeNode:
         self._policy  = ReachyTaskPolicy()
         self._metrics = SimulationMetricsTracker()
 
-        # Open Zenoh session
+        # Open Zenoh session with fast peer mode and multicast scouting disabled for instant cross-platform startup
         conf = zenoh.Config.from_json5(
-            f'{{"listen":{{"endpoints":["{zenoh_listen}"]}}}}'
+            f'{{"mode": "peer", "scouting": {{"multicast": {{"enabled": false}}}}, "listen": {{"endpoints": ["{zenoh_listen}"]}}}}'
         )
         self._session = zenoh.open(conf)
 

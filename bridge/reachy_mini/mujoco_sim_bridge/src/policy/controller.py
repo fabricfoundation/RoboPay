@@ -115,12 +115,12 @@ class ReachyTaskPolicy:
             target[6] = 0.15 * math.sin(t * 0.8 + 5 * math.pi / 3)
 
         elif phase == "TRACKING":
-            # Subtle nod toward target
-            target[1] = 0.08 * math.sin(t * 1.2)
-            target[2] = 0.04
-            target[3] = 0.08 * math.sin(t * 1.2 + math.pi)
+            # Direct steady lock-on toward target
+            target[1] = 0.0
+            target[2] = 0.0
+            target[3] = 0.0
             target[4] = 0.0
-            target[5] = 0.08 * math.sin(t * 1.2)
+            target[5] = 0.0
             target[6] = 0.0
 
         elif phase == "EXPRESSIVE":

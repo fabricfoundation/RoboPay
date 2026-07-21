@@ -89,10 +89,6 @@ class SimulationMetricsTracker:
             "success_rate_score":       float(round(score, 3)),
         }
 
-    _SUCCESS_THRESHOLD_RAD = 0.35  # ~20° — lock-on threshold for eye_camera
-    _MIN_SIM_TIME_DONE     = 3.0   # seconds before task can be flagged complete
-    _MIN_SUCCESS_RATE_DONE = 0.30  # fraction of overall steps in FOV lock-on
-
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     @staticmethod
