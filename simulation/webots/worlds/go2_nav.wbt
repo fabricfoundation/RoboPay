@@ -1,0 +1,103 @@
+#VRML_SIM R2025a utf8
+EXTERNPROTO "../protos/Go2.proto"
+
+WorldInfo {
+  basicTimeStep 2
+  coordinateSystem "ENU"
+}
+Viewpoint {
+  orientation -0.2 0.4 0.89 2.0
+  position 5 -8 6
+}
+Background {
+  skyColor [0.3 0.5 0.7]
+}
+DirectionalLight {
+  direction 0 0 -1
+  intensity 2
+  castShadows FALSE
+}
+Solid {
+  name "floor"
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.3 0.35 0.4
+        roughness 1
+        metalness 0
+      }
+      geometry DEF FLOOR_PLANE Plane { size 40 40 }
+    }
+  ]
+  boundingObject USE FLOOR_PLANE
+  locked TRUE
+}
+DEF OBSTACLE_0 Solid {
+  name "obstacle_0"
+  translation 2.5 0 0.5
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.6 0.3 0.2
+        roughness 1
+        metalness 0
+      }
+      geometry DEF OBS_GEO_0 Box { size 1.0 1.0 1.0 }
+    }
+  ]
+  boundingObject USE OBS_GEO_0
+  locked TRUE
+}
+DEF OBSTACLE_1 Solid {
+  name "obstacle_1"
+  translation 5.0 1.5 0.6
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.6 0.3 0.2
+        roughness 1
+        metalness 0
+      }
+      geometry DEF OBS_GEO_1 Box { size 0.8 0.8 1.2 }
+    }
+  ]
+  boundingObject USE OBS_GEO_1
+  locked TRUE
+}
+DEF OBSTACLE_2 Solid {
+  name "obstacle_2"
+  translation 7.0 -1.0 0.5
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.6 0.3 0.2
+        roughness 1
+        metalness 0
+      }
+      geometry DEF OBS_GEO_2 Cylinder { radius 0.3 height 1.0 }
+    }
+  ]
+  boundingObject USE OBS_GEO_2
+  locked TRUE
+}
+
+Solid {
+  name "goal_marker"
+  translation 10.0 0.0 0.01
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.1 0.8 0.2
+        transparency 0.5
+        roughness 1
+        metalness 0
+      }
+      geometry Cylinder { radius 0.3 height 0.02 }
+    }
+  ]
+}
+Go2 {
+  translation 0 0 0.30
+  controller "<extern>"
+  supervisor TRUE
+}
