@@ -28,7 +28,5 @@
   </worldbody>
   <sensor>
     <framepos name="torso_pos" objtype="body" objname="torso"/>
-    <framevel name="torso_vel" objtype="body" objname="torso"/>
-    <framepos name="goal_pos" objtype="site" objname="goal_site"/>
   </sensor>
 </mujoco>
