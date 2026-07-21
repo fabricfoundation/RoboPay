@@ -56,7 +56,7 @@ make bridge-build
 make bridge-run                 # defaults to G1; ROBOT=go2 or ROBOT=tron1 to switch
 ```
 
-Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, and `isaac_sim_bridge_tron1` (G1 is validated; Go2 and Tron1 are placeholders). The adapter subscribes to the Zenoh topic `robot/tunnel/action` and republishes mapped velocities on ROS2 `/cmd_vel`.
+Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, `isaac_sim_bridge_tron1`, and `isaac_sim_bridge_tron2` (G1 is validated; Go2, Tron1, and Tron2 are placeholders). The adapter subscribes to the Zenoh topic `robot/tunnel/action` and republishes mapped velocities on ROS2 `/cmd_vel`. TRON2 is a LimX humanoid with forward-only locomotion and obstacle navigation skills.
 
 ## 3. Start the tunnel
 
