@@ -1,22 +1,27 @@
-# Hugging Face Reachy Mini — MuJoCo Simulation Bridge (`bridge/reachy_mini`)
+# Hugging Face Reachy Mini — MuJoCo & Webots Simulation Bridge (`bridge/reachy_mini`)
 
 This package implements the **Fabric RoboPay simulation bridge (`mujoco_sim_bridge_reachy_mini`)** for the **Hugging Face Reachy Mini** robot.
+
+Submitted for the **Hugging Face Reachy Mini Tier 1 — Simulator Skill Execution Bounty**.
 
 ---
 
 ## 🌟 Key Features
 
-1. **Official Hugging Face / Pollen Robotics MJCF Scene**
-   - Loads the official MuJoCo scene directly from the installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`).
-   - Uses authentic 3D mesh assets, mass/inertia properties, and joint limits for the 6-DOF Stewart parallel neck platform and `yaw_body` torso rotation.
+1. **Official Hugging Face / Pollen Robotics Models**
+   - **MuJoCo:** Loads official MJCF scene directly from installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`).
+   - **Webots:** Includes a VRML scene (`scenes/reachy_mini_tabletop.wbt`) matching the tabletop layout (apple, croissant, duck, table).
 
 2. **Expressive Social Skill Execution (`object_tracking`)**
    - 4-phase Finite State Machine (FSM): `SCANNING` ➔ `TRACKING` ➔ `EXPRESSIVE` ➔ `DONE`.
    - Slew-rate limiting and exponential low-pass filtering on all actuators for smooth, realistic servo movement.
    - Celebration dance with antenna animation once target lock is confirmed.
 
-3. **Sim-to-Sim Robustness Validation**
-   - Automated `Sim2SimValidator` evaluates policy generalization across 3 randomized physical conditions (surface friction scale, object mass perturbation, alternate target objects).
+3. **Dual-Engine Cross-Simulator Sim-to-Sim Validation (`MuJoCo` ➔ `Webots`)**
+   - Automated `Sim2SimValidator` evaluates policy generalization across **both MuJoCo and Webots physics engines**:
+     - **Run 1 (MuJoCo):** Randomized friction & mass perturbations.
+     - **Run 2 (Webots):** Real Webots physics engine execution across target objects (`apple`, `croissant`, `duck`).
+     - **Run 3 (MuJoCo):** Multi-target tracking verification.
 
 4. **Zenoh Tunnel Integration**
    - Subscribes to `robot/tunnel/action` for `ActionEvent` payloads.
@@ -41,8 +46,13 @@ bridge/reachy_mini/
         │   └── controller.py       # ReachyTaskPolicy (4-phase FSM + motor filter)
         └── simulation/
             ├── environment.py      # ReachyMiniEnvironment (MuJoCo wrapper)
+            ├── webots_env.py       # ReachyMiniWebotsEnvironment
             ├── metrics.py          # SimulationMetricsTracker
-            └── sim2sim.py          # Sim2SimValidator
+            ├── sim2sim.py          # Sim2SimValidator (MuJoCo + Webots cross-validation)
+            ├── scenes/
+            │   └── reachy_mini_tabletop.wbt
+            └── controllers/
+                └── reachy_mini_controller/
 ```
 
 ---
@@ -96,13 +106,25 @@ bridge/reachy_mini/
       {
         "run_id": "sim2sim_run_2_webots_cross_engine",
         "simulator_engine": "Webots",
-        "target_object": "apple",
-        "friction_scale": 1.0,
-        "mass_scale": 1.0,
-        "sim_duration_seconds": 3.02,
+        "targets_tracked": [
+          "apple",
+          "croissant",
+          "duck"
+        ],
+        "phases_visited": [
+          "EXPRESSIVE",
+          "SCANNING",
+          "TRACKING"
+        ],
+        "sim_duration_seconds": 10.5,
         "task_completed": true,
         "tracking_success_rate": 1.0,
-        "success_rate_score": 1.0
+        "success_rate_score": 1.0,
+        "per_target": [
+          { "target_object": "apple", "tracking_success_rate": 1.0 },
+          { "target_object": "croissant", "tracking_success_rate": 1.0 },
+          { "target_object": "duck", "tracking_success_rate": 1.0 }
+        ]
       },
       {
         "run_id": "sim2sim_run_3_mujoco_duck_target",
