@@ -12,9 +12,16 @@ import os
 
 import zenoh
 
-# Allow imports from src/ subdirectory
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.normpath(os.path.join(_HERE, "..", "src")))
+_cur = _HERE
+for _ in range(6):
+    _cand = os.path.normpath(os.path.join(_cur, "src"))
+    if os.path.isdir(_cand) and _cand not in sys.path:
+        sys.path.insert(0, _cand)
+    _parent = os.path.dirname(_cur)
+    if _parent == _cur:
+        break
+    _cur = _parent
 
 from simulation.environment import ReachyMiniEnvironment
 from simulation.metrics     import SimulationMetricsTracker
