@@ -1,0 +1,115 @@
+#VRML_SIM R2023b utf8
+
+# Hugging Face Reachy Mini Tabletop Tracking Scene — Webots Sim-to-Sim Validation
+# Matches the MuJoCo scene layout (table, apple, croissant, duck, Reachy Mini robot).
+
+WorldInfo {
+  info [
+    "Hugging Face Reachy Mini — Webots Sim-to-Sim Cross-Simulator Validation"
+  ]
+  title "reachy_mini_tabletop_tracking"
+  basicTimeStep 5
+  FPS 60
+}
+
+Viewpoint {
+  orientation -0.3 0.9 0.3 0.8
+  position 1.2 -0.8 0.8
+}
+
+TexturedBackground {
+  skyColor [
+    0.4 0.7 1
+  ]
+}
+
+TexturedBackgroundLight {
+  castShadows TRUE
+}
+
+# Wooden Table
+Solid {
+  translation 0.6 0 0.0
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.6 0.4 0.2
+        roughness 0.5
+      }
+      geometry Box {
+        size 0.8 1.0 0.05
+      }
+    }
+  ]
+  name "table"
+}
+
+# Target Object 1: Apple
+Solid {
+  translation 0.6 -0.2 0.03
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.9 0.1 0.1
+        roughness 0.2
+      }
+      geometry Sphere {
+        radius 0.04
+      }
+    }
+  ]
+  name "apple"
+}
+
+# Target Object 2: Croissant
+Solid {
+  translation 0.6 0.1 0.03
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.5 0.2
+        roughness 0.6
+      }
+      geometry Box {
+        size 0.08 0.05 0.04
+      }
+    }
+  ]
+  name "croissant"
+}
+
+# Target Object 3: Duck
+Solid {
+  translation 0.6 0.3 0.02
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.9 0.9 0.1
+        roughness 0.3
+      }
+      geometry Sphere {
+        radius 0.035
+      }
+    }
+  ]
+  name "duck"
+}
+
+# Reachy Mini Robot
+Robot {
+  translation 0 0 0.05
+  children [
+    # Base
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.2 0.2 0.25
+      }
+      geometry Cylinder {
+        height 0.1
+        radius 0.09
+      }
+    }
+  ]
+  name "reachy_mini"
+  controller "<generic>"
+}

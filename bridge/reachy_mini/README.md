@@ -102,33 +102,40 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
   },
   "sim_to_sim_validation": {
     "num_variations_tested": 3,
+    "simulators_evaluated": [
+      "MuJoCo",
+      "Webots"
+    ],
     "overall_sim2sim_robustness_score": 1.0,
     "variation_details": [
       {
-        "run_id": "sim2sim_variation_1",
+        "run_id": "sim2sim_run_1_mujoco_friction",
+        "simulator_engine": "MuJoCo",
         "target_object": "apple",
-        "friction_scale": 0.899,
-        "mass_scale": 1.195,
+        "friction_scale": 1.245,
+        "mass_scale": 0.894,
         "sim_duration_seconds": 3.01,
         "task_completed": true,
         "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       },
       {
-        "run_id": "sim2sim_variation_2",
+        "run_id": "sim2sim_run_2_webots_cross_engine",
+        "simulator_engine": "Webots",
         "target_object": "apple",
-        "friction_scale": 1.016,
-        "mass_scale": 0.948,
-        "sim_duration_seconds": 3.01,
+        "friction_scale": 1.0,
+        "mass_scale": 1.0,
+        "sim_duration_seconds": 3.02,
         "task_completed": true,
         "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       },
       {
-        "run_id": "sim2sim_variation_3",
-        "target_object": "apple",
-        "friction_scale": 1.007,
-        "mass_scale": 0.826,
+        "run_id": "sim2sim_run_3_mujoco_duck_target",
+        "simulator_engine": "MuJoCo",
+        "target_object": "duck",
+        "friction_scale": 1.0,
+        "mass_scale": 1.0,
         "sim_duration_seconds": 3.01,
         "task_completed": true,
         "tracking_success_rate": 1.0,
