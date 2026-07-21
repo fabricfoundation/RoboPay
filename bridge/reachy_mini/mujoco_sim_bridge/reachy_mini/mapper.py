@@ -4,14 +4,18 @@ import os
 import importlib.util
 
 # Load action_event.py directly to avoid the __init__.py pulling in ROS2 geometry_msgs
-_ACTION_EVENT_FILE = os.path.normpath(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..", "..", "..", "common", "zenoh_bridge", "zenoh_bridge", "action_event.py"
-))
-_spec = importlib.util.spec_from_file_location("action_event", _ACTION_EVENT_FILE)
-_mod  = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
-ActionEvent = _mod.ActionEvent
+try:
+    from zenoh_bridge.action_event import ActionEvent
+except ImportError:
+    # Load action_event.py directly to avoid the __init__.py pulling in ROS2 geometry_msgs
+    _ACTION_EVENT_FILE = os.path.normpath(os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..", "..", "..", "common", "zenoh_bridge", "zenoh_bridge", "action_event.py"
+    ))
+    _spec = importlib.util.spec_from_file_location("action_event", _ACTION_EVENT_FILE)
+    _mod  = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    ActionEvent = _mod.ActionEvent
 
 
 ACTION_TO_TASK = {

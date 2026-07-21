@@ -13,15 +13,20 @@ import os
 import zenoh
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_cur = _HERE
-for _ in range(6):
-    _cand = os.path.normpath(os.path.join(_cur, "src"))
-    if os.path.isdir(_cand) and _cand not in sys.path:
-        sys.path.insert(0, _cand)
-    _parent = os.path.dirname(_cur)
-    if _parent == _cur:
-        break
-    _cur = _parent
+_src_dir = os.path.normpath(os.path.join(_HERE, "..", "src"))
+if not os.path.isdir(_src_dir):
+    _cur = _HERE
+    for _ in range(6):
+        _cand = os.path.normpath(os.path.join(_cur, "src"))
+        if os.path.isdir(_cand):
+            _src_dir = _cand
+            break
+        _cur = os.path.dirname(_cur)
+
+if os.path.isdir(_src_dir):
+    if _src_dir in sys.path:
+        sys.path.remove(_src_dir)
+    sys.path.insert(0, _src_dir)
 
 from simulation.environment import ReachyMiniEnvironment
 from simulation.metrics     import SimulationMetricsTracker
@@ -30,14 +35,17 @@ from policy.controller      import ReachyTaskPolicy
 from reachy_mini.mapper     import ReachyMapper
 
 # Re-use the shared action event parser from common/zenoh_bridge
-import importlib.util as _ilu
-_AE_FILE = os.path.normpath(os.path.join(
-    _HERE, "..", "..", "..", "common", "zenoh_bridge", "zenoh_bridge", "action_event.py"
-))
-_ae_spec = _ilu.spec_from_file_location("action_event", _AE_FILE)
-_ae_mod  = _ilu.module_from_spec(_ae_spec)
-_ae_spec.loader.exec_module(_ae_mod)
-parse_action_event = _ae_mod.parse_action_event
+try:
+    from zenoh_bridge.action_event import parse_action_event
+except ImportError:
+    import importlib.util as _ilu
+    _AE_FILE = os.path.normpath(os.path.join(
+        _HERE, "..", "..", "..", "common", "zenoh_bridge", "zenoh_bridge", "action_event.py"
+    ))
+    _ae_spec = _ilu.spec_from_file_location("action_event", _AE_FILE)
+    _ae_mod  = _ilu.module_from_spec(_ae_spec)
+    _ae_spec.loader.exec_module(_ae_mod)
+    parse_action_event = _ae_mod.parse_action_event
 
 try:
     import rclpy

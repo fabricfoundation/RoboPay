@@ -109,7 +109,7 @@ class TestEndToEndLink(unittest.TestCase):
         sub     = session.declare_subscriber(TOPIC_METRICS, on_metrics)
 
         try:
-            time.sleep(0.5)   # let subscriber register
+            time.sleep(1.5)   # let subscriber register
             session.put(TOPIC_ACTION, _paid_action_event("look_at_apple"))
 
             arrived = done_event.wait(timeout=ACTION_TIMEOUT_S)

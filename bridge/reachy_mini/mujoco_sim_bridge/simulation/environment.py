@@ -38,7 +38,7 @@ def _find_installed_mjcf() -> pathlib.Path:
     # 2) Temporarily remove local shadowing entries from sys.path and re-import
     import sys
     _local_shadow = os.path.normcase(os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "reachy_mini")
+        os.path.join(os.path.dirname(__file__), "..")
     ))
     saved = sys.path[:]
     sys.path = [p for p in sys.path

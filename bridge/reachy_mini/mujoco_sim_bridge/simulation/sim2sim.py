@@ -20,15 +20,18 @@ def _find_webots() -> str | None:
     # 2. Common install locations as fallback
     candidates = []
     if platform.system() == "Windows":
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
         candidates = [
             r"C:\Program Files\Webots\msys64\mingw64\bin\webots.exe",
-            r"C:\Users\Kauker\AppData\Local\Programs\Webots\msys64\mingw64\bin\webots.exe",
         ]
+        if local_app_data:
+            candidates.append(
+                os.path.join(local_app_data, "Programs", "Webots", "msys64", "mingw64", "bin", "webots.exe")
+            )
     elif platform.system() == "Darwin":
         candidates = ["/Applications/Webots.app/Contents/MacOS/webots"]
     else:
         candidates = ["/usr/local/bin/webots", "/usr/bin/webots"]
-    import os
     for path in candidates:
         if os.path.isfile(path):
             return path

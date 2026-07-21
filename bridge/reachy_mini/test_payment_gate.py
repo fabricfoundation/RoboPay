@@ -24,12 +24,27 @@ import urllib.error
 # ── constants ────────────────────────────────────────────────────────────────
 
 TUNNEL_PORT   = 18080           # local HTTP port for the tunnel under test
-TUNNEL_BINARY = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "tunnel", "tunnel_bin")
-)
-# On Windows the binary is called tunnel_bin.exe
-if sys.platform == "win32" and not TUNNEL_BINARY.endswith(".exe"):
-    TUNNEL_BINARY += ".exe"
+
+# Try multiple candidate paths for the tunnel binary
+_HERE = os.path.dirname(os.path.abspath(__file__))
+candidates = [
+    # 1) Relative to this test in the tunnel/ folder (local build)
+    os.path.normpath(os.path.join(_HERE, "..", "..", "tunnel", "tunnel_bin")),
+    # 2) Under the workspace root bin/ folder (Makefile build)
+    os.path.normpath(os.path.join(_HERE, "..", "..", "bin", "tunnel")),
+]
+
+TUNNEL_BINARY = None
+for cand in candidates:
+    cand_exe = cand + ".exe" if sys.platform == "win32" and not cand.endswith(".exe") else cand
+    if os.path.isfile(cand_exe):
+        TUNNEL_BINARY = cand_exe
+        break
+
+if TUNNEL_BINARY is None:
+    TUNNEL_BINARY = candidates[0]
+    if sys.platform == "win32" and not TUNNEL_BINARY.endswith(".exe"):
+        TUNNEL_BINARY += ".exe"
 
 TUNNEL_CONFIG = {
     "robot_id":          "reachy_mini_sim_test",
@@ -79,7 +94,8 @@ class TestPaymentGate(unittest.TestCase):
         if not os.path.isfile(TUNNEL_BINARY):
             raise unittest.SkipTest(
                 f"Tunnel binary not found at {TUNNEL_BINARY}. "
-                "Build it with: cd RoboPay/tunnel && go build -o tunnel_bin ./cmd"
+                "Build it with 'make build' in the repository root or "
+                "'go build -o tunnel_bin ./cmd' in the tunnel/ folder."
             )
 
         cfg_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w")

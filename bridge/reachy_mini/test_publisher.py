@@ -42,6 +42,10 @@ def build_action_event(action: str, duration: float) -> bytes:
     return json.dumps(event).encode()
 
 
+import threading
+
+metrics_received = threading.Event()
+
 def on_metrics(sample):
     """Callback to print metrics published by the bridge."""
     raw = bytes(sample.payload.to_bytes())
@@ -54,6 +58,8 @@ def on_metrics(sample):
         print("=" * 70 + "\n")
     except Exception as e:
         print(f"Failed to parse metrics: {e}")
+    finally:
+        metrics_received.set()
 
 
 def main():
@@ -83,15 +89,18 @@ def main():
     sub = session.declare_subscriber(ZENOH_TOPIC_METRICS, on_metrics)
 
     # Small delay so bridge subscriber is ready
-    time.sleep(0.5)
+    time.sleep(1.0)
 
     payload = build_action_event(args.action, args.duration)
     print(f"\nPublishing ActionEvent to '{ZENOH_TOPIC_ACTION}'...")
     session.put(ZENOH_TOPIC_ACTION, payload)
     print("Published! Waiting for bridge to finish simulation and return metrics...\n")
 
-    # Wait enough time for simulation + Sim2Sim to finish
-    time.sleep(args.duration + 25.0)
+    # Wait dynamically for metrics to be received
+    timeout = args.duration + 30.0
+    print(f"Waiting up to {timeout} seconds for metrics...")
+    if not metrics_received.wait(timeout):
+        print("Timeout waiting for metrics.")
 
     sub.undeclare()
     session.close()
