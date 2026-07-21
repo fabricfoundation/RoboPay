@@ -15,8 +15,13 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).parent
-WEBOTS = "/Applications/Webots.app/Contents/MacOS/webots"
-WEBOTS_PY = "/Applications/Webots.app/Contents/lib/controller/python"
+WEBOTS_HOME = os.environ.get("WEBOTS_HOME", "/Applications/Webots.app")
+if WEBOTS_HOME.endswith(".app"):   # macOS bundle
+    WEBOTS = f"{WEBOTS_HOME}/Contents/MacOS/webots"
+    WEBOTS_PY = f"{WEBOTS_HOME}/Contents/lib/controller/python"
+else:                              # linux install prefix
+    WEBOTS = f"{WEBOTS_HOME}/webots"
+    WEBOTS_PY = f"{WEBOTS_HOME}/lib/controller/python"
 PORT = 1234
 
 
@@ -43,7 +48,7 @@ def run_world(name, timeout=900):
          f"--port={PORT}", "--stdout", "--stderr", str(world)],
         stdout=log, stderr=log)
     env = dict(os.environ,
-               WEBOTS_HOME="/Applications/Webots.app",
+               WEBOTS_HOME=WEBOTS_HOME,
                WEBOTS_CONTROLLER_URL=f"tcp://127.0.0.1:{PORT}/Go2",
                PYTHONPATH=WEBOTS_PY,
                TASK_FILE=str(task),
