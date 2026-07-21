@@ -5,14 +5,20 @@ import json
 import math
 import numpy as np
 
-WEBOTS_HOME = r"C:\Users\Kauker\AppData\Local\Programs\Webots"
-os.environ["WEBOTS_HOME"] = WEBOTS_HOME
-sys.path.insert(0, os.path.join(WEBOTS_HOME, "lib", "controller", "python"))
+_CONTROLLER_DIR = os.path.dirname(os.path.abspath(__file__))
+# _BRIDGE_SRC points to .../src directory so 'from policy...' and 'from simulation...' imports work
+_BRIDGE_SRC = os.path.normpath(os.path.join(_CONTROLLER_DIR, "..", "..", ".."))
+if _BRIDGE_SRC not in sys.path:
+    sys.path.insert(0, _BRIDGE_SRC)
 
-_BRIDGE_SRC = r"C:\Users\Kauker\Documents\antigravity\friendly-bardeen\RoboPay\bridge\reachy_mini\mujoco_sim_bridge\src"
-sys.path.insert(0, _BRIDGE_SRC)
+OUTPUT_FILE = os.path.normpath(os.path.join(_CONTROLLER_DIR, "..", "..", "webots_sim2sim_result.json"))
 
-OUTPUT_FILE = r"C:\Users\Kauker\Documents\antigravity\friendly-bardeen\RoboPay\bridge\reachy_mini\mujoco_sim_bridge\src\simulation\webots_sim2sim_result.json"
+# Try to find Webots controller python lib from WEBOTS_HOME env var if set
+webots_home = os.environ.get("WEBOTS_HOME")
+if webots_home:
+    controller_py = os.path.join(webots_home, "lib", "controller", "python")
+    if os.path.exists(controller_py) and controller_py not in sys.path:
+        sys.path.insert(0, controller_py)
 
 TARGETS = ["apple", "croissant", "duck"]
 MAX_PER_TARGET = 4.0
