@@ -42,11 +42,11 @@ def run_world(name, timeout=900):
     result = HERE / "worlds" / f"{name}_result.json"
     result.unlink(missing_ok=True)
 
-    log = open("/tmp/webots_run.log", "w")
-    webots = subprocess.Popen(
-        [WEBOTS, "--batch", "--minimize", "--no-rendering", "--mode=fast",
-         f"--port={PORT}", "--stdout", "--stderr", str(world)],
-        stdout=log, stderr=log)
+    with open("/tmp/webots_run.log", "w") as log:
+        webots = subprocess.Popen(
+            [WEBOTS, "--batch", "--minimize", "--no-rendering", "--mode=fast",
+             f"--port={PORT}", "--stdout", "--stderr", str(world)],
+            stdout=log, stderr=log)
     env = dict(os.environ,
                WEBOTS_HOME=WEBOTS_HOME,
                WEBOTS_CONTROLLER_URL=f"tcp://127.0.0.1:{PORT}/Go2",
@@ -67,7 +67,6 @@ def run_world(name, timeout=900):
             webots.wait(10)
         except subprocess.TimeoutExpired:
             webots.kill()
-        log.close()
 
 
 if __name__ == "__main__":

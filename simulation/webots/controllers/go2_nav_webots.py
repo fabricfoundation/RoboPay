@@ -97,7 +97,7 @@ def main():
         step += 1
 
         tau = ctrl.compute(qpos, qvel)
-        for m, t in zip(motors, tau):
+        for m, t in zip(motors, tau, strict=True):
             m.setTorque(float(t))
 
         if settling:
@@ -141,8 +141,8 @@ def main():
         "trajectory": trajectory,
     }
     result_file.write_text(json.dumps(result, indent=1))
-    print(f"webots episode done: {json.dumps({k: v for k, v in result.items() if k != 'trajectory'})}",
-          flush=True)
+    summary = {k: v for k, v in result.items() if k != "trajectory"}
+    print(f"webots episode done: {json.dumps(summary)}", flush=True)
     robot.simulationQuit(0)
 
 

@@ -62,12 +62,13 @@ def main():
     server = serve(proxy.handler, "127.0.0.1", PROXY_PORT)
     threading.Thread(target=server.serve_forever, daemon=True).start()
 
-    log = open("/tmp/tunnel_gate_test.log", "w")
-    tunnel = subprocess.Popen(
-        [str(TUNNEL), "-config", "tunnel/config.json"], cwd=REPO,
-        env={"PATH": "/usr/bin:/bin",
-             "PROXY_WS_URL": f"ws://127.0.0.1:{PROXY_PORT}/api/core/ws/robot"},
-        stdout=log, stderr=log)
+    with open("/tmp/tunnel_gate_test.log", "w") as log:
+        # minimal env: keep host proxy vars away from the localhost websocket
+        tunnel = subprocess.Popen(
+            [str(TUNNEL), "-config", "tunnel/config.json"], cwd=REPO,
+            env={"PATH": "/usr/bin:/bin",
+                 "PROXY_WS_URL": f"ws://127.0.0.1:{PROXY_PORT}/api/core/ws/robot"},
+            stdout=log, stderr=log)
     checks = {}
     try:
         checks["tunnel_connected_to_proxy"] = proxy.connected.wait(30)
@@ -88,7 +89,6 @@ def main():
         tunnel.terminate()
         server.shutdown()
         zsession.close()
-        log.close()
 
     ok = all(checks.values())
     print("PASS" if ok else "FAIL")

@@ -106,7 +106,10 @@ def plan_path(start, goal, obstacles):
         return (int((p[0] - lo[0]) / GRID_RES), int((p[1] - lo[1]) / GRID_RES))
 
     start_c, goal_c = cell(start), cell(goal)
-    h = lambda c: math.hypot(c[0] - goal_c[0], c[1] - goal_c[1])
+
+    def h(c):
+        return math.hypot(c[0] - goal_c[0], c[1] - goal_c[1])
+
     frontier = [(h(start_c), start_c)]
     g_cost = {start_c: 0.0}
     came = {}

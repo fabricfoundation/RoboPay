@@ -29,9 +29,9 @@ def wait_for(predicate, timeout, what):
 def main():
     if not TUNNEL.exists():
         sys.exit(f"tunnel binary missing — run `make build` in {REPO}")
-    log = open("/tmp/tunnel_test.log", "w")
-    tunnel = subprocess.Popen([str(TUNNEL), "-config", "tunnel/config.json"],
-                              cwd=REPO, stdout=log, stderr=log)
+    with open("/tmp/tunnel_test.log", "w") as log:
+        tunnel = subprocess.Popen([str(TUNNEL), "-config", "tunnel/config.json"],
+                                  cwd=REPO, stdout=log, stderr=log)
     link = None
     checks = {}
     try:
@@ -67,7 +67,6 @@ def main():
         tunnel.terminate()
         if link and link.poll() is None:
             link.terminate()
-        log.close()
 
     ok = all(checks.values())
     print("PASS" if ok else "FAIL")
