@@ -1,4 +1,1 @@
-from .node import main
-from .mapper import Tron1Mapper
-
-__all__ = ["main", "Tron1Mapper"]
+"""TRON1 bridge package - Isaac Sim adapter for Fabric RoboPay."""

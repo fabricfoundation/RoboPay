@@ -1,0 +1,55 @@
+# Sim-to-Sim validation scenarios for TRON1 obstacle navigation.
+# Each scenario defines start/goal/obstacles and expected outcomes.
+#
+# TRON1 humanoid constraints:
+#   vx: [0, 0.8] m/s   wz: [-0.3, 0.3] rad/s
+#   Forward-only locomotion (no backward walking)
+
+scenarios:
+  straight_line:
+    description: "Navigate straight with no obstacles"
+    start: [0.0, 0.0]
+    goal: [3.0, 0.0]
+    obstacles: []
+    expected:
+      max_collisions: 0
+      min_progress: 0.90
+      max_steps: 600
+
+  obstacle_avoidance:
+    description: "Navigate around a single obstacle"
+    start: [0.0, 0.0]
+    goal: [3.0, 3.0]
+    obstacles:
+      - [1.5, 1.5]
+    expected:
+      max_collisions: 0
+      min_progress: 0.85
+      max_steps: 1000
+
+  corridor:
+    description: "Navigate through a narrow corridor of obstacles"
+    start: [0.0, 0.0]
+    goal: [5.0, 0.0]
+    obstacles:
+      - [1.5, 1.0]
+      - [1.5, -1.0]
+      - [3.0, 1.0]
+      - [3.0, -1.0]
+    expected:
+      max_collisions: 1
+      min_progress: 0.80
+      max_steps: 1000
+
+  multi_step:
+    description: "Navigate through waypoints with obstacles"
+    start: [0.0, 0.0]
+    goal: [6.0, 6.0]
+    obstacles:
+      - [2.0, 2.0]
+      - [3.5, 3.5]
+      - [5.0, 5.0]
+    expected:
+      max_collisions: 0
+      min_progress: 0.80
+      max_steps: 1000
