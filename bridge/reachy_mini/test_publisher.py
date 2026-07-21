@@ -73,9 +73,9 @@ def main():
     print(f"  Zenoh   : {args.connect}")
     print("=" * 70)
 
-    # Open Zenoh session (connecting to the bridge's listener)
+    # Open Zenoh session in peer mode without multicast scouting for instant cross-platform connection
     conf = zenoh.Config.from_json5(
-        f'{{"connect":{{"endpoints":["{args.connect}"]}}}}'
+        f'{{"mode": "peer", "scouting": {{"multicast": {{"enabled": false}}}}, "connect": {{"endpoints": ["{args.connect}"]}}}}'
     )
     session = zenoh.open(conf)
 
