@@ -47,22 +47,32 @@ def main():
         logtext = pathlib.Path("/tmp/tunnel_test.log").read_text()
         checks["tunnel_zenoh_live"] = "config updated via zenoh" in logtext
 
-        # 2) simulated paid action -> subscriber -> MuJoCo episode
+        # 2) simulated paid action -> subscriber -> MuJoCo episode -> result
         RESULT.unlink(missing_ok=True)
+        wire_results = []
+        rs = zenoh.open(zenoh.Config())
+        rs.declare_subscriber(
+            "robot/tunnel/result",
+            lambda smp: wire_results.append(json.loads(bytes(smp.payload))))
         link = subprocess.Popen(
             [sys.executable, "robopay_link.py", "--once"], cwd=HERE)
-        time.sleep(3)   # let the subscriber declare itself
-        subprocess.run(
+        time.sleep(3)   # let the subscribers declare themselves
+        pub = subprocess.run(
             [sys.executable, "simulate_paid_action.py", "9.0", "1.5"],
-            cwd=HERE, check=True)
+            cwd=HERE, check=True, capture_output=True, text=True)
+        action_id = pub.stdout.split("paid action ")[1].split(" ")[0]
         wait_for(lambda: link.poll() is not None, 120, "episode to finish")
         checks["episode_exit_ok"] = link.returncode == 0
 
-        result = json.loads(RESULT.read_text())
-        m = result["metrics"]
+        m = json.loads(RESULT.read_text())
         checks["goal_reached"] = m["reached"]
         checks["no_collisions"] = m["collisions"] == 0
-        print(json.dumps({"checks": checks, "result": result}, indent=1))
+        time.sleep(1)
+        rs.close()
+        checks["result_on_wire_correlated"] = any(
+            r["actionId"] == action_id and r["status"] == "success"
+            for r in wire_results)
+        print(json.dumps({"checks": checks, "metrics": m}, indent=1))
     finally:
         tunnel.terminate()
         if link and link.poll() is None:
