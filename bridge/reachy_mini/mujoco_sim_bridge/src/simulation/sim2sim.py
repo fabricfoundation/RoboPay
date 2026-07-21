@@ -9,7 +9,32 @@ import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
-_WEBOTS_EXE  = r"C:\Users\Kauker\AppData\Local\Programs\Webots\msys64\mingw64\bin\webots.exe"
+def _find_webots() -> str | None:
+    """Locate the Webots executable on any platform without hardcoding paths."""
+    import shutil, platform
+    # 1. Look on $PATH first (works when Webots is properly installed)
+    for name in ("webots", "webots.exe"):
+        found = shutil.which(name)
+        if found:
+            return found
+    # 2. Common install locations as fallback
+    candidates = []
+    if platform.system() == "Windows":
+        candidates = [
+            r"C:\Program Files\Webots\msys64\mingw64\bin\webots.exe",
+            r"C:\Users\Kauker\AppData\Local\Programs\Webots\msys64\mingw64\bin\webots.exe",
+        ]
+    elif platform.system() == "Darwin":
+        candidates = ["/Applications/Webots.app/Contents/MacOS/webots"]
+    else:
+        candidates = ["/usr/local/bin/webots", "/usr/bin/webots"]
+    import os
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
+
+_WEBOTS_EXE  = _find_webots()
 _WEBOTS_WBT  = os.path.normpath(os.path.join(_HERE, "scenes", "reachy_mini_tabletop.wbt"))
 _WEBOTS_JSON = os.path.normpath(os.path.join(_HERE, "webots_sim2sim_result.json"))
 _WEBOTS_TIMEOUT = 90  # seconds
