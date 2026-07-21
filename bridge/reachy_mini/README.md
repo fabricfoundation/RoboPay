@@ -1,83 +1,62 @@
-# Reachy Mini — MuJoCo Simulation Bridge for Fabric RoboPay
+# Hugging Face Reachy Mini — MuJoCo & Webots Simulation Bridge (`bridge/reachy_mini`)
 
-A **Fabric Foundation RoboPay** bridge for the **Hugging Face Reachy Mini** robot, built on the **official MuJoCo model** shipped with the `reachy-mini` Python package. The bridge subscribes to the Zenoh `robot/tunnel/action` topic (same architecture as the official Unitree G1 bridge), executes an expressive **object-tracking task** via a finite-state-machine policy, and publishes head-tracking metrics back over Zenoh.
+This directory contains the **Fabric RoboPay simulation bridge (`mujoco_sim_bridge_reachy_mini`)** for the **Hugging Face Reachy Mini** social robot.
 
-> Submitted for the **Tier 1 — Simulator Skill Execution** reward of the Hugging Face Reachy Mini bounty.
-
----
-
-## What the Reachy Mini Actually Does
-
-The Reachy Mini is an **expressive social robot** — it has no arms. Its actuated degrees of freedom are:
-
-| Actuator | Description | Range |
-|---|---|---|
-| `yaw_body` | Torso rotation | ±160° |
-| `stewart_1..6` | 6-DOF neck (Stewart parallel mechanism) | varies |
-| `right_antenna` | Right expressiveness antenna | passive |
-| `left_antenna` | Left expressiveness antenna | passive |
-
-The skill demonstrated here is **active object tracking** — the robot locates the target object in the scene, rotates its torso to point toward it, and expresses recognition through animated head movement and antennae.
+Submitted for the **Hugging Face Reachy Mini Tier 1 — Simulator Skill Execution Bounty**.
 
 ---
 
-## Architecture
+## 🌟 Key Features
 
-```
-Fabric Proxy (cloud)
-    │  x402 payment verified
-    ▼
-Tunnel (tunnel/ — Go)
-    │  publishes Zenoh topic: robot/tunnel/action
-    ▼
-Bridge (ROS2 / Python — mujoco_sim_bridge_reachy_mini)
-    │  receives ActionEvent → runs FSM policy on official Reachy Mini MJCF
-    ▼
-MuJoCo (official reachy_mini package scene — apple, duck, croissant, table)
-    │  returns head-tracking metrics
-    ▼
-robot/reachy_mini/metrics  (Zenoh publish)
+1. **Official Hugging Face / Pollen Robotics Models**
+   - **MuJoCo:** Loads official MJCF scene directly from installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`).
+   - **Webots:** Includes a VRML scene (`webots_project/worlds/reachy_mini_tabletop.wbt`) with matching tabletop layout (apple, croissant, duck, table).
+
+2. **Expressive Social Skill Execution (`object_tracking`)**
+   - Implements a smooth 4-phase Finite State Machine (FSM): `SCANNING` ➔ `TRACKING` ➔ `EXPRESSIVE` ➔ `DONE`.
+   - Slew-rate limiting and low-pass filtering ensure realistic servo motor dynamics (no jitter or discontinuous motion).
+   - Celebration dance with antenna animation once target is locked.
+
+3. **Dual-Engine Cross-Simulator Sim-to-Sim Validation (`MuJoCo` ➔ `Webots`)**
+   - Automated multi-simulator runner (`sim2sim.py`) evaluates policy generalization across **both MuJoCo and Webots physics engines**:
+     - **Run 1 (MuJoCo):** Randomized friction and mass perturbations.
+     - **Run 2 (Webots):** Real Webots physics engine execution across 3 target objects (`apple`, `croissant`, `duck`).
+     - **Run 3 (MuJoCo):** Multi-target tracking verification.
+
+4. **Fabric Zenoh Tunnel Integration**
+   - Subscribes to `robot/tunnel/action` for `ActionEvent` messages.
+   - Publishes structured JSON telemetry to `robot/reachy_mini/metrics`.
+
+---
+
+## 📁 Repository Structure
+
+```text
+bridge/reachy_mini/
+├── README.md
+├── test_publisher.py               # Local Zenoh ActionEvent simulator
+└── mujoco_sim_bridge/
+    ├── main.py                     # Standalone bridge entrypoint
+    ├── visualize.py                # 3D interactive real-time visualizer
+    ├── reachy_mini/
+    │   ├── node.py                 # ReachyMiniBridgeNode (Zenoh pub/sub)
+    │   └── mapper.py               # Action mapping (look_at, wave, track -> object_tracking)
+    └── src/
+        ├── policy/
+        │   └── controller.py       # ReachyTaskPolicy (4-phase FSM + motor filter)
+        └── simulation/
+            ├── environment.py      # ReachyMiniEnvironment (MuJoCo wrapper)
+            ├── webots_env.py       # ReachyMiniWebotsEnvironment
+            ├── metrics.py          # SimulationMetricsTracker (angular error, FOV lock)
+            ├── sim2sim.py          # Sim2SimValidator (MuJoCo + Webots cross-validation)
+            └── webots_project/
+                ├── worlds/reachy_mini_tabletop.wbt
+                └── controllers/reachy_mini_controller/
 ```
 
 ---
 
-## Policy: Finite-State Machine (FSM)
-
-```
-SCANNING → TRACKING → EXPRESSIVE → DONE
-```
-
-| Phase | Behaviour | Trigger to next |
-|---|---|---|
-| **SCANNING** | Slow sinusoidal torso sweep + head oscillation | `sim_time >= 1.0s` |
-| **TRACKING** | P-controller on `yaw_body` to point at object; gentle head nod | `tracking_success_count >= 30` frames |
-| **EXPRESSIVE** | Smooth head bobs + torso wiggle; excited celebration dance | `3.5s` in phase |
-| **DONE** | Hold pose | terminal |
-
-The policy features **servo velocity rate-limiting** (`slew-rate limiting`) and **low-pass exponential filtering** to ensure smooth, natural, physically realistic motor trajectories.
-
----
-
-## MuJoCo Scene
-
-The bridge loads the **official scene** from the installed `reachy-mini` package:
-
-```
-<package>/reachy_mini/descriptions/reachy_mini/mjcf/scenes/minimal.xml
-```
-
-The scene contains:
-- 🤖 Reachy Mini robot (STL meshes, realistic inertia, servo parameters)
-- 🍎 Apple (`apple` body, mass=0.1 kg)
-- 🥐 Croissant (`croissant` body)
-- 🦆 Rubber duck (`duck` body)
-- 🪵 Wooden table
-
----
-
-## Simulator State Metrics
-
-Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
+## 📊 Sample Telemetry Payload (`robot/reachy_mini/metrics`)
 
 ```json
 {
@@ -88,10 +67,14 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
   "execution_status": "SUCCESS",
   "sim_duration_seconds": 3.01,
   "steps_executed": 301,
-  "phases_visited": ["SCANNING", "TRACKING", "EXPRESSIVE"],
+  "phases_visited": [
+    "EXPRESSIVE",
+    "SCANNING",
+    "TRACKING"
+  ],
   "metrics": {
-    "head_tracking_error_rad": 0.380,
-    "min_tracking_error_rad": 0.117,
+    "head_tracking_error_rad": 0.3808,
+    "min_tracking_error_rad": 0.1172,
     "tracking_success_count": 275,
     "tracking_success_rate": 1.0,
     "overall_fov_lock_rate": 0.914,
@@ -112,33 +95,39 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
         "run_id": "sim2sim_run_1_mujoco_friction",
         "simulator_engine": "MuJoCo",
         "target_object": "apple",
-        "friction_scale": 1.245,
-        "mass_scale": 0.894,
-        "sim_duration_seconds": 3.01,
+        "friction_scale": 1.07,
+        "mass_scale": 0.819,
         "task_completed": true,
-        "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       },
       {
         "run_id": "sim2sim_run_2_webots_cross_engine",
         "simulator_engine": "Webots",
-        "target_object": "apple",
-        "friction_scale": 1.0,
-        "mass_scale": 1.0,
-        "sim_duration_seconds": 3.02,
+        "targets_tracked": [
+          "apple",
+          "croissant",
+          "duck"
+        ],
+        "phases_visited": [
+          "EXPRESSIVE",
+          "SCANNING",
+          "TRACKING"
+        ],
+        "sim_duration_seconds": 10.5,
         "task_completed": true,
         "tracking_success_rate": 1.0,
-        "success_rate_score": 1.0
+        "success_rate_score": 1.0,
+        "per_target": [
+          { "target_object": "apple", "tracking_success_rate": 1.0 },
+          { "target_object": "croissant", "tracking_success_rate": 1.0 },
+          { "target_object": "duck", "tracking_success_rate": 1.0 }
+        ]
       },
       {
         "run_id": "sim2sim_run_3_mujoco_duck_target",
         "simulator_engine": "MuJoCo",
         "target_object": "duck",
-        "friction_scale": 1.0,
-        "mass_scale": 1.0,
-        "sim_duration_seconds": 3.01,
         "task_completed": true,
-        "tracking_success_rate": 1.0,
         "success_rate_score": 1.0
       }
     ]
@@ -146,110 +135,21 @@ Each execution emits a JSON payload to `robot/reachy_mini/metrics`:
 }
 ```
 
-### Metric definitions
-
-| Metric | Description |
-|---|---|
-| `head_tracking_error_rad` | Mean angular error between `eye_camera` view vector and object direction |
-| `min_tracking_error_rad` | Best eye-camera tracking achieved (**0.117 rad ≈ 6.7°**) |
-| `tracking_success_count` | Frames with error within FOV lock-on threshold |
-| `tracking_success_rate` | Fraction of frames in active tracking with FOV lock (**100.0% / 1.0**) |
-| `object_in_fov_seconds` | Total sim-time with object locked in field of view |
-| `antenna_activity` | Cumulative antenna joint displacement (expressiveness) |
-| `success_rate_score` | Final task completion score (**1.0 = 100%**) |
-
 ---
 
-## Repository Layout
+## 🚀 How to Run
 
-Matches the official ROS2 `ament_python` package layout:
-
-```
-bridge/reachy_mini/
-├── mujoco_sim_bridge/
-│   ├── package.xml                 # ROS2 ament_python package manifest
-│   ├── setup.py                    # ROS2 package setup & console scripts
-│   ├── setup.cfg                   # ROS2 script installation targets
-│   ├── launch/
-│   │   └── mujoco_sim_bridge.launch.py  # ROS2 Launch file
-│   ├── config/
-│   │   └── default.yaml            # ROS2 YAML parameters
-│   ├── resource/
-│   │   └── mujoco_sim_bridge_reachy_mini # ROS2 ament resource marker
-│   ├── main.py                     # Standalone Python entrypoint
-│   ├── visualize.py                # 3D interactive viewer GUI
-│   ├── reachy_mini/
-│   │   ├── node.py                 # ROS2 / Zenoh subscriber node
-│   │   └── mapper.py               # ActionEvent → task mapper
-│   └── src/
-│       ├── simulation/
-│       │   ├── environment.py      # Official MJCF loader + obs interface
-│       │   ├── metrics.py          # Head-tracking metrics tracker
-│       │   └── sim2sim.py          # Physics-variation robustness validator
-│       └── policy/
-│           └── controller.py       # ReachyTaskPolicy (FSM)
-└── test_publisher.py               # Fabric tunnel simulator for local testing
-```
-
----
-
-## Requirements
-
+### 1. Run Standalone Bridge (Terminal 1)
 ```bash
-pip install "reachy-mini[mujoco]"   # installs official MJCF + MuJoCo 3.3.0
-pip install eclipse-zenoh
-```
-
-Or from the project root:
-```bash
-pip install -r requirements.txt
-pip install "reachy-mini[mujoco]" eclipse-zenoh
-```
-
----
-
-## Running the Bridge
-
-### Option A — ROS2 Humble Launch (Ubuntu / ROS2)
-
-```bash
-# Build with colcon
-colcon build --packages-select mujoco_sim_bridge_reachy_mini
-source install/setup.bash
-
-# Run via ROS2 launch
-ros2 launch mujoco_sim_bridge_reachy_mini mujoco_sim_bridge.launch.py
-```
-
-### Option B — Direct Python Execution (Cross-Platform: Windows, macOS, Linux)
-
-**Terminal 1 — Start the bridge:**
-```bash
-cd <repo-root>
 python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/main.py
 ```
 
-**Terminal 2 — Simulate the Fabric tunnel:**
+### 2. Send Test Action via Zenoh (Terminal 2)
 ```bash
 python RoboPay/bridge/reachy_mini/test_publisher.py --action look_at_apple
-python RoboPay/bridge/reachy_mini/test_publisher.py --action object_tracking
-python RoboPay/bridge/reachy_mini/test_publisher.py --action wave
 ```
 
----
-
-## Supported Actions
-
-All actions map to the `object_tracking` task (the robot's actual skill set):
-
-| Action name | Notes |
-|---|---|
-| `look_at`, `look_at_apple`, `object_tracking`, `track` | Primary tracking task |
-| `wave`, `express_happiness` | Same FSM — expressiveness phases |
-| `pick_and_place`, `door_open`, `stop` | Graceful fallback to tracking |
-
----
-
-## Sim-to-Sim Validation
-
-The bridge automatically runs 3 physics-variation trials with randomised friction (×0.75–1.25) and apple mass (×0.80–1.20) to validate policy robustness. Results are reported under `sim_to_sim_validation` in the metrics payload.
+### 3. Launch 3D Real-Time Visualizer
+```bash
+python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/visualize.py
+```

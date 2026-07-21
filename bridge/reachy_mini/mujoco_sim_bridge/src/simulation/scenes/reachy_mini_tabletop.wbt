@@ -1,7 +1,7 @@
 #VRML_SIM R2023b utf8
 
 # Hugging Face Reachy Mini Tabletop Tracking Scene — Webots Sim-to-Sim Validation
-# Uses official Hugging Face / Pollen Robotics 3D CAD STL meshes in Webots.
+# Full Webots scene with motorized joints for real physics simulation.
 
 WorldInfo {
   info [
@@ -23,7 +23,6 @@ Background {
   ]
 }
 
-# Main Sunlight
 DirectionalLight {
   ambientLight 0.4 0.4 0.4
   color 1 1 1
@@ -32,7 +31,6 @@ DirectionalLight {
   castShadows TRUE
 }
 
-# Fill Light
 DirectionalLight {
   ambientLight 0.2 0.2 0.2
   color 0.9 0.9 1
@@ -56,11 +54,14 @@ Solid {
     }
   ]
   name "table"
+  boundingObject Box {
+    size 0.8 1.0 0.05
+  }
 }
 
-# Target Object 1: Apple
+# Apple
 Solid {
-  translation 0.6 -0.2 0.03
+  translation 0.6 -0.2 0.055
   children [
     Shape {
       appearance PBRAppearance {
@@ -73,11 +74,17 @@ Solid {
     }
   ]
   name "apple"
+  boundingObject Sphere {
+    radius 0.04
+  }
+  physics Physics {
+    density 300
+  }
 }
 
-# Target Object 2: Croissant
+# Croissant
 Solid {
-  translation 0.6 0.1 0.03
+  translation 0.6 0.1 0.055
   children [
     Shape {
       appearance PBRAppearance {
@@ -90,11 +97,17 @@ Solid {
     }
   ]
   name "croissant"
+  boundingObject Box {
+    size 0.08 0.05 0.04
+  }
+  physics Physics {
+    density 200
+  }
 }
 
-# Target Object 3: Duck
+# Duck
 Solid {
-  translation 0.6 0.3 0.02
+  translation 0.6 0.3 0.05
   children [
     Shape {
       appearance PBRAppearance {
@@ -107,128 +120,194 @@ Solid {
     }
   ]
   name "duck"
+  boundingObject Sphere {
+    radius 0.035
+  }
+  physics Physics {
+    density 100
+  }
 }
 
-# Reachy Mini Robot (Official 3D CAD STL Meshes)
+# Reachy Mini Robot — Supervisor controlled
 Robot {
-  translation 0 0 0.05
+  translation 0 0 0.0
   children [
-    # Base Body
+    # Base
     Solid {
-      translation 0 0 0.0
-      name "base_body"
+      translation 0 0 0.05
       children [
-        CadShape {
-          url [
-            "meshes/pp01067_bottom_body.stl"
-          ]
+        Shape {
           appearance PBRAppearance {
-            baseColor 0.25 0.25 0.3
-            roughness 0.3
+            baseColor 0.2 0.2 0.25
+            roughness 0.4
+          }
+          geometry Cylinder {
+            height 0.1
+            radius 0.09
           }
         }
       ]
+      boundingObject Cylinder {
+        height 0.1
+        radius 0.09
+      }
+      physics Physics {}
     }
-    # Torso Shell
-    Solid {
-      translation 0 0 0.08
-      name "torso_shell"
-      children [
-        CadShape {
-          url [
-            "meshes/pp01068_top_body.stl"
-          ]
-          appearance PBRAppearance {
-            baseColor 0.95 0.95 0.98
-            roughness 0.2
-          }
+    # Torso with Yaw Hinge
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor 0 0 0.15
+      }
+      device [
+        RotationalMotor {
+          name "yaw_body"
+          minPosition -2.79
+          maxPosition 2.79
+          maxVelocity 3.0
         }
-        # Stewart Neck Platform
-        Solid {
-          translation 0 0 0.12
-          name "stewart_platform"
-          children [
-            CadShape {
-              url [
-                "meshes/pp01063_stewart_plateform.stl"
-              ]
-              appearance PBRAppearance {
-                baseColor 0.3 0.3 0.35
-                roughness 0.4
-              }
-            }
-            # Head Shell
-            Solid {
-              translation 0 0 0.10
-              name "head_shell"
-              children [
-                # Front Head Shell
-                CadShape {
-                  url [
-                    "meshes/pp01069_head_shell_front.stl"
-                  ]
-                  appearance PBRAppearance {
-                    baseColor 0.95 0.95 1.0
-                    roughness 0.15
-                  }
-                }
-                # Back Head Shell
-                CadShape {
-                  url [
-                    "meshes/pp01070_head_head_back.stl"
-                  ]
-                  appearance PBRAppearance {
-                    baseColor 0.9 0.9 0.95
-                    roughness 0.2
-                  }
-                }
-                # Glasses
-                CadShape {
-                  url [
-                    "meshes/pp01078_glasses.stl"
-                  ]
-                  appearance PBRAppearance {
-                    baseColor 0.1 0.1 0.12
-                    roughness 0.1
-                  }
-                }
-                # Left Antenna
-                Solid {
-                  translation 0.0 0.035 0.08
-                  children [
-                    CadShape {
-                      url [
-                        "meshes/test_antenna.stl"
-                      ]
-                      appearance PBRAppearance {
-                        baseColor 0.2 0.6 1.0
-                        roughness 0.3
-                      }
-                    }
-                  ]
-                }
-                # Right Antenna
-                Solid {
-                  translation 0.0 -0.035 0.08
-                  children [
-                    CadShape {
-                      url [
-                        "meshes/test_antenna.stl"
-                      ]
-                      appearance PBRAppearance {
-                        baseColor 0.2 0.6 1.0
-                        roughness 0.3
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+        PositionSensor {
+          name "yaw_body_sensor"
         }
       ]
+      endPoint Solid {
+        translation 0 0 0.15
+        name "torso"
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0.92 0.92 0.96
+              roughness 0.2
+            }
+            geometry Cylinder {
+              height 0.16
+              radius 0.065
+            }
+          }
+          # Neck base
+          Solid {
+            translation 0 0 0.12
+            name "neck_base"
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 0.35 0.35 0.4
+                  roughness 0.4
+                }
+                geometry Cylinder {
+                  height 0.02
+                  radius 0.045
+                }
+              }
+              # Head Unit
+              Solid {
+                translation 0 0 0.09
+                name "head"
+                children [
+                  Shape {
+                    appearance PBRAppearance {
+                      baseColor 0.96 0.96 1.0
+                      roughness 0.1
+                    }
+                    geometry Sphere {
+                      radius 0.075
+                    }
+                  }
+                  # Glasses
+                  Solid {
+                    translation 0.065 0.0 0.01
+                    children [
+                      Shape {
+                        appearance PBRAppearance {
+                          baseColor 0.1 0.1 0.12
+                          roughness 0.1
+                        }
+                        geometry Box {
+                          size 0.02 0.11 0.035
+                        }
+                      }
+                    ]
+                  }
+                  # Left Eye
+                  Solid {
+                    translation 0.073 -0.03 0.01
+                    children [
+                      Shape {
+                        appearance PBRAppearance {
+                          baseColor 0.05 0.05 0.05
+                          roughness 0.05
+                        }
+                        geometry Sphere {
+                          radius 0.012
+                        }
+                      }
+                    ]
+                  }
+                  # Right Eye
+                  Solid {
+                    translation 0.073 0.03 0.01
+                    children [
+                      Shape {
+                        appearance PBRAppearance {
+                          baseColor 0.05 0.05 0.05
+                          roughness 0.05
+                        }
+                        geometry Sphere {
+                          radius 0.012
+                        }
+                      }
+                    ]
+                  }
+                  # Left Antenna
+                  Solid {
+                    translation 0.0 0.04 0.08
+                    children [
+                      Shape {
+                        appearance PBRAppearance {
+                          baseColor 0.2 0.6 1.0
+                          roughness 0.2
+                        }
+                        geometry Capsule {
+                          height 0.08
+                          radius 0.006
+                        }
+                      }
+                    ]
+                  }
+                  # Right Antenna
+                  Solid {
+                    translation 0.0 -0.04 0.08
+                    children [
+                      Shape {
+                        appearance PBRAppearance {
+                          baseColor 0.2 0.6 1.0
+                          roughness 0.2
+                        }
+                        geometry Capsule {
+                          height 0.08
+                          radius 0.006
+                        }
+                      }
+                    ]
+                  }
+                ]
+                boundingObject Sphere {
+                  radius 0.075
+                }
+                physics Physics {}
+              }
+            ]
+          }
+        ]
+        boundingObject Cylinder {
+          height 0.16
+          radius 0.065
+        }
+        physics Physics {}
+      }
     }
   ]
   name "reachy_mini"
-  controller "<generic>"
+  controller "reachy_mini_controller"
+  supervisor TRUE
 }
