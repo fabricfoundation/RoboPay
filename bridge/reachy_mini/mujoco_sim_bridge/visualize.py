@@ -47,7 +47,7 @@ def main():
             while viewer.is_running() and obs["sim_time"] < 8.0:
                 step_start = time.time()
 
-                action, phase = policy.compute_action(obs)
+                action, phase = policy.compute_action(obs, metrics.get_summary())
                 env.set_control(action)
                 obs = env.step(steps=5)
                 metrics.update(obs)
