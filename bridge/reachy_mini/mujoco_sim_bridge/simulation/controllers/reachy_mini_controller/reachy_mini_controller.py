@@ -6,10 +6,10 @@ import math
 import numpy as np
 
 _CONTROLLER_DIR = os.path.dirname(os.path.abspath(__file__))
-# _BRIDGE_SRC points to .../src directory so 'from policy...' and 'from simulation...' imports work
-_BRIDGE_SRC = os.path.normpath(os.path.join(_CONTROLLER_DIR, "..", "..", ".."))
-if _BRIDGE_SRC not in sys.path:
-    sys.path.insert(0, _BRIDGE_SRC)
+# _BRIDGE_ROOT points to mujoco_sim_bridge root directory so 'from policy...' and 'from simulation...' imports work
+_BRIDGE_ROOT = os.path.normpath(os.path.join(_CONTROLLER_DIR, "..", "..", ".."))
+if _BRIDGE_ROOT not in sys.path:
+    sys.path.insert(0, _BRIDGE_ROOT)
 
 OUTPUT_FILE = os.path.normpath(os.path.join(_CONTROLLER_DIR, "..", "..", "webots_sim2sim_result.json"))
 

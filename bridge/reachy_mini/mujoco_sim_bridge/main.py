@@ -3,10 +3,10 @@ import logging
 import sys
 import os
 
-# Setup paths so node.py can find src/ and the package itself
+# Setup paths so node.py can find the bridge package root
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _HERE)                           # bridge package root
-sys.path.insert(0, os.path.join(_HERE, "src"))      # simulation/policy modules
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
 
 logging.basicConfig(
     level=logging.INFO,

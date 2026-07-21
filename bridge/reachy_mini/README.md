@@ -67,17 +67,16 @@ bridge/reachy_mini/
     ├── reachy_mini/
     │   ├── node.py                       # Zenoh pub/sub node
     │   └── mapper.py                     # Action → task mapping
-    └── src/
-        ├── policy/
-        │   └── controller.py             # ReachyTaskPolicy (FSM + motor filter)
-        └── simulation/
-            ├── environment.py            # ReachyMiniEnvironment (MuJoCo)
-            ├── webots_env.py             # ReachyMiniWebotsEnvironment (fallback)
-            ├── metrics.py                # SimulationMetricsTracker
-            ├── sim2sim.py                # Sim2SimValidator (4 runs, 2 simulators)
-            ├── test_sim2sim.py           # Sim-to-sim verification script
-            ├── scenes/
-            │   ├── reachy_mini_tabletop.wbt
+    ├── policy/
+    │   └── controller.py                 # ReachyTaskPolicy (FSM + motor filter)
+    └── simulation/
+        ├── environment.py                # ReachyMiniEnvironment (MuJoCo)
+        ├── webots_env.py                 # ReachyMiniWebotsEnvironment (fallback)
+        ├── metrics.py                    # SimulationMetricsTracker
+        ├── sim2sim.py                    # Sim2SimValidator (4 runs, 2 simulators)
+        ├── test_sim2sim.py               # Sim-to-sim verification script
+        └── scenes/
+            └── reachy_mini_tabletop.wbt
             │   └── controllers/
             │       └── reachy_mini_controller/
             └── webots_sim2sim_result.json
@@ -101,8 +100,7 @@ python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/main.py
 python RoboPay/bridge/reachy_mini/test_link.py
 
 # Sim-to-sim test (runs real Webots subprocess + MuJoCo, needs Webots R2023b)
-cd RoboPay/bridge/reachy_mini/mujoco_sim_bridge/src
-python simulation/test_sim2sim.py
+python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/simulation/test_sim2sim.py
 
 # Payment gate test (needs tunnel binary: cd tunnel && go build -o tunnel_bin ./cmd)
 python RoboPay/bridge/reachy_mini/test_payment_gate.py
@@ -111,7 +109,7 @@ python RoboPay/bridge/reachy_mini/test_payment_gate.py
 python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/visualize.py
 
 # Webots GUI — open scene and press Play
-# RoboPay/bridge/reachy_mini/mujoco_sim_bridge/src/simulation/scenes/reachy_mini_tabletop.wbt
+# RoboPay/bridge/reachy_mini/mujoco_sim_bridge/simulation/scenes/reachy_mini_tabletop.wbt
 ```
 
 ---
