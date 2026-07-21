@@ -7,8 +7,18 @@
   "robotId": "test-robot",
   "paymentRequired": true,
   "paramsSchema": {
-   "goal": {"type": "point", "absMax": 15.0},
-   "obstacles": {"type": "obstacles", "maxCount": 10}
+   "goal": {
+    "type": "point",
+    "absMax": 15.0
+   },
+   "obstacles": {
+    "type": "obstacles",
+    "maxCount": 10
+   }
+  },
+  "limits": {
+   "maxSpeedMps": 0.5,
+   "timeoutSec": 90
   }
  }
 ]

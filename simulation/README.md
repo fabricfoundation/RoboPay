@@ -88,6 +88,11 @@ ACTION_FAILED, DUPLICATE`. **The relay must settle only on
 `"status": "success"`** — `test_result_semantics.py` proves every failure
 path yields an error result (no-settle-on-failure evidence).
 
+Note on the return path: the tunnel in this repo does not yet consume
+execution results, so publishing them on the documented result topic is the
+integration point this submission provides — the relay can subscribe there
+to correlate by `actionId` and decide settlement.
+
 Configuration (env vars, defaults in parentheses):
 
 - `ROBOPAY_ACTION_TOPIC` (`robot/tunnel/action`), `ROBOPAY_RESULT_TOPIC`
@@ -119,6 +124,16 @@ Episode metrics all come from the physics engine: final goal distance,
 path completion, path length, sim time, collision count with foot–ground
 touchdowns excluded (MuJoCo: `mjData.contact` pairs; Webots: supervisor
 contact points on the obstacle solids).
+
+Expected outputs — success (test_link.py) and failure
+(test_result_semantics.py) results on `robot/tunnel/result`:
+
+```json
+{"actionId": "act_…", "skill": "navigate_to", "status": "success",
+ "result": {"reached": true, "collisions": 0, "final_goal_distance_m": 0.235, "…": "…"}}
+{"actionId": "act_…", "skill": "navigate_to", "status": "error",
+ "error": {"code": "NO_PATH", "message": "no collision-free path exists for this layout"}}
+```
 
 ## Troubleshooting
 

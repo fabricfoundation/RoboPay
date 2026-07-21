@@ -7,6 +7,8 @@ policies:
     priceUSDC: "0.002"
     paymentHeader: PAYMENT-SIGNATURE
 settlement:
-  rule: relay settles only on {"status": "success"} results; every error
-    result (DUPLICATE / UNKNOWN_SKILL / INVALID_PARAMS / WRONG_ROBOT /
-    NO_PATH / ACTION_FAILED) must not settle.
+  settleOnStatus: success
+  rule: >-
+    The relay settles only on results with status "success". Every error
+    result (DUPLICATE, UNKNOWN_SKILL, INVALID_PARAMS, WRONG_ROBOT, NO_PATH,
+    ACTION_FAILED) must not settle.

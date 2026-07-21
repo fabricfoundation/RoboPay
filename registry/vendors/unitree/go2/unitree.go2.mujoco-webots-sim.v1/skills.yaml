@@ -14,3 +14,6 @@ skills:
         type: obstacles
         maxCount: 10
     paymentRequired: true
+    limits:
+      maxSpeedMps: 0.5   # V_MAX in go2_nav.py; the gait never exceeds this
+      timeoutSec: 90     # episode hard cap; timeout returns ACTION_FAILED
