@@ -57,6 +57,36 @@ and a real Base Sepolia settlement.
 See [`REVIEWER_E2E_TUTORIAL.txt`](REVIEWER_E2E_TUTORIAL.txt) for copy-paste
 commands and the live transaction evidence.
 
+### Latest live Base Sepolia verification
+
+The live multi-object positive path was re-run successfully on 2026-07-22
+using the public Fabric Gateway endpoint and the public x402 facilitator. The
+`inspect_table` request returned HTTP 200 only after the real Tunnel accepted
+the payment and the Reachy Mini bridge published a correlated simulator result.
+
+```text
+Fabric Gateway: https://api.fabric.foundation/api/core/robots/reachy-mini-kauker/action
+Network:        eip155:84532 (Base Sepolia)
+Asset:          USDC 0x036CbD53842c5426634e7929541eC2318f3dCF7e
+Action:          inspect_table (apple, croissant, duck)
+Paid response:   HTTP 200 {"status":"accepted"}
+Settlement:     success=true
+Simulator:      MuJoCo
+Execution:      SUCCESS
+Tracking:       1.0
+Objects:        3/3 completed, 903 steps, 9.03 s
+Sim-to-sim:     MuJoCo + Webots, score 1.0
+Correlation:     base-sepolia-reachy-1784757410
+```
+
+Transaction evidence: [BaseScan](https://sepolia.basescan.org/tx/0x902ecff4dd823aae67b3f9b38db939756cae5652ec4cdb95814992fbe2b8b3ca).
+The live payer key is not stored in the repository.
+
+The multi-object `inspect_table` action was also exercised through the public
+Gateway and real Tunnel. It tracked apple, croissant, and duck, completed all
+three episodes, and returned HTTP 200 with a correlated result. Evidence:
+[BaseScan inspect_table transaction](https://sepolia.basescan.org/tx/0xe6659d0330c90c9aaf5318192f0ad621b58db4f478ce8f9d5769b4da707c349f).
+
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 

@@ -22,6 +22,8 @@ ACTION_TO_TASK = {
     "look_at":           "object_tracking",
     "look_at_apple":     "object_tracking",
     "object_tracking":   "object_tracking",
+    "inspect_table":     "multi_object_inspection",
+    "inspect_scene":     "multi_object_inspection",
     "track":             "object_tracking",
     "wave":              "object_tracking",
     "express_happiness": "object_tracking",

@@ -120,7 +120,12 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(result, f, indent=2)
 
-    robot.simulationQuit(0)
+    if os.environ.get("WEBOTS_INTERACTIVE") == "1":
+        print("[WebotsController] Interactive mode: holding the scene open.")
+        while robot.step(timestep) != -1:
+            pass
+    else:
+        robot.simulationQuit(0)
 
 
 if __name__ == "__main__":

@@ -90,14 +90,24 @@ def main() -> int:
     account = Account.from_key(private_key)
     action_url = f"{FABRIC_API_BASE}/robots/{robot_id}/action"
     request_id = f"base-sepolia-reachy-{int(time.time())}"
-    action_body = {
-        "action": "look_at_apple",
-        "params": {
-            "duration": 4.0,
-            "target_object": "apple",
-            "request_id": request_id,
-        },
-    }
+    if os.environ.get("REACHY_INSPECT_TABLE") == "1":
+        action_body = {
+            "action": "inspect_table",
+            "params": {
+                "request_id": request_id,
+                "targets": ["apple", "croissant", "duck"],
+                "per_target_duration": 3.0,
+            },
+        }
+    else:
+        action_body = {
+            "action": "look_at_apple",
+            "params": {
+                "duration": 4.0,
+                "target_object": "apple",
+                "request_id": request_id,
+            },
+        }
 
     with tempfile.TemporaryDirectory(prefix="robopay_base_sepolia_") as temp_dir:
         temp = Path(temp_dir)

@@ -82,7 +82,8 @@ public Fabric Gateway API, the public x402 facilitator, the real Go Tunnel
 binary, Base Sepolia USDC settlement, and correlated simulator metrics.
 
 The test only succeeds after both payment settlement and simulator correlation
-are confirmed.
+are confirmed. The live execution backend is MuJoCo; Webots is executed as a
+real batch controller during the same sim-to-sim validation.
 
 Complete live payment flow:
 
@@ -124,24 +125,41 @@ Facilitator settlement:
 
   success=true
   payer=0x338FC32a408b601cAb027d867d8192C03895Ff61
-  transaction=0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e
+  action=inspect_table
+  targets=apple,croissant,duck
+  transaction=0x902ecff4dd823aae67b3f9b38db939756cae5652ec4cdb95814992fbe2b8b3ca
   network=eip155:84532
 
 Live transaction evidence:
 
-https://sepolia.basescan.org/tx/0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e
+https://sepolia.basescan.org/tx/0x902ecff4dd823aae67b3f9b38db939756cae5652ec4cdb95814992fbe2b8b3ca
 
 Observed live result:
 
     execution_status: SUCCESS
     tracking_success_rate: 1.0
     task_completed: true
+    task: multi_object_inspection
+    objects_completed: 3/3
+    steps_executed: 903
+    sim_duration_seconds: 9.03
     simulators_evaluated: [MuJoCo, Webots]
     overall_sim2sim_robustness_score: 1.0
 
 Correlation ID:
 
-    base-sepolia-reachy-1784747256
+    base-sepolia-reachy-1784757410
+
+Additional live multi-object task:
+
+The newer `inspect_table` action was separately sent through the same public
+Fabric Gateway endpoint, real Tunnel, public x402 facilitator, and Base
+Sepolia settlement path. It requested apple, croissant, and duck; all 3/3
+objects completed successfully in 903 simulation steps (9.03 seconds), with
+tracking_success_rate=1.0 and overall_sim2sim_robustness_score=1.0.
+
+    transaction=0xe6659d0330c90c9aaf5318192f0ad621b58db4f478ce8f9d5769b4da707c349f
+    BaseScan=https://sepolia.basescan.org/tx/0xe6659d0330c90c9aaf5318192f0ad621b58db4f478ce8f9d5769b4da707c349f
 
 Tunnel fix
 ----------

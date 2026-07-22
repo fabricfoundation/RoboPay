@@ -481,14 +481,21 @@ class TestEndToEndPaidAction(unittest.TestCase):
             payment_signature = _payment_signature_from_402(unpaid_headers)
 
             request_id = f"reachy-e2e-{uuid.uuid4().hex}"
+            inspect_table = os.environ.get("REACHY_INSPECT_TABLE") == "1"
             paid_payload = {
-                "action": "look_at_apple",
+                "action": "inspect_table" if inspect_table else "look_at_apple",
                 "params": {
                     "duration": 4.0,
                     "target_object": "apple",
                     "request_id": request_id,
                 },
             }
+            if inspect_table:
+                paid_payload["params"] = {
+                    "request_id": request_id,
+                    "targets": ["apple", "croissant", "duck"],
+                    "per_target_duration": 3.0,
+                }
             paid_status, _, paid_body = _http_post(
                 public_url,
                 paid_payload,
@@ -516,10 +523,15 @@ class TestEndToEndPaidAction(unittest.TestCase):
                 if event.get("payload", {}).get("params", {}).get("request_id") == request_id
             ]
             if matching_actions:
-                self.assertEqual(matching_actions[0]["payload"]["action"], "look_at_apple")
+                expected_action = "inspect_table" if inspect_table else "look_at_apple"
+                self.assertEqual(matching_actions[0]["payload"]["action"], expected_action)
             self.assertEqual(result["execution_status"], "SUCCESS")
             self.assertTrue(result["metrics"]["task_completed"])
             self.assertGreaterEqual(result["metrics"]["tracking_success_rate"], 0.9)
+            if inspect_table:
+                self.assertEqual(result["objects_requested"], 3)
+                self.assertEqual(result["objects_completed"], 3)
+                self.assertEqual(len(result["per_target"]), 3)
             self.assertGreaterEqual(
                 result["sim_to_sim_validation"]["overall_sim2sim_robustness_score"], 0.9
             )

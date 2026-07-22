@@ -124,21 +124,24 @@ class ReachyMiniBridgeNode(ROSNode):
         task = self._mapper.map(event)
         self._log_info(f"Mapped to task: '{task}' — starting MuJoCo execution...")
 
-        # Determine target object from params (default: apple)
-        target_object = event.params.get("target_object", "apple")
-        # Preserve the public request id in simulator telemetry so the paid
-        # HTTP response can be correlated with this exact execution episode.
+        # Preserve the public request id across the complete mission.
         correlation_id = (
             event.params.get("request_id")
             or event.params.get("correlation_id")
             or event.action_id
         )
-        result = self._run_simulation(
-            task,
-            event.params,
-            target_object=target_object,
-            correlation_id=correlation_id,
-        )
+
+        # Multi-target paid missions run the same closed-loop policy once per
+        # requested object and return an aggregate inspection result.
+        if task == "multi_object_inspection":
+            result = self._run_inspect_table(event.params, correlation_id)
+        else:
+            result = self._run_simulation(
+                task,
+                event.params,
+                target_object=event.params.get("target_object", "apple"),
+                correlation_id=correlation_id,
+            )
 
         # Publish the existing metrics payload for compatibility.
         payload = json.dumps(result).encode()
@@ -167,6 +170,7 @@ class ReachyMiniBridgeNode(ROSNode):
         params: dict,
         target_object: str = "apple",
         correlation_id: str | None = None,
+        validate_sim2sim: bool = True,
     ) -> dict:
         """Run the MuJoCo simulation loop with the policy and return metrics."""
         obs = self._env.reset(target_object=target_object)
@@ -192,11 +196,12 @@ class ReachyMiniBridgeNode(ROSNode):
 
         final_metrics = self._metrics.get_summary()
 
-        # Sim-to-Sim validation with alternating target objects
-        validator = Sim2SimValidator(
-            ReachyMiniEnvironment, ReachyTaskPolicy, SimulationMetricsTracker
-        )
-        sim2sim = validator.run_validation(num_runs=3)
+        sim2sim = {}
+        if validate_sim2sim:
+            validator = Sim2SimValidator(
+                ReachyMiniEnvironment, ReachyTaskPolicy, SimulationMetricsTracker
+            )
+            sim2sim = validator.run_validation(num_runs=3)
 
         return {
             "correlation_id": correlation_id,
@@ -211,6 +216,90 @@ class ReachyMiniBridgeNode(ROSNode):
             "steps_executed":        step_count,
             "phases_visited":        sorted(set(phase_history)),
             "metrics":               final_metrics,
+            "sim_to_sim_validation": sim2sim,
+        }
+
+    def _run_inspect_table(self, params: dict, correlation_id: str | None) -> dict:
+        """Inspect a requested sequence of table objects with live physics.
+
+        Each target gets an independent search/tracking episode. The policy
+        reads simulator state from scratch for every target; no trajectory is
+        reused. The mission succeeds only when every requested target is
+        completed.
+        """
+        requested = params.get("targets", ["apple", "croissant", "duck"])
+        if not isinstance(requested, list):
+            requested = [requested]
+        targets = [str(target).lower() for target in requested if str(target).strip()]
+        targets = targets[:5]
+        allowed = {"apple", "croissant", "duck"}
+        targets = [target for target in targets if target in allowed]
+        if not targets:
+            return {
+                "correlation_id": correlation_id,
+                "robot_id": "reachy_mini_sim_01",
+                "robot_model": "Hugging Face Reachy Mini (Official MJCF)",
+                "simulator": "MuJoCo",
+                "task": "multi_object_inspection",
+                "execution_status": "FAILED",
+                "error_code": "NO_VALID_TARGETS",
+                "objects_requested": 0,
+                "objects_completed": 0,
+                "task_completed": False,
+            }
+
+        per_target_duration = float(params.get("per_target_duration", 4.0))
+        per_target_duration = min(max(per_target_duration, 2.0), 8.0)
+        episodes = []
+        for target in targets:
+            episode = self._run_simulation(
+                "object_tracking",
+                {"duration": per_target_duration},
+                target_object=target,
+                correlation_id=f"{correlation_id}:{target}" if correlation_id else target,
+                validate_sim2sim=False,
+            )
+            episodes.append({
+                "target_object": target,
+                "task_completed": bool(episode["metrics"].get("task_completed")),
+                "tracking_success_rate": episode["metrics"].get("tracking_success_rate", 0.0),
+                "min_tracking_error_rad": episode["metrics"].get("min_tracking_error_rad"),
+                "sim_duration_seconds": episode["sim_duration_seconds"],
+                "steps_executed": episode["steps_executed"],
+            })
+
+        completed = [episode for episode in episodes if episode["task_completed"]]
+        validator = Sim2SimValidator(
+            ReachyMiniEnvironment, ReachyTaskPolicy, SimulationMetricsTracker
+        )
+        sim2sim = validator.run_validation(num_runs=3)
+        return {
+            "correlation_id": correlation_id,
+            "robot_id": "reachy_mini_sim_01",
+            "robot_model": "Hugging Face Reachy Mini (Official MJCF)",
+            "simulator": "MuJoCo",
+            "task": "multi_object_inspection",
+            "execution_status": "SUCCESS" if len(completed) == len(targets) else "FAILED",
+            "objects_requested": len(targets),
+            "objects_found": len(completed),
+            "objects_completed": len(completed),
+            "task_completed": len(completed) == len(targets),
+            "tracking_success_rate": round(
+                sum(item["tracking_success_rate"] for item in episodes) / len(episodes), 3
+            ),
+            "metrics": {
+                "task_completed": len(completed) == len(targets),
+                "tracking_success_rate": round(
+                    sum(item["tracking_success_rate"] for item in episodes) / len(episodes), 3
+                ),
+                "objects_requested": len(targets),
+                "objects_completed": len(completed),
+            },
+            "steps_executed": sum(item["steps_executed"] for item in episodes),
+            "sim_duration_seconds": round(
+                sum(item["sim_duration_seconds"] for item in episodes), 2
+            ),
+            "per_target": episodes,
             "sim_to_sim_validation": sim2sim,
         }
 

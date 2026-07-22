@@ -31,6 +31,22 @@ paid action (x402 / AIP) → tunnel → Zenoh robot/tunnel/action
 
 Overall sim-to-sim robustness score: **1.0** (`simulation/webots_sim2sim_result.json`).
 
+### Multi-object inspection mission
+
+The `inspect_table` skill extends the single-target demo into a paid,
+multi-step inspection mission. It accepts a target list such as
+`["apple", "croissant", "duck"]`, runs the closed-loop search/tracking policy
+independently for each object, and returns one correlated result only when all
+requested targets complete.
+
+The aggregate result reports `objects_requested`, `objects_found`,
+`objects_completed`, `steps_executed`, `sim_duration_seconds`, per-target
+tracking metrics, and MuJoCo/Webots sim-to-sim validation:
+
+```bash
+REACHY_INSPECT_TABLE=1 python3 bridge/reachy_mini/test_e2e_paid_action.py
+```
+
 ---
 
 ## RoboPay integration
@@ -53,7 +69,7 @@ HTTP error and the x402 middleware skips `/settle`.
 For a production Reachy deployment, start the Tunnel with an explicit policy:
 
 ```bash
-export ALLOWED_ACTIONS=look_at,look_at_apple
+export ALLOWED_ACTIONS=look_at,look_at_apple,inspect_table
 export MAX_ACTION_DURATION_SECONDS=30
 export ACTION_RATE_LIMIT_RPM=60
 ```
