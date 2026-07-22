@@ -17,7 +17,11 @@ address, and exact taught points are intentionally excluded.
 
 ## What was physically validated on 2026-07-15
 
-- [x] A paid Base Sepolia request was accepted by the historical tunnel.
+- [x] The historical x402 flow returned a real HTTP 402 payment challenge.
+- [x] The paid request was validated and settlement completed on Base Sepolia
+  (public transaction fingerprint `0xeeb0878b...38d459d3`).
+- [x] The historical tunnel published the settled robot action and recorded
+  `Robot-Dispatch-Status: completed` with HTTP 200.
 - [x] The local bridge accepted only the fixed allow-listed project `test`.
 - [x] `RunScript("test")` was issued once without automatic retry.
 - [x] Controller mode 7 and the exact active project name were observed.
@@ -32,18 +36,27 @@ the clearer public ID `cra_two_cycle_pick_place`; both map to the same fixed
 controller project and the artifact digest above. A new acceptance run must use
 the registry ID, so this rename is not presented as already validated.
 
-The transaction hash, payer, and payee are retained in the private evidence
-ledger as D-TX-001 and are deliberately not included in this public profile.
-Combining even a shortened hash with network/date/amount metadata can make a
-public-chain payment linkable.
+The full transaction hash, payer, payee, x402 payloads, response UUIDs, and raw
+screenshots are retained in the private evidence ledger as D-TX-001. The
+privacy-reviewed public terminal derivative discloses only the transaction
+fingerprint `0xeeb0878b...38d459d3` and the minimum completion fields needed to
+cross-reference that ledger. The manifest records the SHA-256 of each
+privately retained source alongside its public derivative for chain-of-custody
+identification.
+
+The historical claim established by these records is explicit: **historical
+real x402 payment validation and settlement completed**. That claim is narrower
+than the new result-aware contract and does not establish its required ordering.
 
 ## Historical synchronous limitation
 
 The old public payer request returned HTTP 502 after approximately 30.8
-seconds, even though payment, tunnel delivery, controller execution, physical
-motion, and the local bridge's eventual HTTP 200 all succeeded. The old tunnel
-waited synchronously for the full robot motion and exceeded an outer gateway
-deadline. This is not represented as a compliant asynchronous RoboPay success.
+seconds, even though real payment validation and settlement, tunnel delivery,
+controller execution, physical motion, and the local bridge's eventual HTTP
+200 all succeeded. The old tunnel waited synchronously for the full robot
+motion and exceeded an outer gateway deadline. The caller-facing 502 does not
+erase the completed historical payment or robot execution, but this run is not
+represented as a compliant asynchronous RoboPay success.
 
 The historical tunnel also settled payment before dispatching the controller
 project. It therefore proves a paid physical trigger, but it does **not** prove
@@ -109,10 +122,17 @@ must be resolved or superseded by the result-aware relay before final PR CI.
 
 See `task-traceability.md`. The public controller logic and sanitized point
 template prove the custom behavior while preventing unsafe reuse of a site's
-coordinates. The included D-RUN-001 derivative passed privacy review: it has no
-audio or source metadata, and the bystander/laptop area is opaque-masked. Raw
-logs, screenshots, source video, wallets, controller addresses, serials, and
-exact points remain outside Git.
+coordinates. D-HTTP402-001, D-SETTLE-001, and D-BRIDGE-001 are deterministic
+crops of the original terminal captures with opaque masks over x402 payloads,
+response identifiers, full payer/transaction values, workstation paths, and
+the controller's private address. D-RUN-001 has no audio or source metadata,
+and its bystander/laptop area is opaque-masked. Raw terminal captures, logs,
+source video, wallets, controller addresses, serials, and exact points remain
+outside Git.
+
+The terminal images prove the historical 402/payment/settlement/bridge facts
+visible in them. They do not prove that settlement waited for a terminal
+`robot/tunnel/result`, nor do they prove failure-without-settlement.
 
 ## Known limitations
 

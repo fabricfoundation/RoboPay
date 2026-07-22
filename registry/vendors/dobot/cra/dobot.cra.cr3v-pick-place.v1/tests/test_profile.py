@@ -14,8 +14,19 @@ PUBLIC_EVM_ADDRESSES = {
     "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
     "0x1111111111111111111111111111111111111111",
 }
-APPROVED_VIDEO_SHA256 = {
-    "6c479d7bfcc4143742e144a1984c2e2d718d224b26f0d1b218c9bd79aabdd1a4"
+APPROVED_BINARY_EVIDENCE = {
+    "docs/evidence/dobot-cr3v-historical-physical-evidence-redacted.mp4": (
+        "6c479d7bfcc4143742e144a1984c2e2d718d224b26f0d1b218c9bd79aabdd1a4"
+    ),
+    "docs/evidence/terminal/dobot-cr3v-historical-payment-402-redacted.png": (
+        "9fd4b958f905a8ab19e8f95fca05f0e135efcde75d452eab94f9e2f7143a67ee"
+    ),
+    "docs/evidence/terminal/dobot-cr3v-historical-settlement-tunnel-redacted.png": (
+        "030f037b47c8d923e7e25144d14bdf0660297c127bace7fae3e50f15cab9c531"
+    ),
+    "docs/evidence/terminal/dobot-cr3v-historical-bridge-completion-redacted.png": (
+        "41aecd38a9f55345e14c663ce84ec4eb148abc47fc083df2ada577808e17e333"
+    ),
 }
 
 
@@ -137,16 +148,17 @@ class ProfileContractTests(unittest.TestCase):
 
     def test_no_unapproved_binary_evidence_is_packaged(self):
         binary_suffixes = {".mp4", ".mov", ".png", ".jpg", ".jpeg", ".zip"}
-        packaged = []
+        packaged = set()
         for path in PROFILE.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in binary_suffixes:
                 continue
-            packaged.append(path)
+            relative = path.relative_to(PROFILE).as_posix()
+            packaged.add(relative)
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            with self.subTest(path=path.relative_to(PROFILE)):
-                self.assertIn(digest, APPROVED_VIDEO_SHA256)
-                self.assertEqual(".mp4", path.suffix.lower())
-        self.assertEqual(1, len(packaged))
+            with self.subTest(path=relative):
+                self.assertIn(relative, APPROVED_BINARY_EVIDENCE)
+                self.assertEqual(APPROVED_BINARY_EVIDENCE[relative], digest)
+        self.assertEqual(set(APPROVED_BINARY_EVIDENCE), packaged)
 
     def test_controller_source_is_custom_composed_behavior(self):
         source = (PROFILE / "controller-project" / "src0.lua").read_text(

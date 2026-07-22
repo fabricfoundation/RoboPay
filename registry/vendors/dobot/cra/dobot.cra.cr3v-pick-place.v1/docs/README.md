@@ -9,18 +9,38 @@ skill implementation.
 
 ## Status
 
-The custom controller project and historical Fabric-triggered physical motion
-were validated on 2026-07-15. The new Zenoh action/result bridge and durable
-contract are included here, but the latest asynchronous relay flow and
-no-settle-on-failure behavior still require a fresh physical acceptance run.
-See `validation-report.md` for the precise claim boundary.
+**Historical real x402 payment validation and settlement completed.** On
+2026-07-15 the historical flow produced a real HTTP 402 challenge, validated
+the paid request, settled it on Base Sepolia, dispatched the fixed DOBOT
+controller project, and completed the physical task. The public transaction
+fingerprint is `0xeeb0878b...38d459d3`; the full transaction and payer remain
+in controlled evidence storage.
 
-The repository includes a
-[privacy-redacted video of the complete historical task](evidence/dobot-cr3v-historical-physical-evidence-redacted.mp4)
-and its [evidence manifest](evidence/evidence-manifest.yaml). The derivative is
-video-only; the bystander/laptop region is opaque-masked and source audio and
-metadata were removed. It proves the physical two-cycle task, not the newer
-asynchronous result/no-settle path.
+The public, privacy-redacted evidence set includes:
+
+- [the historical HTTP 402 terminal response](evidence/terminal/dobot-cr3v-historical-payment-402-redacted.png);
+- [the tunnel completion and settlement terminal record](evidence/terminal/dobot-cr3v-historical-settlement-tunnel-redacted.png),
+  which records `local robot bridge completed`, `published settled robot
+  action`, `Robot-Dispatch-Status: completed`, and HTTP 200;
+- [the real-execution bridge completion record](evidence/terminal/dobot-cr3v-historical-bridge-completion-redacted.png),
+  which records `REAL_EXECUTION`, `RunScript` for project `test`, running-state
+  confirmation, completion, and HTTP 200; and
+- [the complete historical physical task video](evidence/dobot-cr3v-historical-physical-evidence-redacted.mp4).
+
+All four derivatives and their source hashes/redaction operations are recorded
+in the [evidence manifest](evidence/evidence-manifest.yaml). Raw screenshots are
+not published. The terminal derivatives use deterministic crops and opaque
+masks; any visible audit overlay is a clearly limited transcription of masked
+fields, not generated terminal output.
+
+The historical caller ultimately observed HTTP 502, and the old tunnel settled
+before controller dispatch rather than after a terminal robot result. The
+evidence therefore proves historical real payment, settlement, bridge
+completion, and physical motion, but does **not** prove the new result-gated
+success-settlement or failure-without-settlement contract. The new Zenoh
+action/result bridge and durable contract are included here; that latest flow
+still requires a fresh physical acceptance run. See `validation-report.md` for
+the precise claim boundary.
 
 ## Architecture and settlement gate
 
