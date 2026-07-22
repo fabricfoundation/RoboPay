@@ -20,11 +20,23 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 │   └── config.json  # robot_id, payee address, price, network
 ├── bridge/          # ROS2 bridge: Zenoh action events → robot /cmd_vel
 │   ├── common/zenoh_bridge/                 # shared Zenoh + action parsing
-│   └── unitree/{g1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
+│   ├── unitree/{g1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
+│   └── reachy_mini/                         # MuJoCo + Webots Reachy Mini bridge
 └── Makefile         # builds/runs the tunnel and the bridge
 ```
 
 The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
+
+## Reachy Mini end-to-end proof
+
+The Reachy Mini implementation provides a complete paid-action path from the
+Fabric API to a correlated simulator result. The deterministic test uses the
+real Go Tunnel binary and real Zenoh; only its local proxy/facilitator are test
+doubles. The live test uses the public Fabric API, the public x402 facilitator,
+and a real Base Sepolia settlement.
+
+See [`REVIEWER_E2E_TUTORIAL.txt`](REVIEWER_E2E_TUTORIAL.txt) for copy-paste
+commands and the live transaction evidence.
 
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)

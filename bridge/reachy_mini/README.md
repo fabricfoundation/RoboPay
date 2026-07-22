@@ -5,7 +5,7 @@ A paid action on the tunnel's Zenoh topic starts an object-tracking episode on t
 ```
 paid action (x402 / AIP) → tunnel → Zenoh robot/tunnel/action
 → subscriber → FSM (SCANNING → TRACKING → EXPRESSIVE) → yaw_body + Stewart neck
-→ MuJoCo (official MJCF) / Webots R2023b (VRML scene + dedicated controller)
+→ MuJoCo (official MJCF) / Webots (tested with R2025a in WSL)
 ```
 
 ---
@@ -14,7 +14,7 @@ paid action (x402 / AIP) → tunnel → Zenoh robot/tunnel/action
 
 **Simulation only:** everything runs headless, no hardware SDKs. The robot has no arms — all actions are mapped to the expressive head-tracking skill (`object_tracking`).
 
-**Approved simulators:** MuJoCo loads the official model from the installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`, 9 actuators: 1 `yaw_body` torso + 6 Stewart neck + 2 antennae). Webots R2023b runs the same policy via a dedicated controller in `scenes/controllers/reachy_mini_controller/` against a VRML scene with matching object layout (apple, croissant, duck, table).
+**Approved simulators:** MuJoCo loads the official model from the installed `reachy-mini[mujoco]` package (`descriptions/reachy_mini/mjcf/scenes/minimal.xml`, 9 actuators: 1 `yaw_body` torso + 6 Stewart neck + 2 antennae). Webots runs the same policy via a dedicated controller in `simulation/scenes/controllers/reachy_mini_controller/` against a scene with matching object layout (apple, croissant, duck, table). The live WSL validation used Webots R2025a in batch/no-rendering mode.
 
 **No replay:** the FSM closes the loop on live physics state — it reads `head_xmat` and `target_pos` from the simulator every step and computes a P-controller yaw command from scratch. No recorded trajectory anywhere in the codebase. `test_sim2sim.py` verifies both engines reach `task_completed: true` independently.
 
@@ -22,12 +22,12 @@ paid action (x402 / AIP) → tunnel → Zenoh robot/tunnel/action
 
 | target    | simulator | tracked | success_rate | min_error_rad | time    |
 |-----------|-----------|---------|--------------|---------------|---------|
-| apple     | MuJoCo    | yes     | 1.0          | 0.117         | 3.01 s  |
+| apple     | MuJoCo    | yes     | 1.0          | 0.150         | 3.01 s  |
 | croissant | MuJoCo    | yes     | 1.0          | 0.196         | 3.01 s  |
-| duck      | MuJoCo    | yes     | 1.0          | 0.210         | 3.01 s  |
-| apple     | Webots    | yes     | 1.0          | 0.340         | 4.00 s  |
-| croissant | Webots    | yes     | 1.0          | 0.196         | 4.00 s  |
-| duck      | Webots    | yes     | 1.0          | 0.473         | 4.00 s  |
+| duck      | MuJoCo    | yes     | 1.0          | 0.473         | 3.01 s  |
+| apple     | Webots    | yes     | 1.0          | 0.340         | 12.00 s |
+| croissant | Webots    | yes     | 1.0          | 0.196         | 12.00 s |
+| duck      | Webots    | yes     | 1.0          | 0.473         | 12.00 s |
 
 Overall sim-to-sim robustness score: **1.0** (`simulation/webots_sim2sim_result.json`).
 
@@ -41,9 +41,9 @@ Three tests exercise the payment integration:
 
 **`test_link.py`** proves the tunnel's Zenoh session is live (`robot/config/<id>` put accepted), then publishes a paid-action event with the exact `handlers.PostAction` schema and asserts the robot runs the episode and returns metrics with `execution_status: SUCCESS`, `task_completed: true`, and `overall_sim2sim_robustness_score ≥ 0.9`. Both payment rails (x402 `POST /action` and AIP) publish to the same Zenoh topic, which is why the simulation subscribes there.
 
-**`test_e2e_paid_action.py`** is the positive payment proof requested by the reviewer. It obtains the real 402 requirements through the proxy, builds a valid v2 `PAYMENT-SIGNATURE`, then sends the paid request through the real Tunnel binary. A deterministic local facilitator answers `/verify` and `/settle`; the resulting ActionEvent reaches Zenoh and the MuJoCo bridge returns metrics carrying the request id for correlation.
+**`test_e2e_paid_action.py`** is the deterministic positive-payment proof requested by the reviewer. It obtains the real 402 requirements through a local Fabric-proxy-compatible WebSocket, builds a valid v2 `PAYMENT-SIGNATURE`, and sends the paid request through the real Tunnel binary. A deterministic local facilitator answers `/verify` and `/settle`; the resulting ActionEvent reaches Zenoh and the simulator returns metrics carrying the request id for correlation. This test does not bypass the Tunnel.
 
-**`test_base_sepolia_tunnel_e2e.py`** is the optional live-network proof. It uses the official Python x402 client, sends the first unpaid request to the public Fabric endpoint, retries through the real compiled Tunnel, requires a successful settlement from `https://x402.org/facilitator`, prints the BaseScan transaction URL, and only then accepts correlated ROS2/MuJoCo metrics. The payer needs Base Sepolia USDC; never commit or share its private key.
+**`test_base_sepolia_tunnel_e2e.py`** is the live-network proof. It uses the official Python x402 client, sends the first unpaid request to the public Fabric endpoint, retries through the real compiled Tunnel, requires a successful settlement from `https://x402.org/facilitator`, prints the BaseScan transaction URL, and only then accepts correlated Reachy Mini simulator metrics. The payer needs Base Sepolia USDC; never commit or share its private key.
 
 ```
 test_payment_gate.py (requires tunnel binary):
@@ -57,7 +57,12 @@ test_link.py (requires bridge running):
 test_e2e_paid_action.py (requires tunnel binary):
   paid HTTP POST /action → real Tunnel HTTP 200 ✓
   facilitator verify/settle → ActionEvent      ✓
-  ActionEvent → correlated MuJoCo metrics      ✓
+  ActionEvent → MuJoCo + Webots metrics        ✓
+
+test_base_sepolia_tunnel_e2e.py (live wallet required):
+  public Fabric HTTP 402 → signed x402 request ✓
+  Base Sepolia settlement receipt             ✓
+  settlement → correlated simulator metrics   ✓
 ```
 
 ---
@@ -97,42 +102,40 @@ bridge/reachy_mini/
 ## Reproduce
 
 ```bash
-# Option A: ROS2 Humble (WSL Ubuntu-22.04 / colcon workspace)
-cd RoboPay
+# Run from the RoboPay repository root.
+make build
+make test
+
+# Deterministic positive-payment path. This starts the real Tunnel and the
+# simulator bridge internally; no wallet or blockchain funds are required.
+python3 bridge/reachy_mini/test_e2e_paid_action.py
+
+# Standalone sim-to-sim check (real MuJoCo + real Webots subprocess).
+python3 bridge/reachy_mini/mujoco_sim_bridge/simulation/test_sim2sim.py
+
+# Optional ROS2 bridge mode. Keep this process running in another terminal.
 source /opt/ros/humble/setup.bash
 source .venv_ros2/bin/activate
 make ROBOT=reachy_mini bridge-build
 make ROBOT=reachy_mini bridge-run
 
-# Option B: Standalone Python (Windows / macOS / Linux)
-python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/main.py
+# With the ROS2 bridge already running, use:
+REACHY_BRIDGE_EXTERNAL=1 python3 bridge/reachy_mini/test_e2e_paid_action.py
 
-# Terminal 2 — end-to-end link test (bridge must be running)
-python RoboPay/bridge/reachy_mini/test_link.py
-
-# Sim-to-sim test (runs real Webots subprocess + MuJoCo, needs Webots R2023b)
-python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/simulation/test_sim2sim.py
-
-# Build the real tunnel binary from the repository root first: make build
-# Payment gate test (real Tunnel + local WebSocket proxy)
-python RoboPay/bridge/reachy_mini/test_payment_gate.py
-
-# Positive payment path using the ROS2 bridge above:
-# HTTP -> real Tunnel -> Zenoh ActionEvent -> ROS2 node -> MuJoCo metrics
-REACHY_BRIDGE_EXTERNAL=1 python RoboPay/bridge/reachy_mini/test_e2e_paid_action.py
-
-# Live Base Sepolia proof (the ROS2 bridge must already be running):
-export PRIVATE_KEY=0x...             # local only; never commit or send this
-export ROBOT_ID=your-unique-robot-id
-export ROBO_PAYEE_ADDRESS=0xYourReceivingWallet
-python RoboPay/bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
-
-# 3D viewer (MuJoCo)
-python RoboPay/bridge/reachy_mini/mujoco_sim_bridge/visualize.py
-
-# Webots GUI — open scene and press Play
-# RoboPay/bridge/reachy_mini/mujoco_sim_bridge/simulation/scenes/reachy_mini_tabletop.wbt
+# Live Base Sepolia proof. Keep the private key local and never commit it.
+export PRIVATE_KEY=0xYOUR_PAYER_PRIVATE_KEY
+export ROBOT_ID=your-registered-robot-id
+export ROBO_PAYEE_ADDRESS=0xYOUR_RECEIVING_WALLET
+python3 bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
 ```
+
+The live test uses the public Fabric endpoint and the public x402 facilitator. It
+does not accept a successful HTTP response as proof by itself: it also requires
+a successful settlement receipt and a simulator result with the same request
+correlation id.
+
+The live Base Sepolia run for this branch produced a confirmed transaction:
+`0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e`.
 
 ---
 

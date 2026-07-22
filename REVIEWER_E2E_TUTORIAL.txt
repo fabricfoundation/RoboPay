@@ -1,0 +1,146 @@
+RoboPay Reachy Mini - Reviewer E2E Tutorial
+============================================
+
+This tutorial validates the positive paid-action path for the Reachy Mini
+simulator. It is based on commit e0a0e60.
+
+Verified path:
+
+  Fabric API -> x402 facilitator -> real Go Tunnel -> Zenoh
+  -> Reachy Mini simulator -> correlated MuJoCo/Webots metrics
+
+The live payment test uses the public Fabric API and public x402 facilitator.
+The simulator is intentionally local because this is a simulator-only task.
+
+
+1. Environment
+-------------
+
+Use Ubuntu 22.04 / WSL2 with Go 1.25+, Python 3.10+, ROS2 Humble, MuJoCo,
+Webots, and Zenoh installed.
+
+From the repository root:
+
+  source /opt/ros/humble/setup.bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  python3 -m pip install -r bridge/reachy_mini/mujoco_sim_bridge/requirements.txt
+
+
+2. Build and test the real Tunnel
+----------------------------------
+
+  make build
+  make test
+
+The build creates bin/tunnel. The Go unit tests cover the HTTP payment handler
+and the internal WebSocket client.
+
+
+3. Deterministic positive-payment proof
+---------------------------------------
+
+Run:
+
+  python3 bridge/reachy_mini/test_e2e_paid_action.py
+
+This test:
+
+  1. Starts a local Fabric-proxy-compatible WebSocket server.
+  2. Starts the real compiled Go Tunnel binary.
+  3. Sends an unpaid request and verifies HTTP 402 payment requirements.
+  4. Creates a valid v2 PAYMENT-SIGNATURE.
+  5. Sends the paid request through the real Tunnel.
+  6. Verifies HTTP 200 and the published Zenoh ActionEvent.
+  7. Runs the Reachy Mini MuJoCo task.
+  8. Runs Webots sim-to-sim validation.
+  9. Verifies correlated SUCCESS metrics.
+
+The local proxy and facilitator are deterministic test doubles only. The
+Tunnel binary, Zenoh path, MuJoCo execution, and Webots execution are real.
+
+Expected evidence:
+
+  paid request status=200
+  execution_status=SUCCESS
+  tracking_success_rate=1.0
+  task_completed=true
+  simulators_evaluated=[MuJoCo, Webots]
+  overall_sim2sim_robustness_score=1.0
+
+
+4. Live Base Sepolia proof
+--------------------------
+
+The payer wallet needs Base Sepolia USDC. Set these values locally. Never
+commit or share the private key.
+
+  export PRIVATE_KEY=0xYOUR_PAYER_PRIVATE_KEY
+  export ROBOT_ID=your-registered-robot-id
+  export ROBO_PAYEE_ADDRESS=0xYOUR_RECEIVING_WALLET
+
+Run:
+
+  python3 bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
+
+The test uses:
+
+  Public Fabric endpoint:
+    https://api.fabric.foundation/api/core
+  Public x402 facilitator:
+    https://x402.org/facilitator
+  Network:
+    eip155:84532 (Base Sepolia)
+
+The script only passes after all of these conditions are true:
+
+  - the public endpoint returns HTTP 402;
+  - the x402 client signs the payment;
+  - the public facilitator verifies and settles the payment;
+  - the real Tunnel returns HTTP 200;
+  - the ActionEvent reaches Zenoh;
+  - the simulator publishes metrics with the same correlation id;
+  - execution_status is SUCCESS;
+  - MuJoCo and Webots sim-to-sim validation pass.
+
+Confirmed live evidence for this branch:
+
+  Transaction:
+    0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e
+  BaseScan:
+    https://sepolia.basescan.org/tx/0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e
+  Correlation id:
+    base-sepolia-reachy-1784747256
+  Settlement:
+    success=true, network=eip155:84532
+  Simulator:
+    execution_status=SUCCESS
+    tracking_success_rate=1.0
+    task_completed=true
+    sim2sim robustness score=1.0
+
+
+5. Optional ROS2 bridge mode
+----------------------------
+
+To run the ROS2 bridge separately:
+
+  source /opt/ros/humble/setup.bash
+  source .venv_ros2/bin/activate
+  make ROBOT=reachy_mini bridge-build
+  make ROBOT=reachy_mini bridge-run
+
+Keep that process running, then run either E2E test with:
+
+  export REACHY_BRIDGE_EXTERNAL=1
+
+The bridge listens for ActionEvents on robot/tunnel/action and publishes the
+Reachy Mini execution metrics on robot/reachy_mini/metrics.
+
+
+Security note
+-------------
+
+Do not put PRIVATE_KEY in the repository, README, pull request, shell history,
+or reviewer message. Use a disposable test wallet and rotate any key that has
+already been exposed.
