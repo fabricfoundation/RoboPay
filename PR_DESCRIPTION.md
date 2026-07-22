@@ -74,6 +74,62 @@ paid HTTP request
 
 The test only succeeds after both payment settlement and simulator correlation are confirmed.
 
+### Complete live payment flow
+
+The live request uses the following public endpoints and payment parameters:
+
+| Component | Value |
+|---|---|
+| Fabric action endpoint | `https://api.fabric.foundation/api/core/robots/reachy-mini-kauker/action` |
+| Tunnel WebSocket | `wss://api.fabric.foundation/api/core/ws/robot` |
+| x402 facilitator | `https://x402.org/facilitator` |
+| Network | `eip155:84532` (Base Sepolia) |
+| Asset | USDC (`0x036CbD53842c5426634e7929541eC2318f3dCF7e`) |
+| Amount | `1000` base units (`$0.001`) |
+| Payee | `0x39a315667d557B1425bb1e5D371DD66d300c98c1` |
+
+The request sequence is:
+
+```text
+1. POST /robots/reachy-mini-kauker/action without payment
+   -> Fabric Gateway returns HTTP 402 and x402 requirements.
+
+2. The payer signs the returned requirements locally with an EVM wallet.
+
+3. The signed PAYMENT-SIGNATURE is sent to the same public action endpoint.
+
+4. The Fabric Gateway routes the request through the public Tunnel WebSocket.
+
+5. The Tunnel sends the payment payload to the x402 facilitator for
+   verification and settlement on Base Sepolia.
+
+6. After successful settlement, the Tunnel publishes an ActionEvent on
+   Zenoh topic robot/tunnel/action.
+
+7. The Reachy Mini bridge executes the paid action and publishes metrics on
+   robot/reachy_mini/metrics using the original request_id as correlation_id.
+```
+
+The successful live response was:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"status":"accepted"}
+```
+
+The facilitator settlement response was:
+
+```json
+{
+  "success": true,
+  "payer": "0x338FC32a408b601cAb027d867d8192C03895Ff61",
+  "transaction": "0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e",
+  "network": "eip155:84532"
+}
+```
+
 Live transaction evidence:
 
 [Base Sepolia transaction](https://sepolia.basescan.org/tx/0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e)
