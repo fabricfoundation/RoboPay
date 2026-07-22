@@ -1,0 +1,23 @@
+schemaVersion: robot-skills.v1
+profileId: agibot.x2.aimdk-robopay.v1
+
+skills:
+  - skillId: x2_right_wave
+    name: Right-hand wave
+    description: >-
+      Execute the AgiBot X2 vendor-provided right-hand wave preset. This is a
+      Tier 2 skill mapped to AimDK SetMcPresetMotion area=2, motion=1002.
+    params:
+      interrupt:
+        type: boolean
+        required: true
+        description: Whether AimDK may interrupt a previously running preset motion.
+    paymentRequired: true
+    limits:
+      timeoutSec: 10
+      concurrency: 1
+    safety:
+      requiredPosture: Stable Standing Mode
+      clearRadiusM: 1.5
+      physicalOperatorRequired: true
+      emergencyStop: Use the robot's physical remote/e-stop; no paid remote stop is exposed.

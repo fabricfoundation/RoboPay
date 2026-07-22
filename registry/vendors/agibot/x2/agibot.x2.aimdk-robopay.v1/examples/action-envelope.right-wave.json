@@ -1,0 +1,23 @@
+{
+  "actionId": "act_example_x2_wave_001",
+  "robotId": "agibot-x2-demo-001",
+  "skillId": "x2_right_wave",
+  "params": {
+    "interrupt": true
+  },
+  "paramsHash": "945b8598389f04a2fef4e52f80313c4d23abbf6271f40ff7a5fb8d8b2e88abf4",
+  "idempotencyKey": "example-x2-wave-001",
+  "payment": {
+    "provider": "x402",
+    "authorizationId": "auth_example_x2_wave_001",
+    "verified": true,
+    "status": "authorized",
+    "settled": false,
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "2000",
+    "payTo": "0x0000000000000000000000000000000000000001",
+    "issuedAt": "2026-07-22T00:00:00Z",
+    "expiresAt": "2026-07-22T00:05:00Z"
+  }
+}

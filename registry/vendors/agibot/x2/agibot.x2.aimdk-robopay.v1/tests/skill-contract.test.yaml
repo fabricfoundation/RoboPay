@@ -1,0 +1,62 @@
+schemaVersion: skill-contract-test.v1
+profileId: agibot.x2.aimdk-robopay.v1
+runner: python3 -m unittest discover -s tests -p test_*.py -v
+
+cases:
+  - name: valid explicit AimDK success is settlement eligible
+    action: examples/action-envelope.right-wave.json
+    expect: {status: success, correlatedBy: actionId, executions: 1}
+
+  - name: AimDK running is pending and not settlement eligible
+    action: examples/action-envelope.right-wave.json
+    vendorState: RUNNING
+    expect: {status: pending, settlementEligible: false}
+
+  - name: duplicate is persistent and never re-executed
+    action: same envelope after bridge restart
+    expect: {status: error, code: DUPLICATE, executions: 1}
+
+  - name: payment authorization cannot be reused for a new action
+    action: new actionId and idempotencyKey with the same authorizationId
+    expect: {status: error, code: DUPLICATE, executions: 1}
+
+  - name: wrong robot is rejected before actuation
+    mutate: {robotId: another-robot}
+    expect: {status: error, code: WRONG_ROBOT, executions: 0}
+
+  - name: unknown skill is rejected before actuation
+    mutate: {skillId: x2_unvalidated_motion}
+    expect: {status: error, code: UNKNOWN_SKILL, executions: 0}
+
+  - name: invalid parameter is rejected before actuation
+    mutate: {params: {interrupt: "yes"}}
+    expect: {status: error, code: INVALID_PARAMS, executions: 0}
+
+  - name: tampered paramsHash is rejected before actuation
+    mutate: {paramsHash: all-zero sha256}
+    expect: {status: error, code: PARAMS_HASH_MISMATCH, executions: 0}
+
+  - name: unverified payment is rejected before actuation
+    mutate: {payment.verified: false}
+    expect: {status: error, code: PAYMENT_INVALID, executions: 0}
+
+  - name: expired payment is rejected before actuation
+    mutate: {payment.issuedAt: old, payment.expiresAt: before current time}
+    expect: {status: error, code: PAYMENT_EXPIRED, executions: 0}
+
+  - name: authorization longer than 300 seconds is rejected
+    mutate: {payment.expiresAt: more than 300 seconds after issuedAt}
+    expect: {status: error, code: PAYMENT_INVALID, executions: 0}
+
+  - name: authorization more than 30 seconds in the future is rejected
+    mutate: {payment.issuedAt: more than 30 seconds after bridge time}
+    expect: {status: error, code: PAYMENT_INVALID, executions: 0}
+
+  - name: dry run can never authorize settlement
+    action: examples/action-envelope.right-wave.json
+    mode: dry-run
+    expect: {status: pending, settlementEligible: false, physicalExecutions: 0}
+
+settlementInvariant: >-
+  Only a non-simulated result with status=success, an explicit AimDK SUCCESS
+  state, and settlementEligible=true may be settled.

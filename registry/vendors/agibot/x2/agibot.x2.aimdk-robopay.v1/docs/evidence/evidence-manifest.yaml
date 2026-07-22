@@ -1,0 +1,90 @@
+schemaVersion: robopay-evidence.v1
+profileId: agibot.x2.aimdk-robopay.v1
+
+evidence:
+  - evidenceId: AGX2-HISTORICAL-PAYMENT-TERMINAL-01
+    file: terminal/agibot-x2-historical-payment-terminal-redacted.png
+    sha256: 0322cb26d6882b911f481a0c48ab123eac9d1d2cf3e9c666d207be4e1f7f3557
+    bytes: 364536
+    dimensions: 1920x555
+    format: png
+    captureDate: 2026-07-13
+    scope: historical-real-x402-payment-and-settlement
+    trace:
+      httpStatus: 200
+      settlementSuccess: true
+      paymentReference: "0x35fa38...605a0a"
+      network: eip155:84532
+      acceptedAt: "2026-07-13T12:55:29+08:00"
+      payloadDeliveryMessage: action paid for and payload delivered
+      bridgeCorrelation: AimDK task 8 was admitted within the same wall-clock second
+    source:
+      file: proof-payment.png
+      sha256: 8543554abfd084aef133a99804187998bcfb8cd5f1be10993b2cb2ab116c185e
+      publicationStatus: retained-private-not-uploaded
+    derivation:
+      - deterministic crop from the raw terminal screenshot
+      - opaque masks over payer, complete transaction hash, and local path
+      - overlay retains only truncated payer and transaction references
+    privacy:
+      - full payer address is not public
+      - complete transaction hash is not public
+      - local username and path are not public
+      - no payment signature or private key is visible
+    limitations:
+      - Proves historical real x402 payment validation, settlement, and payload delivery.
+      - Does not prove that historical settlement waited for robot/tunnel/result.
+      - Raw source is available only through a controlled private review.
+
+  - evidenceId: AGX2-HISTORICAL-BRIDGE-TASK8-01
+    file: terminal/agibot-x2-historical-bridge-task8-redacted.png
+    sha256: 46adddfad2d19e3799645a95bd969fd0d458fc03f1c6e106a222639d6b2613e1
+    bytes: 357253
+    dimensions: 1920x410
+    format: png
+    captureDate: 2026-07-13
+    scope: historical-robot-bridge-admission
+    trace:
+      skillId: x2_right_wave
+      aimdkTaskId: 8
+      aimdkState: RUNNING
+      taskTimestampEpoch: "1783918529.509..."
+      taskTimestamp: "2026-07-13T12:55:29.509+08:00"
+      paymentReference: "0x35fa38...605a0a"
+      paymentTimestampSameSecond: "2026-07-13T12:55:29+08:00"
+    source:
+      file: proof-bridge.png
+      sha256: 84189613b21904028dcb17a4c443b7ce13ec9881746fea9d09f26dfa3e6c48db
+      publicationStatus: retained-private-not-uploaded
+    derivation:
+      - deterministic crop from the raw bridge terminal screenshot
+      - crop excludes local username, hostname, and home-directory paths
+    privacy:
+      - no payer, complete transaction hash, host, IP, serial, or local path is visible
+    limitations:
+      - Same-second timing corroborates the documented historical run.
+      - RUNNING proves AimDK admission, not terminal SUCCESS.
+      - Does not prove the current asynchronous result or settlement-gating contract.
+
+  - evidenceId: AGX2-HISTORICAL-PHYSICAL-01
+    file: agibot-x2-historical-physical-evidence-redacted.mp4
+    sha256: 242620d1982bbd1a80778319f6433f49e9ca434e39b83d96ff0268d6856fb70f
+    bytes: 2194472
+    durationSec: 7.50
+    format: h264-1920x1080-30fps-video-only
+    captureDate: 2026-07-13
+    scope: historical-physical-action-only
+    trace:
+      skillId: x2_right_wave
+      aimdkTaskId: 8
+      paymentReference: "0x35fa38...605a0a"
+      paymentRelation: same historical recorded run; full value retained privately
+    privacy:
+      - identifiable person and wall signage cropped out
+      - source audio removed
+      - source metadata removed
+      - no terminal, wallet, host, IP, serial, or local path is visible
+    limitations:
+      - Shows the physical wave, not the new asynchronous result contract.
+      - Historical AimDK evidence was RUNNING/accepted, not terminal SUCCESS.
+      - Does not prove failure-without-settlement.

@@ -1,0 +1,62 @@
+schemaVersion: execution-mapping.v1
+profileId: agibot.x2.aimdk-robopay.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  actionSchema: robopay-action.v1
+  resultSchema: robot-action-result.v1
+
+validation:
+  requiredActionFields:
+    - actionId
+    - robotId
+    - skillId
+    - params
+    - paramsHash
+    - idempotencyKey
+    - payment
+  paramsHash: sha256 of UTF-8 canonical JSON with sorted keys and compact separators
+  replayStore: SQLite path from ROBOPAY_STATE_DB
+  paymentTimeWindow:
+    defaultMaxAuthorizationTtlSec: 300
+    defaultFutureClockSkewSec: 30
+    configurableHardCaps:
+      maxAuthorizationTtlSec: 3600
+      futureClockSkewSec: 300
+  rejectBeforeActuation:
+    - malformed envelope
+    - wrong robotId
+    - unknown skillId
+    - invalid params or paramsHash
+    - unverified, mismatched, expired, overlong, or future-dated payment
+    - duplicate actionId, idempotencyKey, or payment authorizationId
+
+mappings:
+  x2_right_wave:
+    output: aimdk_service
+    service: /aimdk_5Fmsgs/srv/SetMcPresetMotion
+    request:
+      area.value: 2
+      motion.value: 1002
+      interrupt: "$params.interrupt"
+      ani_path: ""
+      play_timestamp: 0
+    completion:
+      success: CommonTaskResponse.state == CommonState.SUCCESS
+      pending: CommonTaskResponse.state == CommonState.RUNNING, or code=0 without explicit SUCCESS
+      error: service rejection, exception, unavailable service, or unknown outcome
+      retryPolicy: never resubmit automatically after an ambiguous ROS timeout
+
+result:
+  correlationFields:
+    - actionId
+    - robotId
+    - skillId
+    - idempotencyKey
+    - paramsHash
+  settlementEligibleOnlyWhen:
+    - status == success
+    - AimDK state is explicit SUCCESS
+    - execution is not a dry run

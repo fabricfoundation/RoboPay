@@ -1,0 +1,39 @@
+schemaVersion: robot-profile.v1
+vendor: agibot
+robotModel: x2
+robotType: physical-humanoid
+profileId: agibot.x2.aimdk-robopay.v1
+profileVersion: 1.0.0
+scope: physical-robot
+tier: 2
+brand: Fabric Foundation × AgiBot
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: bridge/agibot_x2_robopay_bridge.py
+  controlStack:
+    sdk: AimDK_X2
+    sdkVersionValidated: 1.0.0
+    middleware: ROS 2 Humble
+    service: /aimdk_5Fmsgs/srv/SetMcPresetMotion
+
+identity:
+  handshake: robotsdk
+  robotIdEnv: ROBOPAY_ROBOT_ID
+  payeeWalletEnv: ROBOPAY_PAYEE_ADDRESS
+  privateKeyEnv: ROBOT_PRIVATE_KEY
+
+safety:
+  requiredPosture: Stable Standing Mode
+  physicalEmergencyStop: operator-held remote controller/e-stop
+  remoteEmergencyStopExposed: false
+  notes:
+    - Keep the physical safety operator in the loop for every paid action.
+    - A RUNNING AimDK response is pending, not successful, and is never settlement-eligible.
+
+maintainers:
+  - github: Junzhe
+
+status: experimental

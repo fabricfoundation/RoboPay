@@ -1,0 +1,56 @@
+schemaVersion: agent-functions.v1
+profileId: agibot.x2.aimdk-robopay.v1
+
+functions:
+  - name: list_robot_skills
+    method: GET
+    url: /v1/robots/{robotId}/skills
+    responseSource: registry profile skills.yaml
+
+  - name: request_robot_action
+    method: POST
+    url: /v1/robots/{robotId}/actions
+    body:
+      actionId: string
+      robotId: string
+      skillId: string
+      params: object
+      paramsHash: sha256 of sorted-key compact UTF-8 params JSON
+      idempotencyKey: string
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+
+  - name: submit_paid_robot_action
+    method: POST
+    url: /v1/robots/{robotId}/actions
+    headers:
+      PAYMENT-SIGNATURE: string
+    body:
+      actionId: string
+      robotId: string
+      skillId: string
+      params: object
+      paramsHash: string
+      idempotencyKey: string
+    immediateResponse:
+      status: accepted
+      correlationField: actionId
+
+  - name: get_robot_action_status
+    method: GET
+    url: /v1/robots/{robotId}/actions/{actionId}
+    terminalStatuses:
+      - success
+      - error
+
+relayForwardedEnvelope:
+  preserves:
+    - actionId
+    - robotId
+    - skillId
+    - params
+    - paramsHash
+    - idempotencyKey
+  adds:
+    payment: relay-verified authorized and unsettled payment evidence

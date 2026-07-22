@@ -1,0 +1,54 @@
+schemaVersion: payment-policy.v1
+profileId: agibot.x2.aimdk-robopay.v1
+provider: x402
+network: eip155:84532
+asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+assetSymbol: USDC
+assetDecimals: 6
+amountUnit: smallest
+payeeEnv: ROBOPAY_PAYEE_ADDRESS
+
+policies:
+  - skillId: x2_right_wave
+    required: true
+    amount: "2000"
+    displayPriceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+    requiredBridgeEvidence:
+      - provider
+      - authorizationId
+      - verified
+      - status
+      - settled
+      - network
+      - asset
+      - amount
+      - payTo
+      - issuedAt
+      - expiresAt
+
+settlement:
+  settleOnResultStatus: success
+  requireSettlementEligible: true
+  pendingStates:
+    - accepted
+    - pending
+  rule: >-
+    The relay may settle only after a correlated robot/tunnel/result message has
+    status=success and settlementEligible=true. Invalid, duplicate, expired,
+    rejected, running-only, timed-out, simulated, or error results must not settle.
+    A successful settlement receipt and txHash are appended by the relay after
+    execution; they are not required in the pre-execution authorization.
+
+security:
+  paymentVerifiedBy: Fabric relay x402 middleware
+  robotSideVerification: validate the relay-normalized evidence; never charge twice
+  privateKeys: environment or secret manager only; never commit or log
+
+authorizationWindow:
+  defaultMaxTtlSec: 300
+  defaultFutureClockSkewSec: 30
+  maxConfigurableTtlSec: 3600
+  maxConfigurableFutureClockSkewSec: 300
+  maxTtlEnv: ROBOPAY_MAX_AUTH_TTL_SEC
+  futureClockSkewEnv: ROBOPAY_FUTURE_CLOCK_SKEW_SEC
