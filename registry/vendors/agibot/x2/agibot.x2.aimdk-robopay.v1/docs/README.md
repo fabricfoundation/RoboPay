@@ -5,10 +5,16 @@ as a paid RoboPay skill under the **Fabric Foundation × AgiBot** brand. It is a
 Tier 2 submission: the adapter invokes AgiBot's built-in AimDK preset motion
 `SetMcPresetMotion(area=2, motion=1002)` on a physical X2.
 
-> Validation status: the historical field run proved that a paid request
-> reached a physical X2 and visibly triggered the right-hand wave. The stricter
-> asynchronous result and no-settle-on-failure contract in this package still
-> requires one new physical rerun. See [validation-report.md](validation-report.md).
+> Validation status: **historical real x402 payment validation and settlement
+> completed.** The redacted terminal record shows HTTP 200,
+> `settlement.success=true`, transaction `0x35fa38...605a0a`, and "action paid
+> for and payload delivered" at `2026-07-13T12:55:29+08:00`. The bridge record
+> places AimDK `task_id=8` at epoch `1783918529.509...`, the same wall-clock
+> second, and the redacted video shows the physical right-hand wave. This
+> historical settlement was not gated by a terminal `robot/tunnel/result`, and
+> AimDK reported `RUNNING`; the stricter success-after-result and
+> failure-without-settlement contract still requires one new physical rerun.
+> See [validation-report.md](validation-report.md).
 
 Only the right-hand wave is registered. Unvalidated left-arm, handshake,
 locomotion, and emergency-stop actions are intentionally excluded.
@@ -83,15 +89,26 @@ Every accepted action is traceable without logging wallet secrets:
 The adapter never logs payer, payee, full transaction hashes, payment
 signatures, private keys, hostnames, usernames, or IP addresses.
 
-## Historical physical evidence
+## Historical real-payment and physical evidence
 
-The repository includes a short
-[privacy-redacted physical wave video](evidence/agibot-x2-historical-physical-evidence-redacted.mp4)
-and its [evidence manifest](evidence/evidence-manifest.yaml). The derivative is
-video-only: the identifiable person and wall signage were cropped out, and the
-source audio and metadata were removed. It proves the historical physical wave
-associated with AimDK `task_id=8`; it does not claim that the new asynchronous
-result/no-settle contract was used for that run.
+The repository includes three privacy-reviewed derivatives:
+
+- [historical payment terminal](evidence/terminal/agibot-x2-historical-payment-terminal-redacted.png),
+  showing HTTP 200, `settlement.success=true`, the masked transaction reference,
+  Base Sepolia, and the payload-delivered confirmation;
+- [historical bridge task 8 terminal](evidence/terminal/agibot-x2-historical-bridge-task8-redacted.png),
+  showing AimDK admission for `task_id=8` at epoch `1783918529.509...`; and
+- [historical physical wave video](evidence/agibot-x2-historical-physical-evidence-redacted.mp4),
+  showing the physical X2 right-hand wave associated with task 8.
+
+The payment acceptance time, `2026-07-13T12:55:29+08:00`, and the bridge task
+time, `2026-07-13T12:55:29.509+08:00`, are within the same wall-clock second.
+Together with the private source records listed by hash in the
+[evidence manifest](evidence/evidence-manifest.yaml), these artifacts document
+that the historical real x402 payment, settlement, payload delivery, bridge
+admission, and physical motion occurred. They do **not** claim that the
+historical settlement waited for a terminal result: AimDK was still `RUNNING`,
+and the newer result-gated success/failure acceptance run remains pending.
 
 ## Action envelope
 
@@ -324,8 +341,11 @@ Public PR material must use **Fabric Foundation × AgiBot** branding and redact
 or mask payer/payee addresses, full transaction hashes, payment signatures,
 hostnames, usernames, private/internal IP addresses, serial numbers, and people
 visible in the background. Full receipts may be retained privately for reviewer
-verification. Raw editor projects, logs, `*.pyc`, caches, binaries, and large
-unredacted media are not part of this profile.
+verification. The public terminal PNGs are deterministic crops with opaque
+masks; only truncated wallet/transaction references remain in their overlays.
+Their raw `proof-payment.png` and `proof-bridge.png` sources are identified by
+SHA-256 in the manifest but are not uploaded. Raw editor projects, logs,
+`*.pyc`, caches, and unredacted media are not part of this profile.
 
 ## Vendor references
 

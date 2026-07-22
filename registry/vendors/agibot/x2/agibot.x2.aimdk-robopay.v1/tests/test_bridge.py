@@ -24,8 +24,16 @@ SPEC.loader.exec_module(bridge_module)
 
 PAYEE = "0x1111111111111111111111111111111111111111"
 ASSET = bridge_module.DEFAULT_ASSET
-APPROVED_VIDEO_SHA256 = {
-    "242620d1982bbd1a80778319f6433f49e9ca434e39b83d96ff0268d6856fb70f"
+APPROVED_EVIDENCE_SHA256 = {
+    "docs/evidence/agibot-x2-historical-physical-evidence-redacted.mp4": (
+        "242620d1982bbd1a80778319f6433f49e9ca434e39b83d96ff0268d6856fb70f"
+    ),
+    "docs/evidence/terminal/agibot-x2-historical-bridge-task8-redacted.png": (
+        "46adddfad2d19e3799645a95bd969fd0d458fc03f1c6e106a222639d6b2613e1"
+    ),
+    "docs/evidence/terminal/agibot-x2-historical-payment-terminal-redacted.png": (
+        "0322cb26d6882b911f481a0c48ab123eac9d1d2cf3e9c666d207be4e1f7f3557"
+    ),
 }
 
 
@@ -372,18 +380,19 @@ class BridgeContractTests(unittest.TestCase):
         finally:
             store.close()
 
-    def test_only_approved_public_video_is_packaged(self):
+    def test_only_approved_public_evidence_binaries_are_packaged(self):
         binary_suffixes = {".mp4", ".mov", ".png", ".jpg", ".jpeg", ".zip"}
-        packaged = []
+        packaged = {}
         for path in PROFILE_ROOT.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in binary_suffixes:
                 continue
-            packaged.append(path)
+            relative_path = path.relative_to(PROFILE_ROOT).as_posix()
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            with self.subTest(path=path.relative_to(PROFILE_ROOT)):
-                self.assertEqual(".mp4", path.suffix.lower())
-                self.assertIn(digest, APPROVED_VIDEO_SHA256)
-        self.assertEqual(1, len(packaged))
+            packaged[relative_path] = digest
+            with self.subTest(path=relative_path):
+                self.assertIn(relative_path, APPROVED_EVIDENCE_SHA256)
+                self.assertEqual(APPROVED_EVIDENCE_SHA256.get(relative_path), digest)
+        self.assertEqual(APPROVED_EVIDENCE_SHA256, packaged)
 
 
 if __name__ == "__main__":
