@@ -23,6 +23,7 @@ import base64
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -141,6 +142,24 @@ def main() -> int:
             stderr=subprocess.STDOUT,
         )
 
+        bridge_proc = None
+        if os.environ.get("REACHY_BRIDGE_EXTERNAL") != "1":
+            main_py = Path(__file__).resolve().parent / "mujoco_sim_bridge" / "main.py"
+            bridge_env = os.environ.copy()
+            bridge_env["QT_QPA_PLATFORM"] = "offscreen"
+            bridge_dir = Path(__file__).resolve().parent / "mujoco_sim_bridge"
+            sim_dir = bridge_dir / "simulation"
+            bridge_env["PYTHONPATH"] = f"{bridge_dir}{os.pathsep}{sim_dir}{os.pathsep}{bridge_env.get('PYTHONPATH', '')}"
+            if os.path.isfile("/opt/webots/webots"):
+                bridge_env["WEBOTS_EXE"] = "/opt/webots/webots"
+            bridge_proc = subprocess.Popen(
+                [sys.executable, str(main_py)],
+                cwd=Path(__file__).resolve().parent,
+                env=bridge_env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
+            )
+
         session = None
         metrics_sub = None
         metrics_event = threading.Event()
@@ -235,6 +254,12 @@ def main() -> int:
                 metrics_sub.undeclare()
             if session is not None:
                 session.close()
+            if bridge_proc is not None:
+                try:
+                    bridge_proc.terminate()
+                    bridge_proc.wait(timeout=2)
+                except Exception:
+                    bridge_proc.kill()
             if tunnel.poll() is None:
                 tunnel.terminate()
                 tunnel.wait(timeout=15)

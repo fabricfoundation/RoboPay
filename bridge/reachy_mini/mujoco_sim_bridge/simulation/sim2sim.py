@@ -129,10 +129,13 @@ class Sim2SimValidator:
         print("[Sim2Sim] Launching Webots subprocess …")
         webots_env = dict(os.environ)
         webots_env["QT_QPA_PLATFORM"] = "offscreen"
-        webots_env["PYTHONPATH"] = f"{_HERE}{os.pathsep}{os.path.join(_HERE, 'controllers')}{os.pathsep}{webots_env.get('PYTHONPATH', '')}"
+        webots_lib_python = "/opt/webots/lib/controller/python"
+        bridge_root = os.path.dirname(_HERE)
+        webots_env["PYTHONPATH"] = f"{bridge_root}{os.pathsep}{_HERE}{os.pathsep}{os.path.join(_HERE, 'controllers')}{os.pathsep}{webots_lib_python}{os.pathsep}{webots_env.get('PYTHONPATH', '')}"
         try:
             proc = subprocess.Popen(
                 cmd,
+                cwd=_HERE,
                 env=webots_env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
