@@ -1,0 +1,143 @@
+Reachy Mini RoboPay Integration
+===============================
+
+A paid RoboPay action starts a closed-loop object-tracking episode on the
+official Hugging Face Reachy Mini model and validates the behavior across
+MuJoCo and Webots.
+
+    x402 paid request
+      -> Fabric Gateway
+      -> RoboPay Tunnel
+      -> Zenoh robot/tunnel/action
+      -> Reachy Mini bridge
+      -> FSM: SCANNING -> TRACKING -> EXPRESSIVE
+      -> MuJoCo / Webots physics
+      -> correlated robot/reachy_mini/metrics
+
+Simulation task
+---------------
+
+The Reachy Mini has no arms, so the implemented skill is an expressive
+head-tracking task. A paid action such as look_at_apple causes the controller
+to track the requested object using the official Reachy Mini MJCF, torso yaw,
+the six-DOF Stewart neck, and two antenna actuators.
+
+The policy reads the live simulator state (head_xmat and target position) at
+every step and computes the control command dynamically. No recorded
+trajectory or predefined animation is replayed.
+
+Sim-to-sim validation
+---------------------
+
+The same task policy is evaluated independently in MuJoCo and Webots. The
+Webots run launches the real Webots binary in batch/no-rendering mode and reads
+the result produced by the Webots controller.
+
+Validated simulators:
+
+    MuJoCo
+    Webots R2025a
+
+Representative results:
+
+    target      simulator  tracked  success_rate  min_error_rad  duration
+    apple       MuJoCo     yes       1.0           0.150          3.01 s
+    croissant   MuJoCo     yes       1.0           0.196          3.01 s
+    duck        MuJoCo     yes       1.0           0.473          3.01 s
+    apple       Webots     yes       1.0           0.340          12.00 s
+    croissant   Webots     yes       1.0           0.196          12.00 s
+    duck        Webots     yes       1.0           0.473          12.00 s
+
+Overall sim-to-sim robustness score: 1.0.
+
+RoboPay payment integration
+----------------------------
+
+Payment gate:
+
+    test_payment_gate.py verifies:
+      unpaid POST /action -> HTTP 402 + x402 payment requirements
+      malformed JSON      -> HTTP 400
+
+No unpaid action is published to the robot topic.
+
+Deterministic positive-payment path:
+
+test_e2e_paid_action.py uses the real compiled Go Tunnel binary, real Zenoh,
+the real Reachy Mini simulator, real MuJoCo execution, and real Webots
+sim-to-sim validation. The local Fabric proxy and facilitator are deterministic
+test doubles only. The request still passes through the real Tunnel and
+produces a real Zenoh ActionEvent.
+
+    paid HTTP request
+      -> real Tunnel
+      -> Zenoh ActionEvent
+      -> Reachy Mini bridge
+      -> correlated MuJoCo/Webots metrics
+
+Live Base Sepolia path:
+
+test_base_sepolia_tunnel_e2e.py validates the public payment path using the
+public Fabric Gateway API, the public x402 facilitator, the real Go Tunnel
+binary, Base Sepolia USDC settlement, and correlated simulator metrics.
+
+The test only succeeds after both payment settlement and simulator correlation
+are confirmed.
+
+Live transaction evidence:
+
+https://sepolia.basescan.org/tx/0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e
+
+Observed live result:
+
+    execution_status: SUCCESS
+    tracking_success_rate: 1.0
+    task_completed: true
+    simulators_evaluated: [MuJoCo, Webots]
+    overall_sim2sim_robustness_score: 1.0
+
+Correlation ID:
+
+    base-sepolia-reachy-1784747256
+
+Tunnel fix
+----------
+
+The Tunnel now uses the configured ZENOH_CONFIG for both the ActionEvent
+publisher and the configuration subscriber.
+
+Previously, the Tunnel could return HTTP 200 while opening Zenoh with a
+different configuration from the bridge. Publication failures are now
+returned as HTTP 503 instead of being reported as successful payments.
+
+Reproduce locally
+-----------------
+
+From the repository root:
+
+    make build
+    make test
+    python3 bridge/reachy_mini/test_e2e_paid_action.py
+
+Expected result:
+
+    paid request status=200
+    execution_status: SUCCESS
+    tracking_success_rate: 1.0
+    task_completed: true
+    simulators_evaluated: [MuJoCo, Webots]
+    overall_sim2sim_robustness_score: 1.0
+    OK
+
+Optional ROS2 execution:
+
+    source /opt/ros/humble/setup.bash
+    source .venv_ros2/bin/activate
+    make ROBOT=reachy_mini bridge-build
+    make ROBOT=reachy_mini bridge-run
+
+With the ROS2 bridge already running:
+
+    REACHY_BRIDGE_EXTERNAL=1 python3 bridge/reachy_mini/test_e2e_paid_action.py
+
+No private keys or secrets are included in this PR.
