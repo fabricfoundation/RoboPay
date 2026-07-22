@@ -42,6 +42,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TUNNEL_BINARY = ROOT / "bin" / "tunnel"
 ACTION_TOPIC = "robot/tunnel/action"
 METRICS_TOPIC = "robot/reachy_mini/metrics"
+RESULT_TOPIC = "robot/tunnel/result"
 NETWORK = "eip155:84532"
 FABRIC_API_BASE = os.environ.get(
     "FABRIC_API_BASE_URL", "https://api.fabric.foundation/api/core"
@@ -162,8 +163,11 @@ def main() -> int:
 
         session = None
         metrics_sub = None
+        result_sub = None
         metrics_event = threading.Event()
+        result_event = threading.Event()
         metrics: list[dict] = []
+        results: list[dict] = []
         try:
             time.sleep(3)
             if tunnel.poll() is not None:
@@ -177,7 +181,14 @@ def main() -> int:
                 if result.get("correlation_id") == request_id:
                     metrics_event.set()
 
+            def on_result(sample):
+                result = json.loads(bytes(sample.payload.to_bytes()))
+                results.append(result)
+                if result.get("action_id") == request_id:
+                    result_event.set()
+
             metrics_sub = session.declare_subscriber(METRICS_TOPIC, on_metrics)
+            result_sub = session.declare_subscriber(RESULT_TOPIC, on_result)
 
             print(f"Payer: {account.address}")
             print(f"Payee: {payee}")
@@ -229,7 +240,12 @@ def main() -> int:
 
             if not metrics_event.wait(90):
                 raise RuntimeError("Paid ActionEvent did not produce correlated ROS2 metrics")
+            if not result_event.wait(10):
+                raise RuntimeError("Paid ActionEvent did not produce robot/tunnel/result")
             result = next(item for item in metrics if item.get("correlation_id") == request_id)
+            result_envelope = next(item for item in results if item.get("action_id") == request_id)
+            if result_envelope.get("status") != "success":
+                raise RuntimeError(f"Tunnel result was not successful: {result_envelope}")
             if result.get("execution_status") != "SUCCESS":
                 raise RuntimeError(f"Simulator did not succeed: {result}")
             sim_metrics = result.get("metrics", {})
@@ -252,6 +268,8 @@ def main() -> int:
         finally:
             if metrics_sub is not None:
                 metrics_sub.undeclare()
+            if result_sub is not None:
+                result_sub.undeclare()
             if session is not None:
                 session.close()
             if bridge_proc is not None:

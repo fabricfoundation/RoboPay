@@ -9,6 +9,11 @@ class ActionEvent:
     action: str
     params: Dict[str, Any] = field(default_factory=dict)
     timestamp: str = ""
+    action_id: str = ""
+    robot_id: str = ""
+    skill_id: str = ""
+    params_hash: str = ""
+    idempotency_key: str = ""
 
 
 def parse_action_event(raw: bytes) -> Optional[ActionEvent]:
@@ -37,4 +42,9 @@ def parse_action_event(raw: bytes) -> Optional[ActionEvent]:
         action=payload.get("action", "stop"),
         params=payload.get("params") or {},
         timestamp=event.get("timestamp", ""),
+        action_id=event.get("action_id", ""),
+        robot_id=event.get("robot_id", ""),
+        skill_id=event.get("skill_id", ""),
+        params_hash=event.get("params_hash", ""),
+        idempotency_key=event.get("idempotency_key", ""),
     )

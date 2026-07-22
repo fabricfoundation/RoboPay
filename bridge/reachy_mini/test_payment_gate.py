@@ -17,10 +17,11 @@ import urllib.request
 import urllib.error
 import zenoh
 
+from test_e2e_paid_action import LocalFabricProxy, _start_facilitator, _http_post
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
 
-TUNNEL_PORT = 18080
 ACTION_TOPIC = "robot/tunnel/action"
 METRICS_TOPIC = "robot/reachy_mini/metrics"
 
@@ -55,6 +56,13 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
                 "or 'go build -o tunnel_bin ./cmd' inside tunnel/ folder."
             )
 
+        # The production Tunnel is reached through the Fabric WebSocket proxy;
+        # it does not expose a local HTTP listener. Reuse the protocol-accurate
+        # local proxy/facilitator used by the positive E2E test.
+        cls._proxy = LocalFabricProxy()
+        cls._proxy.start()
+        cls._facilitator, cls._facilitator_thread = _start_facilitator()
+
         # 2. Write real tunnel configuration
         cfg_path = os.path.abspath(os.path.join(_HERE, "_tmp_real_tunnel_cfg.json"))
         tunnel_cfg = {
@@ -62,8 +70,8 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
             "price": "$0.001",
             "network": "eip155:84532",
             "evm_payee_address": "0x0000000000000000000000000000000000000001",
-            "facilitator_url": "https://x402.org/facilitator",
-            "proxy_ws_url": "ws://127.0.0.1:19999/ws",
+            "facilitator_url": f"http://127.0.0.1:{cls._facilitator.server_address[1]}",
+            "proxy_ws_url": f"ws://127.0.0.1:{cls._proxy.port}/ws",
             "aip_enabled": False,
         }
         with open(cfg_path, "w", encoding="utf-8") as f:
@@ -74,6 +82,10 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
         # 3. Launch real Go Tunnel binary
         zenoh_c_lib = os.path.normpath(os.path.join(_REPO_ROOT, ".zenoh-c", "lib"))
         env = os.environ.copy()
+        env["PROXY_WS_URL"] = f"ws://127.0.0.1:{cls._proxy.port}/ws"
+        env["FACILITATOR_URL"] = f"http://127.0.0.1:{cls._facilitator.server_address[1]}"
+        env["AIP_ENABLED"] = "false"
+        env["ZENOH_CONFIG"] = ""
         if "LD_LIBRARY_PATH" in env:
             env["LD_LIBRARY_PATH"] = f"{zenoh_c_lib}:{env['LD_LIBRARY_PATH']}"
         else:
@@ -87,39 +99,9 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
         )
 
 
-        # Wait for real Tunnel HTTP server to start listening
-        server_ready = False
-        for _ in range(30):
-            if cls._tunnel_proc.poll() is not None:
-                # Tunnel process exited prematurely
-                out, err = cls._tunnel_proc.communicate()
-                print("\n[Tunnel Process Exited Output]:", err.decode("utf-8", errors="ignore"))
-                break
-
-            try:
-                req = urllib.request.Request(
-                    f"http://127.0.0.1:{TUNNEL_PORT}/action",
-                    data=b'{"action":"probe"}',
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(req, timeout=1) as resp:
-                    server_ready = True
-                    break
-            except urllib.error.HTTPError:
-                # Any HTTP response status (402, 400, etc.) means server is responding
-                server_ready = True
-                break
-            except Exception:
-                time.sleep(0.3)
-
-        if not server_ready and cls._tunnel_proc.poll() is None:
-            # Server is running alive in background
-            server_ready = True
-
-        if not server_ready:
+        if cls._proxy.wait_for_connection(15) is None:
             cls.tearDownClass()
-            raise RuntimeError("Real Go Tunnel binary failed to start HTTP server on port 18080.")
+            raise RuntimeError("Real Go Tunnel binary failed to connect to the Fabric WebSocket proxy.")
 
 
 
@@ -144,11 +126,27 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
             cls._tunnel_proc.wait(timeout=5)
         if hasattr(cls, "_cfg_path") and os.path.exists(cls._cfg_path):
             os.unlink(cls._cfg_path)
+        if hasattr(cls, "_proxy"):
+            cls._proxy.close()
+        if hasattr(cls, "_facilitator"):
+            cls._facilitator.shutdown()
+            cls._facilitator.server_close()
+            cls._facilitator_thread.join(timeout=5)
 
     def test_1_unpaid_request_returns_http_402_payment_required(self):
         """Unpaid POST /action through real Tunnel must return HTTP 402 Payment Required."""
+        action_events = []
+        z_config = zenoh.Config.from_json5(
+            '{"mode":"peer","scouting":{"multicast":{"enabled":false}},'
+            '"connect":{"endpoints":["tcp/127.0.0.1:7447"]}}'
+        )
+        z_session = zenoh.open(z_config)
+        action_sub = z_session.declare_subscriber(
+            ACTION_TOPIC,
+            lambda sample: action_events.append(bytes(sample.payload.to_bytes())),
+        )
         req = urllib.request.Request(
-            f"http://127.0.0.1:{TUNNEL_PORT}/action",
+            f"http://127.0.0.1:{self._proxy.port}/robots/reachy_mini/action",
             data=json.dumps({"action": "look_at_apple"}).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -157,18 +155,32 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
             with urllib.request.urlopen(req, timeout=5) as resp:
                 status = resp.status
                 body = json.loads(resp.read())
+                response_headers = dict(resp.headers)
         except urllib.error.HTTPError as e:
             status = e.code
-            body = json.loads(e.read())
+            raw_body = e.read()
+            body = json.loads(raw_body) if raw_body else None
+            response_headers = dict(e.headers)
 
         self.assertEqual(status, 402, f"Expected 402 Payment Required from real Tunnel, got {status}")
-        self.assertIn("payment_requirements", body, "Expected payment_requirements in 402 body")
+        self.assertTrue(
+            "PAYMENT-REQUIRED" in {key.upper() for key in response_headers}
+            or (body is not None and "payment_requirements" in body),
+            "Expected x402 payment requirements in the 402 response",
+        )
+        time.sleep(1.0)
+        action_sub.undeclare()
+        z_session.close()
+        self.assertEqual(
+            action_events, [],
+            "Invalid/unpaid payment must not publish robot/tunnel/action or move the simulator",
+        )
         print("\n[Real Tunnel Test] Unpaid request correctly rejected with HTTP 402 Payment Required.")
 
-    def test_2_malformed_json_returns_http_400_bad_request(self):
-        """Malformed JSON POST /action through real Tunnel must return HTTP 400 Bad Request."""
+    def test_2_malformed_json_without_payment_is_rejected_before_action(self):
+        """An unpaid malformed request is rejected by x402 before action dispatch."""
         req = urllib.request.Request(
-            f"http://127.0.0.1:{TUNNEL_PORT}/action",
+            f"http://127.0.0.1:{self._proxy.port}/robots/reachy_mini/action",
             data=b'{"action": "look_at_apple"',
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -179,8 +191,8 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
         except urllib.error.HTTPError as e:
             status = e.code
 
-        self.assertEqual(status, 400, f"Expected 400 Bad Request from real Tunnel, got {status}")
-        print("[Real Tunnel Test] Malformed JSON correctly rejected with HTTP 400 Bad Request.")
+        self.assertEqual(status, 402, f"Expected payment gate to reject request, got {status}")
+        print("[Real Tunnel Test] Malformed unpaid request correctly rejected with HTTP 402.")
 
 
 if __name__ == "__main__":

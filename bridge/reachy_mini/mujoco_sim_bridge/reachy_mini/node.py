@@ -1,5 +1,5 @@
 """Reachy Mini MuJoCo bridge node — listens to Zenoh robot/tunnel/action,
-triggers the task policy, and publishes metrics back on robot/reachy_mini/metrics.
+triggers the task policy, and publishes correlated results on robot/tunnel/result.
 
 Mirrors the pattern of bridge/unitree/g1/isaac_sim_bridge/g1/node.py but:
   - Uses standalone eclipse-zenoh (no ROS2 required)
@@ -49,6 +49,7 @@ logger = logging.getLogger("ReachyMiniBridgeNode")
 
 ZENOH_TOPIC_ACTION  = "robot/tunnel/action"
 ZENOH_TOPIC_METRICS = "robot/reachy_mini/metrics"
+ZENOH_TOPIC_RESULT  = "robot/tunnel/result"
 
 
 class ReachyMiniBridgeNode(ROSNode):
@@ -88,11 +89,14 @@ class ReachyMiniBridgeNode(ROSNode):
             ZENOH_TOPIC_ACTION, self._on_action
         )
 
-        # Publisher for metrics
+        # Keep the legacy telemetry topic, and publish the reviewer-facing
+        # correlated result contract as well.
         self._pub = self._session.declare_publisher(ZENOH_TOPIC_METRICS)
+        self._result_pub = self._session.declare_publisher(ZENOH_TOPIC_RESULT)
 
         self._log_info(f"Bridge node ready. Listening on Zenoh topic: {ZENOH_TOPIC_ACTION}")
         self._log_info(f"Metrics will be published to: {ZENOH_TOPIC_METRICS}")
+        self._log_info(f"Correlated results will be published to: {ZENOH_TOPIC_RESULT}")
 
     def _log_info(self, msg: str):
         if HAS_ROS2 and hasattr(self, "get_logger"):
@@ -124,7 +128,11 @@ class ReachyMiniBridgeNode(ROSNode):
         target_object = event.params.get("target_object", "apple")
         # Preserve the public request id in simulator telemetry so the paid
         # HTTP response can be correlated with this exact execution episode.
-        correlation_id = event.params.get("request_id") or event.params.get("correlation_id")
+        correlation_id = (
+            event.params.get("request_id")
+            or event.params.get("correlation_id")
+            or event.action_id
+        )
         result = self._run_simulation(
             task,
             event.params,
@@ -132,10 +140,25 @@ class ReachyMiniBridgeNode(ROSNode):
             correlation_id=correlation_id,
         )
 
-        # Publish metrics back over Zenoh
+        # Publish the existing metrics payload for compatibility.
         payload = json.dumps(result).encode()
         self._pub.put(payload)
         self._log_info(f"Metrics published to '{ZENOH_TOPIC_METRICS}'")
+
+        # Publish the explicit tunnel result envelope.  The action_id is the
+        # end-to-end correlation key generated/forwarded by the Tunnel.
+        result_event = {
+            "action_id": event.action_id or correlation_id or "",
+            "robot_id": event.robot_id or result.get("robot_id", ""),
+            "skill_id": event.skill_id or event.action,
+            "params_hash": event.params_hash,
+            "idempotency_key": event.idempotency_key,
+            "status": "success" if result.get("execution_status") == "SUCCESS" else "failure",
+            "execution_status": result.get("execution_status", "FAILED"),
+            "result": result,
+        }
+        self._result_pub.put(json.dumps(result_event).encode())
+        self._log_info(f"Correlated result published to '{ZENOH_TOPIC_RESULT}'")
         self._log_info(f"Result: {json.dumps(result, indent=2)}")
 
     def _run_simulation(
@@ -196,6 +219,7 @@ class ReachyMiniBridgeNode(ROSNode):
         try:
             self._sub.undeclare()
             self._pub.undeclare()
+            self._result_pub.undeclare()
             self._session.close()
         except Exception:
             pass

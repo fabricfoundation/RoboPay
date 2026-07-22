@@ -37,18 +37,25 @@ Overall sim-to-sim robustness score: **1.0** (`simulation/webots_sim2sim_result.
 
 Three tests exercise the payment integration:
 
-**`test_payment_gate.py`** builds and runs the real tunnel binary against a local WebSocket proxy and asserts that an unpaid `POST /action` is rejected with HTTP 402 and x402 payment requirements.
+**`test_payment_gate.py`** builds and runs the real Tunnel binary against a
+protocol-compatible local Fabric WebSocket proxy and asserts that an unpaid
+request is rejected with HTTP 402 and publishes no `robot/tunnel/action`.
+The local proxy is deterministic test infrastructure, not the public Gateway.
 
 **`test_link.py`** proves the tunnel's Zenoh session is live (`robot/config/<id>` put accepted), then publishes a paid-action event with the exact `handlers.PostAction` schema and asserts the robot runs the episode and returns metrics with `execution_status: SUCCESS`, `task_completed: true`, and `overall_sim2sim_robustness_score ≥ 0.9`. Both payment rails (x402 `POST /action` and AIP) publish to the same Zenoh topic, which is why the simulation subscribes there.
 
-**`test_e2e_paid_action.py`** is the deterministic positive-payment proof requested by the reviewer. It obtains the real 402 requirements through a local Fabric-proxy-compatible WebSocket, builds a valid v2 `PAYMENT-SIGNATURE`, and sends the paid request through the real Tunnel binary. A deterministic local facilitator answers `/verify` and `/settle`; the resulting ActionEvent reaches Zenoh and the simulator returns metrics carrying the request id for correlation. This test does not bypass the Tunnel.
+**`test_e2e_paid_action.py`** is the deterministic positive-payment proof requested by the reviewer. It obtains the 402 requirements through a local Fabric-proxy-compatible WebSocket, builds a valid v2 `PAYMENT-SIGNATURE`, and sends the paid request through the real Tunnel binary. A deterministic local facilitator answers `/verify` and `/settle`; the resulting ActionEvent reaches Zenoh and the simulator publishes both compatibility metrics and a correlated `robot/tunnel/result` envelope. This test does not bypass the Tunnel.
 
-**`test_base_sepolia_tunnel_e2e.py`** is the live-network proof. It uses the official Python x402 client, sends the first unpaid request to the public Fabric endpoint, retries through the real compiled Tunnel, requires a successful settlement from `https://x402.org/facilitator`, prints the BaseScan transaction URL, and only then accepts correlated Reachy Mini simulator metrics. The payer needs Base Sepolia USDC; never commit or share its private key.
+The Tunnel does not settle immediately after verification. It waits for the
+matching successful simulator result; a result failure or timeout returns an
+HTTP error and the x402 middleware skips `/settle`.
+
+**`test_base_sepolia_tunnel_e2e.py`** is the live-network proof. It uses the official Python x402 client, sends the first unpaid request to the public Fabric endpoint, retries through the real compiled Tunnel, requires a successful settlement from `https://x402.org/facilitator`, prints the BaseScan transaction URL, and only then accepts correlated Reachy Mini simulator metrics and `robot/tunnel/result`. The payer needs Base Sepolia USDC; never commit or share its private key.
 
 ```
 test_payment_gate.py (requires tunnel binary):
-  unpaid POST /action → 402 + payment requirements ✓
-  malformed JSON      → 400                        ✓
+  unpaid POST /action → 402 + no ActionEvent       ✓
+  malformed unpaid   → rejected before dispatch    ✓
 
 test_link.py (requires bridge running):
   robot/config/<id> put → Zenoh session live        ✓
@@ -58,6 +65,7 @@ test_e2e_paid_action.py (requires tunnel binary):
   paid HTTP POST /action → real Tunnel HTTP 200 ✓
   facilitator verify/settle → ActionEvent      ✓
   ActionEvent → MuJoCo + Webots metrics        ✓
+  ActionEvent → robot/tunnel/result correlation ✓
 
 test_base_sepolia_tunnel_e2e.py (live wallet required):
   public Fabric HTTP 402 → signed x402 request ✓

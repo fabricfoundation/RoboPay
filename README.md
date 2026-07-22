@@ -8,7 +8,26 @@ Fabric introduces a payment layer for machines. RoboPay is the execution compone
 
 A core design principle is that **payment, routing, and execution are separated**. The Fabric backend/proxy receives a paid action request and routes it to the correct robot tunnel by `robotId`. It does not directly verify x402 payment in the production tunnel flow.
 
-The robot-side `tunnel` receives the action request, runs x402 middleware, verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
+The robot-side `tunnel` receives the action request over the Fabric Gateway WebSocket, runs x402 middleware, verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
+
+For Reachy Mini, the execution contract is:
+
+```text
+Fabric Gateway -> Tunnel x402 verify/settle -> robot/tunnel/action
+               -> Reachy Mini bridge/simulator
+               -> robot/tunnel/result (action_id correlation)
+```
+
+`robot/reachy_mini/metrics` remains as compatibility telemetry. The
+`robot/tunnel/result` envelope contains the action identity and the full
+simulator result. Unpaid or invalid payment is rejected before action
+dispatch, so it cannot publish an ActionEvent or move the simulator.
+
+Settlement is execution-gated: the Tunnel verifies the x402 payment, publishes
+the action, waits for the matching `robot/tunnel/result`, and only allows the
+x402 middleware to settle after a successful result. A simulator failure or
+result timeout makes the handler return an error, so the middleware does not
+call `/settle`.
 
 ![RoboPay action flow](docs/images/flow.png)
 

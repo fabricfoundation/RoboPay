@@ -212,7 +212,7 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		Timeout: 30 * time.Second,
 	}))
 
-	h := handlers.NewHandlers(logger)
+	h := handlers.NewHandlersForRobot(logger, cfg.RobotID)
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)

@@ -37,6 +37,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
 ACTION_TOPIC = "robot/tunnel/action"
 METRICS_TOPIC = "robot/reachy_mini/metrics"
+RESULT_TOPIC = "robot/tunnel/result"
 ROBOT_ID = "reachy_mini_e2e"
 PAYEE = "0x0000000000000000000000000000000000000001"
 NETWORK = "eip155:84532"
@@ -378,6 +379,7 @@ class TestEndToEndPaidAction(unittest.TestCase):
         z_session = None
         action_sub = None
         metrics_sub = None
+        result_sub = None
 
         try:
             proxy.start()
@@ -446,8 +448,10 @@ class TestEndToEndPaidAction(unittest.TestCase):
             z_session = zenoh.open(z_config)
             action_events = []
             metrics = []
+            results = []
             action_received = threading.Event()
             metrics_received = threading.Event()
+            result_received = threading.Event()
 
             def on_action(sample):
                 event = json.loads(bytes(sample.payload.to_bytes()))
@@ -459,8 +463,14 @@ class TestEndToEndPaidAction(unittest.TestCase):
                 metrics.append(result)
                 metrics_received.set()
 
+            def on_result(sample):
+                result = json.loads(bytes(sample.payload.to_bytes()))
+                results.append(result)
+                result_received.set()
+
             action_sub = z_session.declare_subscriber(ACTION_TOPIC, on_action)
             metrics_sub = z_session.declare_subscriber(METRICS_TOPIC, on_metrics)
+            result_sub = z_session.declare_subscriber(RESULT_TOPIC, on_result)
             time.sleep(1.0)
 
             public_url = f"http://127.0.0.1:{proxy.port}/robots/{ROBOT_ID}/action"
@@ -491,13 +501,18 @@ class TestEndToEndPaidAction(unittest.TestCase):
             self.assertEqual(response_body.get("status"), "accepted")
             self.assertTrue(action_received.wait(5), "Tunnel did not publish ActionEvent")
             self.assertTrue(metrics_received.wait(60), "simulator metrics not received")
+            self.assertTrue(result_received.wait(10), "correlated robot/tunnel/result not received")
 
             event = next(
                 event for event in action_events
                 if event.get("payload", {}).get("params", {}).get("request_id") == request_id
             )
             result = next(item for item in metrics if item.get("correlation_id") == request_id)
+            result_event = next(item for item in results if item.get("action_id") == request_id)
             self.assertEqual(event["payload"]["action"], "look_at_apple")
+            self.assertEqual(result_event["status"], "success")
+            self.assertEqual(result_event["execution_status"], "SUCCESS")
+            self.assertEqual(result_event["result"]["correlation_id"], request_id)
             self.assertEqual(result["execution_status"], "SUCCESS")
             self.assertTrue(result["metrics"]["task_completed"])
             self.assertGreaterEqual(result["metrics"]["tracking_success_rate"], 0.9)
@@ -514,6 +529,8 @@ class TestEndToEndPaidAction(unittest.TestCase):
         finally:
             if metrics_sub is not None:
                 metrics_sub.undeclare()
+            if result_sub is not None:
+                result_sub.undeclare()
             if action_sub is not None:
                 action_sub.undeclare()
             if z_session is not None:
