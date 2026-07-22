@@ -1,5 +1,6 @@
 """Sim-to-Sim validator: MuJoCo physics variations + real Webots subprocess."""
 import json
+import glob
 import mujoco
 import numpy as np
 import os
@@ -31,7 +32,17 @@ def _find_webots() -> str | None:
     elif platform.system() == "Darwin":
         candidates = ["/Applications/Webots.app/Contents/MacOS/webots"]
     else:
-        candidates = ["/usr/local/bin/webots", "/usr/bin/webots"]
+        candidates = [
+            "/usr/local/bin/webots",
+            "/usr/bin/webots",
+            # WSL can execute a Webots installation from the Windows host.
+            # This keeps ROS2/WSL runs on the real Webots binary instead of
+            # silently falling back to the Python approximation.
+            *glob.glob(
+                "/mnt/*/Users/*/AppData/Local/Programs/Webots/"
+                "msys64/mingw64/bin/webots.exe"
+            ),
+        ]
     for path in candidates:
         if os.path.isfile(path):
             return path

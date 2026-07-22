@@ -112,7 +112,15 @@ class ReachyMiniBridgeNode(ROSNode):
 
         # Determine target object from params (default: apple)
         target_object = event.params.get("target_object", "apple")
-        result = self._run_simulation(task, event.params, target_object=target_object)
+        # Preserve the public request id in simulator telemetry so the paid
+        # HTTP response can be correlated with this exact execution episode.
+        correlation_id = event.params.get("request_id") or event.params.get("correlation_id")
+        result = self._run_simulation(
+            task,
+            event.params,
+            target_object=target_object,
+            correlation_id=correlation_id,
+        )
 
         # Publish metrics back over Zenoh
         payload = json.dumps(result).encode()
@@ -121,7 +129,11 @@ class ReachyMiniBridgeNode(ROSNode):
         self._log_info(f"Result: {json.dumps(result, indent=2)}")
 
     def _run_simulation(
-        self, task: str, params: dict, target_object: str = "apple"
+        self,
+        task: str,
+        params: dict,
+        target_object: str = "apple",
+        correlation_id: str | None = None,
     ) -> dict:
         """Run the MuJoCo simulation loop with the policy and return metrics."""
         obs = self._env.reset(target_object=target_object)
@@ -154,6 +166,7 @@ class ReachyMiniBridgeNode(ROSNode):
         sim2sim = validator.run_validation(num_runs=3)
 
         return {
+            "correlation_id": correlation_id,
             "robot_id":              "reachy_mini_sim_01",
             "robot_model":           "Hugging Face Reachy Mini (Official MJCF)",
             "simulator":             "MuJoCo",

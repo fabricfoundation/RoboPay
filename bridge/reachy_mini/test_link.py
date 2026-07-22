@@ -8,11 +8,17 @@ returns metrics with task_completed: true.
 Does NOT require the tunnel binary — it talks directly over Zenoh, replicating
 exactly what the tunnel publishes after the x402 payment is verified.
 """
+import os
+import sys
+import subprocess
 import json
 import time
 import threading
 import unittest
 from datetime import datetime, timezone
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 import zenoh
 
@@ -61,7 +67,26 @@ def _paid_action_event(action: str = "look_at_apple") -> bytes:
 class TestEndToEndLink(unittest.TestCase):
     """Verify that a paid ActionEvent reaches the bridge and returns valid metrics."""
 
+    _bridge_proc = None
+
+    @classmethod
+    def setUpClass(cls):
+        main_py = os.path.normpath(os.path.join(_HERE, "mujoco_sim_bridge", "main.py"))
+        cls._bridge_proc = subprocess.Popen(
+            [sys.executable, main_py],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        time.sleep(2.0)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._bridge_proc:
+            cls._bridge_proc.terminate()
+            cls._bridge_proc.wait(timeout=5)
+
     def _open_session(self, mode: str = "peer") -> zenoh.Session:
+
         conf = zenoh.Config.from_json5(
             f'{{"mode": "{mode}", '
             f'"scouting": {{"multicast": {{"enabled": false}}}}, '
