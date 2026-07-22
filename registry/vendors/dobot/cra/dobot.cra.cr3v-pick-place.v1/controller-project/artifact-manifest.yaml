@@ -1,0 +1,33 @@
+schemaVersion: controller-artifact-manifest.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+projectName: test
+authorship: Fabric Foundation integration team
+publicationPermission: confirmed-by-author
+license: not-specified
+
+historicalValidatedArtifact:
+  fileName: test-cr3v-20260715.zip
+  sha256: fba9675e7c34bbbd1ef9c0b0710b0eb7b15fbe02362c1aecc6dd8b8e0260d6e8
+  physicalValidationDate: 2026-07-15
+  includedInPublicProfile: false
+  reason: >-
+    The export contains exact workcell Cartesian and joint coordinates. The
+    digest is retained for traceability, while the coordinate-bearing archive
+    remains private.
+  publicLogicRelation: >-
+    src0.lua preserves the validated executable command sequence and adds only
+    explanatory comments and whitespace.
+
+publicSources:
+  hashAlgorithm: sha256(lf-normalized-utf8)
+  logic:
+    file: src0.lua
+    sha256: 767adf521833127cd0790d1da4bcc42cda6dd3eb66dd6af171e878408ffe37d3
+  pointsTemplate:
+    file: points.template.json
+    sha256: 41600d60b09af23ba8373a9fcb5b1a332aff3eb63f8c0e8e71e3ad9b9f95ad80
+
+changeControl:
+  - Never overwrite an approved controller project in place.
+  - Export a new versioned artifact after any logic or taught-point change.
+  - Update the local bridge allow-list and SHA-256 only after safety review.

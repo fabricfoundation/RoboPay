@@ -1,0 +1,37 @@
+schemaVersion: payment-policy.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+provider: x402
+network: eip155:84532
+asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+assetSymbol: USDC
+assetDecimals: 6
+amountUnit: smallest
+payeeEnv: ROBOT_PAYEE_ADDRESS
+
+policies:
+  - skillId: cra_two_cycle_pick_place
+    required: true
+    amount: "2000"
+    displayAmount: "0.002 USDC"
+    paymentHeader: PAYMENT-SIGNATURE
+    executionGate:
+      requiredPaymentState: authorized
+      rejectAlreadySettled: true
+      requiredEvidence:
+        - authorizationId
+        - verified
+        - status
+        - settled
+        - network
+        - asset
+        - amount
+        - payTo
+        - issuedAt
+        - expiresAt
+    settlement:
+      eligibleOnlyAfterResultStatus: success
+      noSettleResultStatuses:
+        - error
+        - pending
+        - timeout
+        - rejected

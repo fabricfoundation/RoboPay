@@ -1,0 +1,114 @@
+schemaVersion: robopay-evidence.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+
+claimBoundary:
+  historical: Historical real x402 payment validation and settlement completed.
+  notClaimed: The historical run does not prove result-gated success settlement or failure-without-settlement.
+
+evidence:
+  - evidenceId: D-HTTP402-001
+    file: terminal/dobot-cr3v-historical-payment-402-redacted.png
+    sha256: 9fd4b958f905a8ab19e8f95fca05f0e135efcde75d452eab94f9e2f7143a67ee
+    bytes: 165206
+    dimensionsPx: 1920x245
+    format: png
+    captureDate: 2026-07-15
+    scope: historical-real-x402-challenge
+    source:
+      retainedFile: proof-payment-402.png
+      sha256: 892a15c8e8cb397e8e71427ebe6d74cff536816539f144850cc3ef3749ed3124
+      publication: private-only
+    visibleEvidence:
+      - HTTP/1.1 402 Payment Required
+      - response date and non-sensitive HTTP headers
+    privacy:
+      - deterministic crop; no generative image editing
+      - payment-required payload and workstation paths excluded from the crop
+      - raw source screenshot is not published
+    limitations:
+      - The 402 challenge is paired with D-SETTLE-001 for historical payment and settlement evidence.
+      - Does not prove the new result-gated settlement order.
+
+  - evidenceId: D-SETTLE-001
+    file: terminal/dobot-cr3v-historical-settlement-tunnel-redacted.png
+    sha256: 030f037b47c8d923e7e25144d14bdf0660297c127bace7fae3e50f15cab9c531
+    bytes: 167646
+    dimensionsPx: 1920x720
+    format: png
+    captureDate: 2026-07-15
+    scope: historical-real-payment-settlement-and-tunnel-completion
+    source:
+      retainedFile: proof-tunnel-completed.png
+      sha256: da44243a14e450129e14d0ffc8b5fc97947e710f15f979a710543f9268966d02
+      publication: private-only
+    trace:
+      paymentReference: D-TX-001-private-ledger
+      publicTransactionFingerprint: 0xeeb0878b...38d459d3
+      network: eip155:84532
+    visibleEvidence:
+      - local robot bridge completed the settled action
+      - published settled robot action
+      - "Robot-Dispatch-Status: completed"
+      - HTTP status 200
+    privacy:
+      - deterministic crop and opaque masks; no generative image editing
+      - payment payload, response UUID/Base64, full payer, and full transaction are masked
+      - audit overlay transcribes only the masked transaction fingerprint, payer fingerprint, network, and result status
+      - raw source screenshot is not published
+    limitations:
+      - The historical tunnel settled before controller dispatch.
+      - The external caller ultimately observed HTTP 502 despite local completion.
+      - Does not prove settlement after a terminal robot/tunnel/result.
+      - Does not prove failure-without-settlement.
+
+  - evidenceId: D-BRIDGE-001
+    file: terminal/dobot-cr3v-historical-bridge-completion-redacted.png
+    sha256: 41aecd38a9f55345e14c663ce84ec4eb148abc47fc083df2ada577808e17e333
+    bytes: 342678
+    dimensionsPx: 1920x450
+    format: png
+    captureDate: 2026-07-15
+    scope: historical-real-controller-execution
+    source:
+      retainedFile: proof-bridge-completed.png
+      sha256: 2f31c84c8a16035e245d47eb43adc9bb1ba6b8bb78cbadaec1ad5725a672bcbf
+      publication: private-only
+    trace:
+      controllerProject: test
+      executionMode: REAL_EXECUTION
+    visibleEvidence:
+      - RunScript accepted project test
+      - project running confirmed in controller mode 7
+      - skill and project completion
+      - bridge action HTTP status 200
+    privacy:
+      - deterministic crop; no generative image editing
+      - workstation path and controller private address excluded from the crop
+      - raw source screenshot is not published
+    limitations:
+      - Contains no payment credential or settlement receipt; correlate with D-SETTLE-001.
+      - Does not prove the new Zenoh result-gated relay flow.
+
+  - evidenceId: D-RUN-001
+    file: dobot-cr3v-historical-physical-evidence-redacted.mp4
+    sha256: 6c479d7bfcc4143742e144a1984c2e2d718d224b26f0d1b218c9bd79aabdd1a4
+    bytes: 9996615
+    durationSec: 30.50
+    format: h264-1920x1080-30fps-video-only
+    captureDate: 2026-07-15
+    scope: historical-physical-action-only
+    trace:
+      skillIdAtCapture: cra_safe_demo
+      registrySkillId: cra_two_cycle_pick_place
+      controllerProject: test
+      controllerArtifactSha256: fba9675e7c34bbbd1ef9c0b0710b0eb7b15fbe02362c1aecc6dd8b8e0260d6e8
+      paymentReference: D-TX-001-private-ledger
+    privacy:
+      - bystander and laptop region covered with an opaque mask
+      - source audio removed
+      - source metadata removed
+      - no terminal, wallet, host, IP, serial, or exact point is visible
+    limitations:
+      - Shows the complete physical task, not the new asynchronous result contract.
+      - The historical public caller returned HTTP 502 after the robot completed.
+      - Does not prove failure-without-settlement.

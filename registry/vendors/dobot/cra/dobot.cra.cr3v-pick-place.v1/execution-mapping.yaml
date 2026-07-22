@@ -1,0 +1,67 @@
+schemaVersion: execution-mapping.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  actionSchema: robopay-action.v1
+  resultSchema: robot-action-result.v1
+
+envelope:
+  requiredFields:
+    - actionId
+    - robotId
+    - skillId
+    - params
+    - paramsHash
+    - idempotencyKey
+    - payment
+  requiredPaymentFields:
+    - provider
+    - authorizationId
+    - verified
+    - status
+    - settled
+    - network
+    - asset
+    - amount
+    - payTo
+    - issuedAt
+    - expiresAt
+  paramsHashAlgorithm: sha256(canonical-json(params))
+  correlationField: actionId
+
+mappings:
+  cra_two_cycle_pick_place:
+    output: dobot_controller_project
+    projectNameFrom: local-config.skills.cra_two_cycle_pick_place.project_name
+    sdkCommand: RunScript
+    requestParametersAllowed: false
+    completion:
+      runningEvidence:
+        - RobotMode equals 7
+        - GetScrName equals the approved project name
+      successEvidence:
+        - RobotMode returns to 5
+        - GetScrName returns no active project
+    failure:
+      modes:
+        - 9
+        - 10
+        - 11
+      action: Stop
+      retryRunScript: false
+
+replayProtection:
+  storage: sqlite
+  key: idempotencyKey
+  uniqueFields:
+    - actionId
+    - payment.authorizationId
+  fingerprintFields:
+    - actionId
+    - robotId
+    - skillId
+    - paramsHash
+    - payment.authorizationId

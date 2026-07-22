@@ -1,0 +1,37 @@
+schemaVersion: robot-profile.v1
+vendor: dobot
+robotModel: cra
+robotType: physical-manipulator
+profileId: dobot.cra.cr3v-pick-place.v1
+profileVersion: 1.0.0
+
+displayName: "Fabric Foundation \u00D7 DOBOT CR3V custom pick-and-place"
+description: >-
+  Physical DOBOT CR3V integration for a custom two-cycle, multi-stage
+  pick-and-place controller project.
+submission:
+  scope: physical
+  tier: 3
+  customSkillEvidence: controller-project/src0.lua
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: dobot-cra-zenoh
+  controlStack:
+    controller: CC262V
+    studio: DobotStudio Pro 4.6.2.5
+    sdk: Dobot TCP-IP-Python-V4
+    controllerFirmware: 4.6.5.3-stable-450b2cf77-2026030101605
+
+identity:
+  robotIdEnv: ROBOT_ID
+  robotPrivateKeyEnv: ROBOT_PRIVATE_KEY
+  payeeWalletEnv: ROBOT_PAYEE_ADDRESS
+  note: Secrets and the controller address are never stored in this profile.
+
+maintainers:
+  - github: Junzhe
+
+status: experimental

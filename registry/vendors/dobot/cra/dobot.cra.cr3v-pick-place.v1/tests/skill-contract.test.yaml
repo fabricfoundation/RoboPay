@@ -1,0 +1,106 @@
+schemaVersion: robot-skill-contract-tests.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+
+testContext:
+  currentTime: "2099-01-01T00:00:30Z"
+  substitutions:
+    ROBOT_PAYEE_ADDRESS: "0x1111111111111111111111111111111111111111"
+
+tests:
+  - name: paid skill is discoverable
+    request:
+      method: GET
+      path: /v1/robots/dobot-cra-demo-001/skills
+    expect:
+      status: 200
+      containsSkill:
+        skillId: cra_two_cycle_pick_place
+        paymentRequired: true
+        amount: "2000"
+
+  - name: unpaid request is challenged
+    request:
+      method: POST
+      path: /v1/robots/dobot-cra-demo-001/actions
+      fixture: examples/action-envelope.pick-place.json
+      omitPaymentHeader: true
+    expect:
+      status: 402
+      zenohActionPublishes: 0
+      robotActuations: 0
+
+  - name: valid authorization is accepted asynchronously
+    request:
+      fixture: examples/action-envelope.pick-place.json
+      paymentHeader: valid-test-authorization
+    expect:
+      status: 202
+      bodyStatus: accepted
+      correlationField: actionId
+      zenohActionPublishes: 1
+
+  - name: params hash mismatch is rejected before actuation
+    mutate:
+      paramsHash: "0000000000000000000000000000000000000000000000000000000000000000"
+    expect:
+      status: 400
+      errorCode: PARAMS_HASH_MISMATCH
+      zenohActionPublishes: 0
+      robotActuations: 0
+      settlementEligible: false
+      bridgeDefenseInDepthResult: error
+
+  - name: expired authorization is rejected before actuation
+    mutate:
+      payment.expiresAt: "2000-01-01T00:00:00Z"
+    expect:
+      status: 402
+      errorCode: PAYMENT_EXPIRED
+      zenohActionPublishes: 0
+      robotActuations: 0
+      settlementEligible: false
+      bridgeDefenseInDepthResult: error
+
+  - name: duplicate idempotency key never executes twice
+    repeatSameEnvelope: 2
+    expect:
+      robotActuations: 1
+      secondResultStatus: error
+      secondDelivery: cached-terminal-reference
+      secondDeliveryCode: DUPLICATE
+      secondZenohActionPublishes: 0
+      secondSettlementEligible: false
+
+  - name: idempotency conflict is rejected
+    reuseIdempotencyKeyWithDifferentActionId: true
+    expect:
+      errorCode: IDEMPOTENCY_CONFLICT
+      secondZenohActionPublishes: 0
+      additionalRobotActuations: 0
+      settlementEligible: false
+
+  - name: payment authorization cannot fund a second action
+    reuseAuthorizationIdWithNewActionAndIdempotencyKeys: true
+    expect:
+      errorCode: PAYMENT_AUTHORIZATION_REPLAY
+      secondZenohActionPublishes: 0
+      additionalRobotActuations: 0
+      settlementEligible: false
+
+  - name: controller timeout publishes error and requests Stop
+    simulate:
+      controllerNeverReturnsIdle: true
+    expect:
+      resultStatus: error
+      errorCode: ACTION_TIMEOUT
+      stopCalls: 1
+      settlementEligible: false
+
+  - name: controller completion publishes correlated success
+    simulate:
+      modes: [5, 7, 7, 5]
+      activeProjects: [null, test, test, null]
+    expect:
+      resultStatus: success
+      correlatedBy: actionId
+      settlementEligible: true
