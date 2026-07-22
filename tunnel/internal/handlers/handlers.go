@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -15,6 +16,21 @@ import (
 const (
 	RobotActionTopic = "robot/tunnel/action"
 )
+
+// OpenZenohSession opens the session used by both the action publisher and
+// the tunnel's configuration subscriber. Tests and local deployments can
+// provide a complete Zenoh JSON5 config through ZENOH_CONFIG; production
+// deployments continue to use Zenoh's default configuration.
+func OpenZenohSession() (zenoh.Session, error) {
+	if path := os.Getenv("ZENOH_CONFIG"); path != "" {
+		config, err := zenoh.NewConfigFromFile(path)
+		if err != nil {
+			return zenoh.Session{}, err
+		}
+		return zenoh.Open(config, nil)
+	}
+	return zenoh.Open(zenoh.NewConfigDefault(), nil)
+}
 
 type zenohPublisher interface {
 	Publish(keyExpr string, payload []byte) error
@@ -40,7 +56,7 @@ var (
 
 func getZenohPublisher() (zenohPublisher, error) {
 	zenohOnce.Do(func() {
-		session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
+		session, err := OpenZenohSession()
 		if err != nil {
 			zenohInitError = err
 			return
@@ -114,12 +130,18 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		h.Logger.Warn("failed to marshal action event", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to marshal action event"})
+		return
 	} else {
 		pub, err := getZenohPublisher()
 		if err != nil {
 			h.Logger.Warn("failed to initialize zenoh publisher", zap.Error(err))
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "failed to initialize action publisher"})
+			return
 		} else if err := pub.Publish(RobotActionTopic, eventBytes); err != nil {
 			h.Logger.Warn("failed to publish action event", zap.Error(err))
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "failed to publish action event"})
+			return
 		}
 	}
 

@@ -65,7 +65,7 @@ func main() {
 		logger.Info("unibase authorization ready", zap.String("wallet", wallet))
 	}
 
-	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
+	session, err := handlers.OpenZenohSession()
 	if err != nil {
 		logger.Fatal("failed to open zenoh session", zap.Error(err))
 	}
