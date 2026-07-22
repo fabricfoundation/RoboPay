@@ -1,0 +1,24 @@
+schemaVersion: robot-skills.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+
+skills:
+  - skillId: cra_two_cycle_pick_place
+    name: Two-cycle pick-and-place
+    description: >-
+      Runs a locally reviewed controller project that performs two distinct
+      pick/place cycles with bounded speed, digital-output gripper control,
+      dwell timing, relative lift motion, and a return to the taught home pose.
+    tier: 3
+    customBehavior: true
+    params: {}
+    paymentRequired: true
+    timeoutSec: 40
+    safety:
+      requiresEnabledIdle: true
+      requiresNoActiveProject: true
+      emergencyStop: physical emergency stop remains authoritative
+      softwareFailureAction: issue Dobot Stop once; never retry RunScript
+    implementation:
+      source: controller-project/src0.lua
+      pointsTemplate: controller-project/points.template.json
+      artifactManifest: controller-project/artifact-manifest.yaml

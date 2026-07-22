@@ -1,0 +1,48 @@
+schemaVersion: agent-functions.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+
+functions:
+  - name: list_robot_skills
+    method: GET
+    url: /v1/robots/{robotId}/skills
+    description: Discover skills and prices before requesting execution.
+
+  - name: request_robot_action
+    method: POST
+    url: /v1/robots/{robotId}/actions
+    body:
+      actionId: string
+      robotId: string
+      skillId: string
+      params: object
+      paramsHash: string
+      idempotencyKey: string
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+
+  - name: submit_paid_robot_action
+    method: POST
+    url: /v1/robots/{robotId}/actions
+    headers:
+      PAYMENT-SIGNATURE: string
+    body:
+      actionId: string
+      robotId: string
+      skillId: string
+      params: object
+      paramsHash: string
+      idempotencyKey: string
+    returns:
+      immediateStatus: accepted
+      statusCode: 202
+      correlationField: actionId
+
+  - name: get_robot_action_status
+    method: GET
+    url: /v1/robots/{robotId}/actions/{actionId}
+    returns:
+      statuses:
+        - pending
+        - success
+        - error

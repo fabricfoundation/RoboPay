@@ -1,0 +1,50 @@
+[
+  {
+    "name": "P1",
+    "alias": "home",
+    "pose": "RETEACH_AND_VALIDATE_ON_SITE",
+    "joint": "RETEACH_AND_VALIDATE_ON_SITE",
+    "tool": 0,
+    "user": 0
+  },
+  {
+    "name": "P2",
+    "alias": "pick_1",
+    "pose": "RETEACH_AND_VALIDATE_ON_SITE",
+    "joint": "RETEACH_AND_VALIDATE_ON_SITE",
+    "tool": 0,
+    "user": 0
+  },
+  {
+    "name": "P3",
+    "alias": "transfer_clearance",
+    "pose": "RETEACH_AND_VALIDATE_ON_SITE",
+    "joint": "RETEACH_AND_VALIDATE_ON_SITE",
+    "tool": 0,
+    "user": 0
+  },
+  {
+    "name": "P4",
+    "alias": "place_1",
+    "pose": "RETEACH_AND_VALIDATE_ON_SITE",
+    "joint": "RETEACH_AND_VALIDATE_ON_SITE",
+    "tool": 0,
+    "user": 0
+  },
+  {
+    "name": "P5",
+    "alias": "pick_2",
+    "pose": "RETEACH_AND_VALIDATE_ON_SITE",
+    "joint": "RETEACH_AND_VALIDATE_ON_SITE",
+    "tool": 0,
+    "user": 0
+  },
+  {
+    "name": "P6",
+    "alias": "place_2",
+    "pose": "RETEACH_AND_VALIDATE_ON_SITE",
+    "joint": "RETEACH_AND_VALIDATE_ON_SITE",
+    "tool": 0,
+    "user": 0
+  }
+]

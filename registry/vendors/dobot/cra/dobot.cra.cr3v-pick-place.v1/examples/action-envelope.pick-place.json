@@ -1,0 +1,21 @@
+{
+  "actionId": "act_dobot_cr3v_example_001",
+  "robotId": "dobot-cra-demo-001",
+  "skillId": "cra_two_cycle_pick_place",
+  "params": {},
+  "paramsHash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "idempotencyKey": "dobot-cr3v-example-001",
+  "payment": {
+    "provider": "x402",
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "2000",
+    "payTo": "${ROBOT_PAYEE_ADDRESS}",
+    "authorizationId": "auth_example_redacted",
+    "verified": true,
+    "status": "authorized",
+    "settled": false,
+    "issuedAt": "2099-01-01T00:00:00Z",
+    "expiresAt": "2099-01-01T00:05:00Z"
+  }
+}

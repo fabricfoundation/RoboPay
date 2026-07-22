@@ -1,0 +1,7 @@
+state/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal

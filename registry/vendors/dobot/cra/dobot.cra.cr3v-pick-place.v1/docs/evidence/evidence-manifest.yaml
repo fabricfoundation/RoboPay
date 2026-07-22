@@ -1,0 +1,27 @@
+schemaVersion: robopay-evidence.v1
+profileId: dobot.cra.cr3v-pick-place.v1
+
+evidence:
+  - evidenceId: D-RUN-001
+    file: dobot-cr3v-historical-physical-evidence-redacted.mp4
+    sha256: 6c479d7bfcc4143742e144a1984c2e2d718d224b26f0d1b218c9bd79aabdd1a4
+    bytes: 9996615
+    durationSec: 30.50
+    format: h264-1920x1080-30fps-video-only
+    captureDate: 2026-07-15
+    scope: historical-physical-action-only
+    trace:
+      skillIdAtCapture: cra_safe_demo
+      registrySkillId: cra_two_cycle_pick_place
+      controllerProject: test
+      controllerArtifactSha256: fba9675e7c34bbbd1ef9c0b0710b0eb7b15fbe02362c1aecc6dd8b8e0260d6e8
+      paymentReference: D-TX-001-private-ledger
+    privacy:
+      - bystander and laptop region covered with an opaque mask
+      - source audio removed
+      - source metadata removed
+      - no terminal, wallet, host, IP, serial, or exact point is visible
+    limitations:
+      - Shows the complete physical task, not the new asynchronous result contract.
+      - The historical public caller returned HTTP 502 after the robot completed.
+      - Does not prove failure-without-settlement.

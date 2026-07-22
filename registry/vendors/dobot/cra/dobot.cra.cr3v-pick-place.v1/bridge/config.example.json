@@ -1,0 +1,39 @@
+{
+  "robot_id": "dobot-cra-demo-001",
+  "robot_model": "CR3V",
+  "robot_ip_env": "DOBOT_ROBOT_IP",
+  "dashboard_port": 29999,
+  "controller_firmware": "4.6.5.3-stable-450b2cf77-2026030101605",
+  "zenoh_mode": "client",
+  "zenoh_connect_endpoints": [
+    "tcp/127.0.0.1:7447"
+  ],
+  "action_topic": "robot/tunnel/action",
+  "result_topic": "robot/tunnel/result",
+  "replay_db": "./state/dobot-cr3v-replay.sqlite3",
+  "expected_payment": {
+    "provider": "x402",
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "2000",
+    "pay_to_env": "ROBOT_PAYEE_ADDRESS"
+  },
+  "safety": {
+    "approved": false,
+    "controller_reply_timeout_s": 2,
+    "script_start_timeout_s": 5,
+    "script_timeout_s": 40,
+    "poll_interval_s": 0.2,
+    "max_action_ttl_s": 300,
+    "clock_skew_s": 30
+  },
+  "skills": {
+    "cra_two_cycle_pick_place": {
+      "type": "run_script",
+      "project_name": "test",
+      "project_artifact_sha256": "fba9675e7c34bbbd1ef9c0b0710b0eb7b15fbe02362c1aecc6dd8b8e0260d6e8",
+      "artifact_path_env": "DOBOT_PROJECT_ARTIFACT",
+      "allowed_params": []
+    }
+  }
+}
