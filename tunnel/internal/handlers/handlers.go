@@ -104,9 +104,11 @@ func PublishRobotAction(payload []byte) error {
 }
 
 type Handlers struct {
-	Logger    *zap.Logger
-	RobotID   string
-	Publisher zenohPublisher
+	Logger             *zap.Logger
+	RobotID            string
+	Publisher          zenohPublisher
+	AllowedSkills      map[string]struct{}
+	MaxDurationSeconds float64
 	// WaitForResult is injectable for contract tests. Production uses the
 	// Zenoh result subscriber created below.
 	WaitForResult func(actionID string) (chan bool, func(), error)
@@ -121,9 +123,10 @@ func NewHandlers(logger *zap.Logger) *Handlers {
 
 func NewHandlersForRobot(logger *zap.Logger, robotID string) *Handlers {
 	return &Handlers{
-		Logger:   logger,
-		RobotID:  robotID,
-		seenKeys: make(map[string]time.Time),
+		Logger:             logger,
+		RobotID:            robotID,
+		seenKeys:           make(map[string]time.Time),
+		MaxDurationSeconds: 30,
 	}
 }
 
@@ -230,6 +233,11 @@ func validatePayload(payload interface{}, expectedRobotID string) (actionMetadat
 			return metadata, validationError{http.StatusBadRequest, "INVALID_ACTION", "action must be a non-empty string"}
 		}
 		metadata.SkillID = strings.TrimSpace(action)
+		if expectedSkills := object["_allowed_skills"]; expectedSkills != nil {
+			// Internal policy injection is handled by PostAction; this branch is
+			// intentionally unused for user payloads.
+			_ = expectedSkills
+		}
 	}
 
 	if rawParams, present := object["params"]; present && rawParams != nil {
@@ -276,6 +284,26 @@ func validatePayload(payload interface{}, expectedRobotID string) (actionMetadat
 	return metadata, nil
 }
 
+func (h *Handlers) validateExecutionPolicy(metadata actionMetadata, payload interface{}) error {
+	if len(h.AllowedSkills) > 0 {
+		if _, ok := h.AllowedSkills[metadata.SkillID]; !ok {
+			return validationError{http.StatusForbidden, "SKILL_NOT_ALLOWED", "action is not enabled for this robot"}
+		}
+	}
+	if h.MaxDurationSeconds <= 0 {
+		return nil
+	}
+	object, _ := payload.(map[string]interface{})
+	params, _ := object["params"].(map[string]interface{})
+	if raw, ok := params["duration"]; ok {
+		duration, ok := raw.(float64)
+		if !ok || duration <= 0 || duration > h.MaxDurationSeconds {
+			return validationError{http.StatusBadRequest, "DURATION_LIMIT", fmt.Sprintf("duration must be between 0 and %.0f seconds", h.MaxDurationSeconds)}
+		}
+	}
+	return nil
+}
+
 func (h *Handlers) PostAction(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -306,6 +334,12 @@ func (h *Handlers) PostAction(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid action contract", "error_code": "INVALID_CONTRACT"})
+		return
+	}
+	if err := h.validateExecutionPolicy(metadata, payload); err != nil {
+		contractErr := err.(validationError)
+		h.Logger.Warn("action rejected by execution policy", zap.Error(contractErr))
+		c.JSON(contractErr.status, gin.H{"error": contractErr.message, "error_code": contractErr.code})
 		return
 	}
 	if !h.reserveReplayKey(metadata.IdempotencyKey) {

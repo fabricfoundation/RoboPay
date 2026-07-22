@@ -187,3 +187,43 @@ func TestPostAction_DoesNotAcceptOrSettleOnSimulatorFailure(t *testing.T) {
 	// The x402 Gin middleware settles only when the handler returns < 400;
 	// this 502 is the explicit no-settlement contract for async failure.
 }
+
+func TestPostAction_RejectsSkillOutsideAllowlist(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	publisher := &recordingPublisher{}
+	h := NewHandlers(zap.NewNop())
+	h.Publisher = publisher
+	h.AllowedSkills = map[string]struct{}{"look_at_apple": {}}
+	router := gin.New()
+	router.POST("/action", h.PostAction)
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/action", bytes.NewBufferString(
+		`{"action":"move_forward","params":{}}`,
+	)))
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for disallowed skill, got %d", res.Code)
+	}
+	if len(publisher.payloads) != 0 {
+		t.Fatal("disallowed skill must not be published")
+	}
+}
+
+func TestPostAction_RejectsDurationAboveLimit(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	publisher := &recordingPublisher{}
+	h := NewHandlers(zap.NewNop())
+	h.Publisher = publisher
+	h.MaxDurationSeconds = 5
+	router := gin.New()
+	router.POST("/action", h.PostAction)
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/action", bytes.NewBufferString(
+		`{"action":"look_at_apple","params":{"duration":6}}`,
+	)))
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for excessive duration, got %d", res.Code)
+	}
+	if len(publisher.payloads) != 0 {
+		t.Fatal("excessive duration must not be published")
+	}
+}

@@ -233,6 +233,19 @@ def main() -> int:
             if not settlement.get("success"):
                 raise RuntimeError("Facilitator did not confirm successful on-chain settlement")
 
+            if os.environ.get("RATE_LIMIT_PROBE") == "1":
+                probe_statuses = []
+                for probe_number in range(1, 10):
+                    probe = requests.post(action_url, json=action_body, timeout=45)
+                    probe_statuses.append(probe.status_code)
+                    print(f"Rate-limit probe {probe_number}: HTTP {probe.status_code} body={probe.text}")
+                    if probe.status_code == 429:
+                        break
+                if 429 not in probe_statuses:
+                    raise RuntimeError(
+                        f"Expected HTTP 429 from the Tunnel rate limit, got {probe_statuses}"
+                    )
+
             tx_hash = settlement.get("transaction") or settlement.get("txHash")
             if not tx_hash:
                 raise RuntimeError("Settlement succeeded but returned no transaction hash")

@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -164,6 +168,7 @@ func main() {
 
 func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger) *gin.Engine {
 	router := gin.New()
+	router.Use(requestRateLimit())
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
@@ -213,6 +218,19 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 	}))
 
 	h := handlers.NewHandlersForRobot(logger, cfg.RobotID)
+	if raw := os.Getenv("ALLOWED_ACTIONS"); raw != "" {
+		h.AllowedSkills = make(map[string]struct{})
+		for _, skill := range strings.Split(raw, ",") {
+			if skill = strings.TrimSpace(skill); skill != "" {
+				h.AllowedSkills[skill] = struct{}{}
+			}
+		}
+	}
+	if raw := os.Getenv("MAX_ACTION_DURATION_SECONDS"); raw != "" {
+		if seconds, err := strconv.ParseFloat(raw, 64); err == nil && seconds > 0 {
+			h.MaxDurationSeconds = seconds
+		}
+	}
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)
@@ -222,6 +240,46 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 	}
 
 	return router
+}
+
+type rateLimitEntry struct {
+	windowStart time.Time
+	count       int
+}
+
+var rateLimitState = struct {
+	sync.Mutex
+	clients map[string]rateLimitEntry
+}{clients: make(map[string]rateLimitEntry)}
+
+func requestRateLimit() gin.HandlerFunc {
+	limit := 60
+	if raw := os.Getenv("ACTION_RATE_LIMIT_RPM"); raw != "" {
+		if configured, err := strconv.Atoi(raw); err == nil && configured > 0 {
+			limit = configured
+		}
+	}
+	return func(c *gin.Context) {
+		client := c.ClientIP()
+		now := time.Now()
+		rateLimitState.Lock()
+		entry := rateLimitState.clients[client]
+		if entry.windowStart.IsZero() || now.Sub(entry.windowStart) >= time.Minute {
+			entry = rateLimitEntry{windowStart: now}
+		}
+		entry.count++
+		rateLimitState.clients[client] = entry
+		allowed := entry.count <= limit
+		rateLimitState.Unlock()
+		if !allowed {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error":      "action rate limit exceeded",
+				"error_code": "RATE_LIMITED",
+			})
+			return
+		}
+		c.Next()
+	}
 }
 
 // RegisterAllRoutes registers all real handlers on the router.

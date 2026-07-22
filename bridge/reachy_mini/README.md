@@ -50,6 +50,17 @@ The Tunnel does not settle immediately after verification. It waits for the
 matching successful simulator result; a result failure or timeout returns an
 HTTP error and the x402 middleware skips `/settle`.
 
+For a production Reachy deployment, start the Tunnel with an explicit policy:
+
+```bash
+export ALLOWED_ACTIONS=look_at,look_at_apple
+export MAX_ACTION_DURATION_SECONDS=30
+export ACTION_RATE_LIMIT_RPM=60
+```
+
+Payment verification alone does not grant unrestricted robot control; the
+allowlist, duration cap, rate limit, and simulator safety checks all apply.
+
 **`test_base_sepolia_tunnel_e2e.py`** is the live-network proof. It uses the official Python x402 client, sends the first unpaid request to the public Fabric endpoint, retries through the real compiled Tunnel, requires a successful settlement from `https://x402.org/facilitator`, prints the BaseScan transaction URL, and only then accepts correlated Reachy Mini simulator metrics and `robot/tunnel/result`. The payer needs Base Sepolia USDC; never commit or share its private key.
 
 ```

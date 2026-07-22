@@ -1,0 +1,68 @@
+## Reviewer-requested payment-to-execution guarantees
+
+The paid execution path is now fully execution-gated:
+
+```text
+Fabric Gateway
+    ↓
+x402 payment verification
+    ↓
+robot/tunnel/action
+    ↓
+Reachy Mini bridge + MuJoCo execution
+    ↓
+robot/tunnel/result
+    ↓
+x402 settlement only after SUCCESS
+```
+
+### Payment and failure guarantees
+
+- The real Go Tunnel waits for the correlated `robot/tunnel/result`.
+- Settlement occurs only after `execution_status: SUCCESS`.
+- Simulator failure returns HTTP `502`; settlement is skipped.
+- Simulator timeout returns HTTP `504`; settlement is skipped.
+- Invalid or unpaid requests return HTTP `402` and publish no `ActionEvent`.
+- Replay requests are rejected with HTTP `409`.
+- Results are correlated using `action_id`, `robot_id`, `skill_id`,
+  `params_hash`, and `idempotency_key`.
+- `robot/reachy_mini/metrics` remains available for compatibility telemetry.
+
+### Base Sepolia live evidence
+
+The complete path was validated through the public Fabric Gateway, the real Go
+Tunnel, the public x402 facilitator, MuJoCo, and Webots.
+
+- **Network:** Base Sepolia (`eip155:84532`)
+- **HTTP result:** `200 OK`
+- **Execution status:** `SUCCESS`
+- **Task completed:** `true`
+- **Tracking success rate:** `1.0`
+- **Sim-to-sim robustness:** `1.0`
+
+[View the Base Sepolia transaction on BaseScan](https://sepolia.basescan.org/tx/0x596bd1f70131e38cc1674195538bbc726bae0b54f801203c1409ee3f4907c324)
+
+### Simulator metrics
+
+| Metric | Result |
+|---|---:|
+| MuJoCo simulation steps | 301 |
+| Tracking success rate | 1.0 |
+| FOV lock rate | 0.917 |
+| Task completed | `true` |
+| Sim-to-sim score | 1.0 |
+| Simulators | MuJoCo + Webots |
+| FSM phases | `SCANNING → TRACKING → EXPRESSIVE` |
+
+### Validation
+
+```text
+make test                              ✅
+make build                             ✅
+make ROBOT=reachy_mini bridge-build    ✅
+test_e2e_paid_action.py                ✅
+test_base_sepolia_tunnel_e2e.py        ✅
+```
+
+The private key used for testing remains local and is not included in the
+repository or pull request.

@@ -120,6 +120,17 @@ Common environment overrides:
 | `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
 | `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
 
+Production action hardening can be configured with:
+
+| Variable | Example | Effect |
+|---|---|---|
+| `ALLOWED_ACTIONS` | `look_at,look_at_apple` | Rejects skills not explicitly enabled |
+| `MAX_ACTION_DURATION_SECONDS` | `30` | Caps requested action duration |
+| `ACTION_RATE_LIMIT_RPM` | `60` | Limits requests per client IP per minute |
+
+These checks run in addition to x402 payment verification. Payment proves the
+request is paid; the allowlist and limits decide whether the robot may execute it.
+
 ## 4. Register the robot on BitAgent (Unibase AIP) — optional
 
 With `AIP_ENABLED=true`, the tunnel additionally registers the robot as an

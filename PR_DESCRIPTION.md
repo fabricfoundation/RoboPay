@@ -10,7 +10,7 @@ x402 paid request
   -> Reachy Mini bridge
   -> FSM: SCANNING -> TRACKING -> EXPRESSIVE
   -> MuJoCo / Webots physics
-  -> correlated robot/reachy_mini/metrics
+  -> correlated robot/tunnel/result
 ```
 
 ## Simulation task
@@ -49,7 +49,8 @@ Overall sim-to-sim robustness score: **1.0**.
 
 ```text
 unpaid POST /action -> HTTP 402 + x402 payment requirements
-malformed JSON      -> HTTP 400
+unpaid request      -> no robot/tunnel/action publication
+malformed unpaid    -> rejected before action dispatch
 ```
 
 No unpaid action is published to the robot topic.
@@ -65,12 +66,13 @@ paid HTTP request
   -> real Tunnel
   -> Zenoh ActionEvent
   -> Reachy Mini bridge
-  -> correlated MuJoCo/Webots metrics
+  -> robot/tunnel/result with action_id correlation
+  -> x402 settlement only after simulator SUCCESS
 ```
 
 ### Live Base Sepolia path
 
-`test_base_sepolia_tunnel_e2e.py` validates the public payment path using the public Fabric Gateway API, the public x402 facilitator, the real Go Tunnel binary, Base Sepolia USDC settlement, and correlated simulator metrics.
+`test_base_sepolia_tunnel_e2e.py` validates the public payment path using the public Fabric Gateway API, the public x402 facilitator, the real Go Tunnel binary, Base Sepolia USDC settlement, and correlated `robot/tunnel/result` plus simulator metrics.
 
 The test only succeeds after both payment settlement and simulator correlation are confirmed.
 
@@ -101,13 +103,18 @@ The request sequence is:
 4. The Fabric Gateway routes the request through the public Tunnel WebSocket.
 
 5. The Tunnel sends the payment payload to the x402 facilitator for
-   verification and settlement on Base Sepolia.
+   verification, but defers settlement until execution succeeds.
 
-6. After successful settlement, the Tunnel publishes an ActionEvent on
-   Zenoh topic robot/tunnel/action.
+6. The Tunnel publishes an ActionEvent on Zenoh topic robot/tunnel/action and
+   waits for the matching robot/tunnel/result.
 
-7. The Reachy Mini bridge executes the paid action and publishes metrics on
-   robot/reachy_mini/metrics using the original request_id as correlation_id.
+7. The Reachy Mini bridge executes the paid action and publishes a correlated
+   result on robot/tunnel/result plus compatibility metrics on
+   robot/reachy_mini/metrics.
+
+8. Only after execution_status: SUCCESS does the Tunnel return HTTP 200 and
+   allow x402 settlement. Failure returns HTTP 502; timeout returns HTTP 504,
+   and neither path calls the facilitator settlement endpoint.
 ```
 
 The successful live response was:
@@ -125,14 +132,14 @@ The facilitator settlement response was:
 {
   "success": true,
   "payer": "0x338FC32a408b601cAb027d867d8192C03895Ff61",
-  "transaction": "0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e",
+  "transaction": "0x2b9a96a74a3af3286b4436a0ac91b83a97b3f1cf7c100520dd2c0dfd33796d4f",
   "network": "eip155:84532"
 }
 ```
 
 Live transaction evidence:
 
-[Base Sepolia transaction](https://sepolia.basescan.org/tx/0x92c91ab7fc9731ec9f05f485cd8e2ff5cd97998eda08d1da910c60e370159d7e)
+[Base Sepolia transaction](https://sepolia.basescan.org/tx/0x2b9a96a74a3af3286b4436a0ac91b83a97b3f1cf7c100520dd2c0dfd33796d4f)
 
 Observed live result:
 
@@ -149,8 +156,32 @@ Observed live result:
 Correlation ID:
 
 ```text
-base-sepolia-reachy-1784747256
+base-sepolia-reachy-1784754588
 ```
+
+## Security hardening
+
+The Tunnel now applies payment-independent execution policy checks in addition
+to x402 verification:
+
+- `ALLOWED_ACTIONS=look_at,look_at_apple` enables an explicit skill allowlist;
+- `MAX_ACTION_DURATION_SECONDS=30` caps requested action duration;
+- `ACTION_RATE_LIMIT_RPM=60` limits requests per client IP per minute;
+- disallowed skills return HTTP 403;
+- excessive durations return HTTP 400;
+- rate-limited requests return HTTP 429 before action dispatch or settlement;
+- replayed action IDs return HTTP 409.
+
+The live Base Sepolia rate-limit probe used `ACTION_RATE_LIMIT_RPM=5`:
+
+```text
+paid request                 -> HTTP 200 + successful settlement
+unpaid probe 1               -> HTTP 402
+unpaid probe 2               -> HTTP 402
+unpaid probe 3               -> HTTP 429 RATE_LIMITED
+```
+
+The rate-limit probe generated no additional settlement transaction.
 
 ## Tunnel fix
 
@@ -178,6 +209,14 @@ task_completed: true
 simulators_evaluated: [MuJoCo, Webots]
 overall_sim2sim_robustness_score: 1.0
 OK
+```
+
+To exercise the security policy locally:
+
+```bash
+export ALLOWED_ACTIONS=look_at,look_at_apple
+export MAX_ACTION_DURATION_SECONDS=30
+export ACTION_RATE_LIMIT_RPM=60
 ```
 
 ## Optional ROS2 execution
