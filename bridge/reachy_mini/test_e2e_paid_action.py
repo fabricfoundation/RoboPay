@@ -429,12 +429,14 @@ class TestEndToEndPaidAction(unittest.TestCase):
             # keep this test focused on the paid Tunnel -> Zenoh handoff.
             if os.environ.get("REACHY_BRIDGE_EXTERNAL") != "1":
                 main_py = os.path.join(_HERE, "mujoco_sim_bridge", "main.py")
+                bridge_env = os.environ.copy()
+                bridge_env["QT_QPA_PLATFORM"] = "offscreen"
+                if os.path.isfile("/opt/webots/webots"):
+                    bridge_env["WEBOTS_EXE"] = "/opt/webots/webots"
                 bridge_proc = subprocess.Popen(
                     [sys.executable, main_py],
                     cwd=_HERE,
-                    env=os.environ.copy(),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.STDOUT,
+                    env=bridge_env,
                 )
 
             z_config = zenoh.Config.from_json5(
@@ -517,11 +519,17 @@ class TestEndToEndPaidAction(unittest.TestCase):
             if z_session is not None:
                 z_session.close()
             if bridge_proc is not None:
-                bridge_proc.terminate()
-                bridge_proc.wait(timeout=10)
+                try:
+                    bridge_proc.terminate()
+                    bridge_proc.wait(timeout=2)
+                except Exception:
+                    bridge_proc.kill()
             if tunnel_proc is not None:
-                tunnel_proc.terminate()
-                tunnel_proc.wait(timeout=10)
+                try:
+                    tunnel_proc.terminate()
+                    tunnel_proc.wait(timeout=2)
+                except Exception:
+                    tunnel_proc.kill()
             proxy.close()
             facilitator.shutdown()
             facilitator.server_close()

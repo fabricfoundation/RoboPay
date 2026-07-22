@@ -13,12 +13,25 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 def _find_webots() -> str | None:
     """Locate the Webots executable on any platform without hardcoding paths."""
     import shutil, platform
-    # 1. Look on $PATH first (works when Webots is properly installed)
+
+    # 1. Environment variable override
+    env_override = os.environ.get("WEBOTS_EXE")
+    if env_override and os.path.isfile(env_override):
+        return env_override
+
+    # 2. Native Linux install locations
+    if platform.system() == "Linux":
+        for native_path in ("/opt/webots/webots", "/usr/local/bin/webots", "/usr/bin/webots"):
+            if os.path.isfile(native_path):
+                return native_path
+
+    # 3. Look on $PATH
     for name in ("webots", "webots.exe"):
         found = shutil.which(name)
         if found:
             return found
-    # 2. Common install locations as fallback
+
+    # 4. Fallback search
     candidates = []
     if platform.system() == "Windows":
         local_app_data = os.environ.get("LOCALAPPDATA", "")
@@ -31,18 +44,6 @@ def _find_webots() -> str | None:
             )
     elif platform.system() == "Darwin":
         candidates = ["/Applications/Webots.app/Contents/MacOS/webots"]
-    else:
-        candidates = [
-            "/usr/local/bin/webots",
-            "/usr/bin/webots",
-            # WSL can execute a Webots installation from the Windows host.
-            # This keeps ROS2/WSL runs on the real Webots binary instead of
-            # silently falling back to the Python approximation.
-            *glob.glob(
-                "/mnt/*/Users/*/AppData/Local/Programs/Webots/"
-                "msys64/mingw64/bin/webots.exe"
-            ),
-        ]
     for path in candidates:
         if os.path.isfile(path):
             return path
@@ -108,7 +109,8 @@ class Sim2SimValidator:
 
     def _run_webots_subprocess(self) -> dict:
         """Launch real Webots subprocess in batch mode to run official Reachy Mini controller."""
-        if not _WEBOTS_EXE or not os.path.isfile(_WEBOTS_EXE):
+        webots_exe = _find_webots()
+        if not webots_exe or not os.path.isfile(webots_exe):
             print("[Sim2Sim] Webots executable not found — using Python Webots simulation fallback")
             return self._webots_fallback()
 
@@ -117,7 +119,7 @@ class Sim2SimValidator:
             os.remove(_WEBOTS_JSON)
 
         cmd = [
-            _WEBOTS_EXE,
+            webots_exe,
             "--batch",
             "--mode=fast",
             "--no-rendering",
@@ -125,9 +127,13 @@ class Sim2SimValidator:
         ]
 
         print("[Sim2Sim] Launching Webots subprocess …")
+        webots_env = dict(os.environ)
+        webots_env["QT_QPA_PLATFORM"] = "offscreen"
+        webots_env["PYTHONPATH"] = f"{_HERE}{os.pathsep}{os.path.join(_HERE, 'controllers')}{os.pathsep}{webots_env.get('PYTHONPATH', '')}"
         try:
             proc = subprocess.Popen(
                 cmd,
+                env=webots_env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
@@ -154,7 +160,8 @@ class Sim2SimValidator:
             pass
 
         if not os.path.exists(_WEBOTS_JSON):
-            print("[Sim2Sim] Webots result not found — falling back to Python sim.")
+            out, err = proc.communicate()
+            print(f"[Sim2Sim] Webots result not found — returncode={proc.returncode} stdout={out.decode('utf-8', errors='ignore')} stderr={err.decode('utf-8', errors='ignore')}")
             return self._webots_fallback()
 
         try:

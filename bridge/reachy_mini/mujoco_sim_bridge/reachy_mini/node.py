@@ -60,6 +60,10 @@ class ReachyMiniBridgeNode(ROSNode):
 
     def __init__(self, zenoh_listen: str = "tcp/127.0.0.1:7447"):
         if HAS_ROS2:
+            try:
+                rclpy.init()
+            except Exception:
+                pass
             super().__init__("mujoco_sim_bridge_reachy_mini")
 
         self._mapper  = ReachyMapper()
@@ -68,10 +72,16 @@ class ReachyMiniBridgeNode(ROSNode):
         self._metrics = SimulationMetricsTracker()
 
         # Open Zenoh session with fast peer mode and multicast scouting disabled for instant cross-platform startup
-        conf = zenoh.Config.from_json5(
-            f'{{"mode": "peer", "scouting": {{"multicast": {{"enabled": false}}}}, "listen": {{"endpoints": ["{zenoh_listen}"]}}}}'
-        )
-        self._session = zenoh.open(conf)
+        try:
+            conf = zenoh.Config.from_json5(
+                f'{{"mode": "peer", "scouting": {{"multicast": {{"enabled": false}}}}, "listen": {{"endpoints": ["{zenoh_listen}"]}}}}'
+            )
+            self._session = zenoh.open(conf)
+        except Exception:
+            conf = zenoh.Config.from_json5(
+                f'{{"mode": "peer", "scouting": {{"multicast": {{"enabled": false}}}}, "connect": {{"endpoints": ["{zenoh_listen}"]}}}}'
+            )
+            self._session = zenoh.open(conf)
 
         # Subscribe to action topic
         self._sub = self._session.declare_subscriber(
