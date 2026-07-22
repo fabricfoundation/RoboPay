@@ -10,6 +10,7 @@ Thank you for the detailed feedback! We have fully implemented and verified the 
 We executed real on-chain payment transactions on Base Sepolia (eip155:84532) via the public Fabric Gateway API:
 
 - Public Fabric Action API Endpoint: https://api.fabric.foundation/api/core/robots/reachy-mini-kauker/action
+- BaseScan Explorer TxHash (Latest Verification): https://sepolia.basescan.org/tx/0xe8cee5bf341e73489158ecb5b7461ae9909138841216fbe7a5b0bec1bfc37f33
 - BaseScan Explorer TxHash 1: https://sepolia.basescan.org/tx/0x993c63d2112aa96d706ce3c8581f0daabacc909901215c27b459770eb092b548
 - BaseScan Explorer TxHash 2: https://sepolia.basescan.org/tx/0x57933d1c87f06883c9f9f15ae620e17215ed8affcc93c885cd9778a574e1d6af
 - Payee Address: 0x39a315667d557B1425bb1e5D371DD66d300c98c1
@@ -41,14 +42,14 @@ Content-Type: application/json
 
 {
   "status": "accepted",
-  "timestamp": "2026-07-22T10:55:31-03:00"
+  "timestamp": "2026-07-22T12:42:00-03:00"
 }
 
 3. x402 Facilitator Settlement Receipt:
 {
   "success": true,
   "payer": "0x338FC32a408b601cAb027d867d8192C03895Ff61",
-  "transaction": "0x6ab3b164a6f64dd5a0a4aaa31a38b168c4ad8dfdd0099718125b25235a54213f",
+  "transaction": "0xe8cee5bf341e73489158ecb5b7461ae9909138841216fbe7a5b0bec1bfc37f33",
   "network": "eip155:84532"
 }
 
@@ -64,17 +65,19 @@ The complete pipeline strictly follows the official Fabric Foundation RoboPay Ar
 5. Zenoh / ROS2 Protocol Bridge: ReachyMiniBridgeNode receives the authorized action over Zenoh.
 6. Machine Execution: MuJoCo runs 301 physics steps of closed-loop head tracking, returning correlated metrics receipt:
    {
-     "correlation_id": "base-sepolia-reachy-1784729088",
+     "correlation_id": "base-sepolia-reachy-1784734939",
      "execution_status": "SUCCESS",
+     "simulator": "MuJoCo",
+     "steps_executed": 301,
      "metrics": {
        "tracking_success_rate": 1.0,
        "overall_fov_lock_rate": 0.914,
        "task_completed": true
-     },
-     "sim_to_sim_validation": {
-       "overall_sim2sim_robustness_score": 1.0
      }
    }
+
+Note on Environment & Sim2Sim Execution:
+Fresh live verification completed on 2026-07-22 12:42 BRT with live Base Sepolia settlement 0xe8cee5bf341e73489158ecb5b7461ae9909138841216fbe7a5b0bec1bfc37f33. MuJoCo executed natively for physics verification. In this headless WSL Ubuntu environment, the Sim2Sim validator uses the Python Webots environment approximation fallback, so we do not claim a native Webots binary execution in this specific run.
 
 ---
 
