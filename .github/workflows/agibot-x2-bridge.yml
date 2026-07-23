@@ -1,0 +1,16 @@
+name: AGIBot X2 bridge checks
+on:
+  push:
+    paths: ["bridge/agibot/x2/**", "bridge/common/zenoh_bridge/**", ".github/workflows/agibot-x2-bridge.yml"]
+  pull_request:
+    paths: ["bridge/agibot/x2/**", "bridge/common/zenoh_bridge/**", ".github/workflows/agibot-x2-bridge.yml"]
+jobs:
+  python:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: python -m pip install --upgrade pip mujoco pytest
+      - run: python -m compileall bridge/agibot/x2/mujoco_bridge
+      - run: pytest -q bridge/agibot/x2/mujoco_bridge/test
