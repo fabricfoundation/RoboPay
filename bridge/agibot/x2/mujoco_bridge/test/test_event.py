@@ -1,5 +1,13 @@
+import importlib.util
 import json
-from bridge.common.zenoh_bridge.zenoh_bridge.action_event import parse_action_event
+from pathlib import Path
+
+_MODULE = Path(__file__).parents[4] / "common" / "zenoh_bridge" / "zenoh_bridge" / "action_event.py"
+_SPEC = importlib.util.spec_from_file_location("robopay_action_event", _MODULE)
+_LOADED = importlib.util.module_from_spec(_SPEC)
+assert _SPEC and _SPEC.loader
+_SPEC.loader.exec_module(_LOADED)
+parse_action_event = _LOADED.parse_action_event
 
 def test_official_event_schema():
     raw = json.dumps({"payload": {"action": "move_forward", "params": {"speed": 0.4}}, "transaction_details": {}, "timestamp": "2026-07-23T00:00:00Z"}).encode()
