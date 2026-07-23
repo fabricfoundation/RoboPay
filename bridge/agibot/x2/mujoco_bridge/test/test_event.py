@@ -16,4 +16,5 @@ def test_official_event_schema():
 
 def test_malformed_event_is_rejected():
     assert parse_action_event(b"not-json") is None
-    assert parse_action_event(json.dumps({"payload": []}).encode()) is None
+    # The shared bridge deliberately maps a non-object payload to the safe stop action.
+    assert parse_action_event(json.dumps({"payload": []}).encode()).action == "stop"
