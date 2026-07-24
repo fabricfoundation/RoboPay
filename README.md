@@ -272,4 +272,33 @@ Payment verification alone does not grant unrestricted robot control. The allowl
 
 ---
 
+## Troubleshooting
+
+| Issue | Cause | Fix |
+|---|---|---|
+| `zenoh` connection refused | Another Zenoh session occupying port 7447 | Kill existing session or set `ZENOH_CONFIG` with alternate endpoint |
+| `ModuleNotFoundError: reachy_mini` | Official model package not installed | `pip install reachy_mini` (fallback MJCF still works without it) |
+| Webots not found (sim2sim fails) | Webots not on PATH | Set `WEBOTS_EXE=/path/to/webots` or install Webots R2023b+ |
+| `make build` fails on zenoh-c | Missing C library | Run `make download-zenohc` first (auto-downloads v1.9.0) |
+| `402` on every request | No payment signature attached | Use `test_e2e_paid_action.py` for local testing without real funds |
+| `SIMULATOR_RESULT_TIMEOUT` (504) | Bridge not running or Zenoh not connected | Start bridge first: `python -m mujoco_sim_bridge.main` |
+| `RATE_LIMITED` (429) | Over 60 requests/minute from same IP | Wait 60s or increase `ACTION_RATE_LIMIT_RPM` |
+
+---
+
+## Safety & Emergency Stop
+
+The system provides multiple independent safety layers that bound robot actuation:
+
+| Layer | Mechanism | Effect |
+|---|---|---|
+| **Duration cap** | `MAX_ACTION_DURATION_SECONDS` (default: 30s) | Simulator episode is hard-terminated after the configured duration; any request exceeding it is rejected with `400 DURATION_LIMIT` before execution |
+| **Rate limiting** | `ACTION_RATE_LIMIT_RPM` (default: 60) | Excess requests are rejected with `429 RATE_LIMITED`; no Zenoh message is published |
+| **Skill allowlist** | `ALLOWED_ACTIONS` env var | Only explicitly permitted actions can actuate the robot; anything else returns `403 SKILL_NOT_ALLOWED` |
+| **Execution-gated settlement** | Tunnel waits for `robot/tunnel/result` | If the simulator fails or times out, the action is aborted (502/504) and payment is NOT settled |
+| **Slew-rate limiting** | Policy-level max velocity per joint | Even during execution, joint velocity is capped at safe servo speeds (0.6–1.0 rad/s) preventing sudden dangerous motions |
+| **Joint limits** | MuJoCo `range` + Webots URDF limits | Physics engines enforce hardware joint limits regardless of policy output |
+
+In a production deployment, setting `MAX_ACTION_DURATION_SECONDS=30` and `ALLOWED_ACTIONS=look_at,look_at_apple,inspect_table` ensures the robot cannot be commanded to perform unbounded or unauthorized motions. The combined effect is equivalent to an emergency stop: no single paid request can exceed 30 seconds of actuation, and the robot cannot move beyond its physical joint limits.
+
 *No private keys or secrets are included in this PR.*
