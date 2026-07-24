@@ -185,7 +185,10 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 			"PAYMENT-REQUIRED",
 			"PAYMENT-RESPONSE",
 		},
-		AllowCredentials: true,
+		// Auth is carried by the PAYMENT-SIGNATURE header (x402), never by cookies.
+		// With a wildcard origin the CORS spec forbids credentialed requests, and
+		// enabling both is silently rejected by browsers — so we keep it disabled.
+		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}))
 
@@ -249,7 +252,8 @@ type rateLimitEntry struct {
 
 var rateLimitState = struct {
 	sync.Mutex
-	clients map[string]rateLimitEntry
+	clients   map[string]rateLimitEntry
+	lastSweep time.Time
 }{clients: make(map[string]rateLimitEntry)}
 
 func requestRateLimit() gin.HandlerFunc {
@@ -263,6 +267,16 @@ func requestRateLimit() gin.HandlerFunc {
 		client := c.ClientIP()
 		now := time.Now()
 		rateLimitState.Lock()
+		// Evict windows older than one minute at most once per minute so the
+		// client map cannot grow unbounded with one-off IPs.
+		if now.Sub(rateLimitState.lastSweep) >= time.Minute {
+			for ip, e := range rateLimitState.clients {
+				if now.Sub(e.windowStart) >= time.Minute {
+					delete(rateLimitState.clients, ip)
+				}
+			}
+			rateLimitState.lastSweep = now
+		}
 		entry := rateLimitState.clients[client]
 		if entry.windowStart.IsZero() || now.Sub(entry.windowStart) >= time.Minute {
 			entry = rateLimitEntry{windowStart: now}
