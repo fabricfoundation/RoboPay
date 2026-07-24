@@ -1,0 +1,73 @@
+schemaVersion: skill-contract-test.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+robotId: reachy-mini-kauker
+
+# These cases mirror executable tests already in the repo. The Go handler tests
+# run in CI via `make test` (go test -v ./...); the payment/E2E cases run against
+# a live tunnel + Base Sepolia.
+runners:
+  - id: go-handlers
+    kind: go-test
+    path: tunnel/internal/handlers/handlers_test.go
+    command: go test -v ./tunnel/internal/handlers/...
+  - id: payment-gate
+    kind: pytest
+    path: bridge/reachy_mini/test_payment_gate.py
+  - id: base-sepolia-e2e
+    kind: pytest
+    path: bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
+
+settlementInvariant: >-
+  Settle a payment only when the /action handler returns HTTP < 400, which occurs
+  exclusively after the simulator publishes a correlated result with status
+  "success". 502/504 are the explicit no-settlement outcomes for async failure.
+
+cases:
+  - name: paid_valid_action_settles
+    runner: base-sepolia-e2e
+    request: {action: look_at_apple, robot_id: reachy-mini-kauker, params: {target_object: apple}}
+    payment: PAYMENT-SIGNATURE
+    expect: {status: 200, settled: true, requiresResult: success}
+
+  - name: unpaid_action_rejected
+    runner: payment-gate
+    request: {action: look_at_apple, robot_id: reachy-mini-kauker, params: {target_object: apple}}
+    payment: none
+    expect: {status: 402, settled: false, header: PAYMENT-REQUIRED}
+
+  - name: replay_duplicate_key
+    runner: go-handlers
+    reference: TestPostAction_RejectsReplay
+    expect: {status: 409, errorCode: REPLAY_DETECTED, settled: false}
+
+  - name: disallowed_skill
+    runner: go-handlers
+    reference: TestPostAction_RejectsSkillOutsideAllowlist
+    expect: {status: 403, errorCode: SKILL_NOT_ALLOWED, settled: false}
+
+  - name: wrong_robot_id
+    runner: go-handlers
+    reference: TestPostAction_WrongRobot
+    expect: {status: 403, errorCode: WRONG_ROBOT, settled: false}
+
+  - name: invalid_params
+    runner: go-handlers
+    reference: TestPostAction_InvalidParamsContract
+    expect: {status: 400, errorCode: INVALID_PARAMS, settled: false}
+
+  - name: duration_over_limit
+    runner: go-handlers
+    reference: TestPostAction_RejectsDurationAboveLimit
+    expect: {status: 400, errorCode: DURATION_LIMIT, settled: false}
+
+  - name: simulator_execution_failure_no_settle
+    runner: go-handlers
+    reference: TestPostAction_DoesNotAcceptOrSettleOnSimulatorFailure
+    expect: {status: 502, errorCode: SIMULATOR_EXECUTION_FAILED, settled: false}
+
+  # 504 is the handler timeout branch in handlers.go (no dedicated unit test yet);
+  # same no-settle guarantee as the 502 path above.
+  - name: simulator_result_timeout_no_settle
+    runner: go-handlers
+    reference: handlers.go PostAction result-timeout branch
+    expect: {status: 504, errorCode: SIMULATOR_RESULT_TIMEOUT, settled: false}

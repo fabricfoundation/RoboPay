@@ -1,0 +1,23 @@
+schemaVersion: robot-profile.v1
+vendor: pollen-robotics
+robotModel: reachy-mini
+robotType: mujoco-webots-sim
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+profileVersion: 1.0.0
+description: >-
+  Hugging Face / Pollen Robotics Reachy Mini (9 DOF: 1 torso yaw, 6-DOF Stewart
+  neck platform, 2 antennae). Payment-gated, closed-loop object head-tracking
+  validated independently in MuJoCo (official MJCF) and Webots (URDF-derived
+  PROTO, R2025a).
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/reachy_mini/metrics
+  bridge: tunnel (this repo, Go) + bridge/reachy_mini/mujoco_sim_bridge (Python)
+  simulators: [mujoco, webots]
+  robotId: reachy-mini-kauker
+maintainers:
+  - github: RobotDeveloper1
+status: experimental
+scope: simulator-only

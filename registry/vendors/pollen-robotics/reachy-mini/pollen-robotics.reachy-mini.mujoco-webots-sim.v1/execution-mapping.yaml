@@ -1,0 +1,28 @@
+schemaVersion: execution-mapping.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/reachy_mini/metrics
+paramsHashFormat: "sha256:<hex>"   # canonical JSON of params, sha256, "sha256:" prefix
+mappings:
+  look_at_apple:
+    task: object_tracking
+    output: mujoco-or-webots episode (bridge/reachy_mini/mujoco_sim_bridge)
+    policy: ReachyTaskPolicy FSM (SCANNING -> TRACKING -> EXPRESSIVE)
+    controller: per-step P-control + slew-rate limiting over 9 DOF
+    goal: "$params.target_object"
+    metrics: [target_pose_error_rad, success_rate, head_pose_source,
+              sim2sim_robustness_score, duration_s]
+  inspect_table:
+    task: multi_object_inspection
+    output: mujoco-or-webots episode (bridge/reachy_mini/mujoco_sim_bridge)
+    policy: ReachyTaskPolicy FSM applied sequentially per object
+    controller: per-step P-control + slew-rate limiting over 9 DOF
+    metrics: [target_pose_error_rad, success_rate, head_pose_source,
+              sim2sim_robustness_score, duration_s]
+notes: >-
+  head_pose_source is "supervisor_node" when the Webots controller reads the real
+  head pose via the supervisor (getPosition/getOrientation); tracking error is
+  measured from ground-truth simulator state, not a kinematic estimate.
