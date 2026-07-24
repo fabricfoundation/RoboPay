@@ -1,0 +1,6 @@
+reachy-mini[mujoco]>=1.9.0
+mujoco>=3.0.0
+numpy>=1.22.0
+eclipse-zenoh>=0.11.0
+x402[requests,evm]>=2.16.0
+pydantic>=2.0.0

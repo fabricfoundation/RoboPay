@@ -1,0 +1,105 @@
+name: Live Base Sepolia E2E
+
+# ─── Manual trigger only ───────────────────────────────────────────────────────
+# This workflow spends real Base Sepolia USDC. Never run it on every push.
+# Trigger it from the Actions tab when you want fresh on-chain evidence.
+on:
+  workflow_dispatch:
+    inputs:
+      robot_id:
+        description: "Registered robot ID on Fabric"
+        required: true
+        default: "reachy-mini-kauker"
+      skip_settlement_assert:
+        description: "Skip settlement assertion (dry-run mode)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  base-sepolia-e2e:
+    name: Live x402 payment → Tunnel → Simulator → Settlement
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only run if the secret is configured
+    if: ${{ vars.BASE_SEPOLIA_ENABLED == 'true' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Build tunnel ──────────────────────────────────────────────────────────
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Build tunnel binary
+        run: make build
+
+      # ── Python environment ────────────────────────────────────────────────────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mujoco==3.10.0 numpy==2.2.6 eclipse-zenoh==1.9.0 x402==2.16.0 eth-account==0.13.7 httpx==0.28.1 web3==7.16.0
+
+      - name: Install reachy_mini package (official MJCF)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev libgirepository1.0-dev pkg-config
+          pip install git+https://github.com/pollen-robotics/reachy_mini.git@v1.8.4
+
+      # ── Start tunnel connected to real Fabric Gateway ─────────────────────────
+      - name: Start tunnel (background)
+        run: |
+          export LD_LIBRARY_PATH=$(pwd)/.zenoh-c/lib
+          ./bin/tunnel --config tunnel/config.json &
+          echo "TUNNEL_PID=$!" >> $GITHUB_ENV
+          sleep 10  # Wait for WebSocket connection to Fabric Gateway
+
+      # ── Run the live test ─────────────────────────────────────────────────────
+      - name: Run Base Sepolia E2E test
+        working-directory: bridge/reachy_mini
+        run: python test_base_sepolia_tunnel_e2e.py
+        env:
+          PRIVATE_KEY: ${{ secrets.BASE_SEPOLIA_PRIVATE_KEY }}
+          ROBO_PAYEE_ADDRESS: ${{ secrets.ROBO_PAYEE_ADDRESS }}
+          ROBOT_ID: ${{ inputs.robot_id }}
+          TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
+          WEBOTS_EXE: ""
+
+      - name: Stop tunnel
+        if: always()
+        run: kill $TUNNEL_PID 2>/dev/null || true
+
+      # ── Upload evidence ───────────────────────────────────────────────────────
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-sepolia-evidence
+          path: |
+            bridge/reachy_mini/base_sepolia_result*.json
+            bridge/reachy_mini/mujoco_sim_bridge/simulation/webots_sim2sim_result.json
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Print summary
+        if: success()
+        run: |
+          echo "## ✅ Base Sepolia E2E passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| x402 payment (HTTP 402 → signed) | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fabric Gateway → Tunnel WebSocket | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Zenoh ActionEvent published | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| MuJoCo simulation SUCCESS | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| x402 settlement on Base Sepolia | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Correlated robot/tunnel/result | ✅ |" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,37 @@
+schemaVersion: robot-skills.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+skills:
+  - skillId: look_at_apple
+    aliases: [look_at, object_tracking, track]
+    description: >-
+      Track a requested object with the head using torso yaw + the 6-DOF Stewart
+      neck (antennae add expressive motion). The ReachyTaskPolicy FSM
+      (SCANNING -> TRACKING -> EXPRESSIVE) reads live simulator state every 5 ms
+      and computes commands with P-control and slew-rate limiting. No recorded
+      trajectory or predefined animation is replayed. Fails, and must not settle,
+      if the simulator reports execution failure or the result times out.
+    params:
+      target_object:
+        type: enum
+        values: [apple, croissant, duck]
+      duration:
+        type: number
+        unit: seconds
+        optional: true
+    paymentRequired: true
+  - skillId: inspect_table
+    aliases: [inspect_scene]
+    description: >-
+      Multi-object inspection: sequentially orient the head toward each object on
+      the table, driven by the same policy stack. Same failure/no-settle
+      semantics as look_at_apple.
+    params:
+      duration:
+        type: number
+        unit: seconds
+        optional: true
+    paymentRequired: true
+limits:
+  maxActionDurationSec: 90    # MAX_ACTION_DURATION_SECONDS; over-limit -> 400 DURATION_LIMIT
+  controlStepMs: 5            # policy reads state and recomputes every 5 ms
+  degreesOfFreedom: 9         # 1 yaw_body + 6 Stewart + 2 antennae

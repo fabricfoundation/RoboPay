@@ -1,0 +1,20 @@
+{
+  "_comment": "POST /action request body. Payment is carried by the x402 PAYMENT-SIGNATURE request header (not inline); settlement is REAL on Base Sepolia, verifiable on BaseScan.",
+  "action": "look_at_apple",
+  "robot_id": "reachy-mini-kauker",
+  "params": {
+    "target_object": "apple"
+  },
+  "request_id": "act_example_apple_001",
+  "idempotency_key": "act_example_apple_001",
+  "paramsHash": "sha256:<sha256 of canonical JSON params>",
+  "paymentEvidence": {
+    "scheme": "exact",
+    "network": "eip155:84532",
+    "asset": "USDC (0x036CbD53842c5426634e7929541eC2318f3dCF7e)",
+    "amountUSDC": "0.001",
+    "simulated": false,
+    "exampleTxHash": "0x49f9b6e4111774a85a20adfe0aaa9633be33872ea7062b0127b64483ceb13d74",
+    "explorer": "https://sepolia.basescan.org/tx/0x49f9b6e4111774a85a20adfe0aaa9633be33872ea7062b0127b64483ceb13d74"
+  }
+}

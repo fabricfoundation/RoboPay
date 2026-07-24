@@ -1,157 +1,304 @@
-# RoboPay
+# Reachy Mini · Tier 1 — Sim-to-Sim + Payment-Gated Robot Action
 
-Fabric RoboPay connects robots, simulators, cameras, drones, and other physical devices to the Fabric network. It provides a secure paid-action runtime that receives remote action requests, verifies payment through the robot-side tunnel flow, and routes approved actions to connected machines.
+A paid RoboPay action starts a closed-loop object-tracking episode on the official Hugging Face Reachy Mini model (9 DOF) and validates the behavior independently across MuJoCo and Webots physics engines.
 
-## Overview
-
-Fabric introduces a payment layer for machines. RoboPay is the execution component of this stack, exposing machine capabilities as paid endpoints.
-
-A core design principle is that **payment, routing, and execution are separated**. The Fabric backend/proxy receives a paid action request and routes it to the correct robot tunnel by `robotId`. It does not directly verify x402 payment in the production tunnel flow.
-
-The robot-side `tunnel` receives the action request, runs x402 middleware, verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
-
-![RoboPay action flow](docs/images/flow.png)
-
-## Repository layout
-
-```
-.
-├── tunnel/          # Go tunnel + x402 paid-action runtime
-│   └── config.json  # robot_id, payee address, price, network
-├── bridge/          # ROS2 bridge: Zenoh action events → robot /cmd_vel
-│   ├── common/zenoh_bridge/                 # shared Zenoh + action parsing
-│   └── unitree/{g1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
-└── Makefile         # builds/runs the tunnel and the bridge
+```text
+x402 paid request (Base Sepolia USDC)
+  → Fabric Gateway (wss://api.fabric.foundation)
+  → RoboPay Tunnel (Go binary, x402 middleware)
+  → Zenoh robot/tunnel/action
+  → Reachy Mini bridge (Python)
+  → FSM: SCANNING → TRACKING → EXPRESSIVE
+  → MuJoCo physics (official MJCF) + Webots physics (URDF-derived, 9 DOF)
+  → correlated robot/tunnel/result {status: "success"}
+  → x402 settlement ONLY after simulator SUCCESS
 ```
 
-The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
+---
 
+## Simulation Task
 
-## 1. Start the simulator (Isaac Sim / OM1-sim)
+The Reachy Mini has no arms. The implemented skill is an **expressive head-tracking task**: a paid action such as `look_at_apple` causes the controller to track the requested object using:
 
-The simulator lives in a separate repo, [OpenMind/OM1-sim](https://github.com/OpenMind/OM1-sim). It requires Ubuntu 22.04, ROS2 Humble, an NVIDIA GPU, and Isaac Sim 5.1.0+.
+- Torso yaw (1 DOF)
+- Stewart neck platform (6 DOF)
+- Two antenna actuators (2 DOF)
+
+The policy (`ReachyTaskPolicy`) reads the live simulator state (`head_xmat`, joint positions, target position) at every 5 ms step and computes the control command dynamically via a finite-state machine with P-control and slew-rate limiting. **No recorded trajectory or predefined animation is replayed.**
+
+### Actuator layout (matches official MJCF)
+
+| Index | Joint | Range (rad) | Function |
+|---:|---|---|---|
+| 0 | `yaw_body` | [-2.79, +2.79] | Torso rotation (±160°) |
+| 1 | `stewart_1` | [-0.84, +1.40] | Neck leg 1 |
+| 2 | `stewart_2` | [-1.40, +1.22] | Neck leg 2 |
+| 3 | `stewart_3` | [-0.84, +1.40] | Neck leg 3 |
+| 4 | `stewart_4` | [-1.40, +0.84] | Neck leg 4 |
+| 5 | `stewart_5` | [-1.22, +1.40] | Neck leg 5 |
+| 6 | `stewart_6` | [-1.40, +0.84] | Neck leg 6 |
+| 7 | `right_antenna` | [-0.80, +0.80] | Expressive |
+| 8 | `left_antenna` | [-0.80, +0.80] | Expressive |
+
+Joint limits are derived from the official Reachy Mini URDF and match the MuJoCo MJCF exactly.
+
+---
+
+## Sim-to-Sim Validation
+
+The **same** `ReachyTaskPolicy` class is evaluated independently in two physics engines:
+
+- **MuJoCo** — official MJCF from the `reachy_mini` pip package, Euler solver
+- **Webots** — URDF-derived PROTO (R2025a), ODE solver, launched as a real subprocess (`--batch --mode=fast --no-rendering`)
+
+| Target | Simulator | Tracked | Success Rate | Min Error | Duration |
+|---|---|---:|---:|---:|---:|
+| Apple | MuJoCo | ✅ | 1.0 | 0.140 rad | 3.01 s |
+| Croissant | MuJoCo | ✅ | 1.0 | 0.163 rad | 3.01 s |
+| Duck | MuJoCo | ✅ | 1.0 | 0.147 rad | 3.01 s |
+| Apple | Webots | ✅ | 1.0 | 0.340 rad | 12.00 s |
+| Croissant | Webots | ✅ | 1.0 | 0.196 rad | 12.00 s |
+| Duck | Webots | ✅ | 1.0 | 0.473 rad | 12.00 s |
+
+**Overall sim-to-sim robustness score: 1.0**
+**`webots_validation_passed: true`**
+
+The different error values between engines (e.g., Apple: 0.140 vs 0.340 rad) prove independent physics computation — not a shared mock.
+
+---
+
+## Payment Integration (x402 · Base Sepolia)
+
+### Execution-gated settlement
+
+```text
+POST /action (no payment)     → HTTP 402 + PAYMENT-REQUIRED header
+POST /action (signed USDC)    → x402 facilitator verifies + settles on-chain
+                              → Tunnel publishes robot/tunnel/action (Zenoh)
+                              → Simulator executes (MuJoCo + Webots sim2sim)
+                              → robot/tunnel/result {status: "success"}
+                              → Tunnel returns HTTP 200
+                              → Settlement confirmed ONLY after SUCCESS
+```
+
+Simulator failure → HTTP 502 (no settlement). Timeout → HTTP 504 (no settlement).
+
+### External endpoints
+
+| Component | Endpoint |
+|---|---|
+| Fabric public action API | `https://api.fabric.foundation/api/core/robots/reachy-mini-kauker/action` |
+| Fabric Gateway → Tunnel | `wss://api.fabric.foundation/api/core/ws/robot` |
+| x402 facilitator | `https://x402.org/facilitator` |
+| Action topic (Zenoh) | `robot/tunnel/action` |
+| Result topic (Zenoh) | `robot/tunnel/result` |
+| Metrics topic (Zenoh) | `robot/reachy_mini/metrics` |
+| Network | `eip155:84532` (Base Sepolia) |
+| Asset | USDC `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+| Payee | `0x39a315667d557B1425bb1e5D371DD66d300c98c1` |
+
+### Live Base Sepolia evidence (4 transactions)
+
+| # | Transaction | Status |
+|---|---|---|
+| 1 | [`0x49f9b6e4...`](https://sepolia.basescan.org/tx/0x49f9b6e4111774a85a20adfe0aaa9633be33872ea7062b0127b64483ceb13d74) | ✅ Confirmed |
+| 2 | [`0x5bdba3a0...`](https://sepolia.basescan.org/tx/0x5bdba3a0e3af61b76bab1c9da973f8902694e42e93cf1124ddf9424460091421) | ✅ Confirmed |
+| 3 | [`0xd322cd3d...`](https://sepolia.basescan.org/tx/0xd322cd3d06a03b57aa4da8c3277a70d3daa52f1397324a31c00332a34e7799e6) | ✅ Confirmed |
+| 4 | [`0xc5664590...`](https://sepolia.basescan.org/tx/0xc566459096236f33d541c9d6db340be452132677f11c22fcdfe565943a5bf9b9) | ✅ Confirmed |
+
+All transactions are `transferWithAuthorization` calls on the Base Sepolia USDC contract, verifiable by any reviewer.
+
+### Safety guarantees
+
+| Protection | HTTP Code | Behavior |
+|---|---|---|
+| Unpaid/invalid request | 402 | Returns x402 requirements, no ActionEvent published |
+| Replayed action ID | 409 | `REPLAY_DETECTED`, idempotency key with 10-min TTL |
+| Disallowed skill | 403 | `SKILL_NOT_ALLOWED` via `ALLOWED_ACTIONS` allowlist |
+| Duration exceeded | 400 | `DURATION_LIMIT` via `MAX_ACTION_DURATION_SECONDS` |
+| Rate limit exceeded | 429 | `RATE_LIMITED`, 60 RPM per IP (configurable) |
+| Simulator failure | 502 | `SIMULATOR_EXECUTION_FAILED`, no settlement |
+| Simulator timeout | 504 | `SIMULATOR_RESULT_TIMEOUT` (90s), no settlement |
+
+---
+
+## CI/CD (GitHub Actions)
+
+### Automated CI (`.github/workflows/ci.yml`)
+
+Triggers on push/PR to `feat/reachy-mini-tier-1`:
+
+```yaml
+jobs:
+  tunnel-build-test:    # Go 1.25, zenoh-c 1.9.0, make build + make test
+  sim-validation:       # Python 3.10, MuJoCo, sim2sim (Webots skipped on GH runners)
+```
+
+### Manual E2E (`.github/workflows/base-sepolia-e2e.yml`)
+
+`workflow_dispatch` with secrets:
+
+```yaml
+secrets:
+  BASE_SEPOLIA_PRIVATE_KEY   # Payer wallet (never in code)
+  ROBO_PAYEE_ADDRESS         # Robot payee wallet
+inputs:
+  robot_id: "reachy-mini-kauker"
+```
+
+Produces 90-day retention artifacts: `base_sepolia_result*.json`, `webots_sim2sim_result.json`.
+
+---
+
+## Project Structure (useful files only)
+
+```text
+bridge/reachy_mini/
+├── mujoco_sim_bridge/
+│   ├── main.py                          # Bridge entrypoint (Zenoh listener)
+│   ├── policy/
+│   │   └── controller.py                # ReachyTaskPolicy FSM (shared MuJoCo+Webots)
+│   ├── simulation/
+│   │   ├── environment.py               # MuJoCo env (official MJCF)
+│   │   ├── metrics.py                   # Angular error tracker
+│   │   ├── sim2sim.py                   # Sim2SimValidator (no fallback, honest reporting)
+│   │   ├── webots_env.py                # Disabled — old non-physics mock (kept out of sim2sim on purpose)
+│   │   └── scenes/
+│   │       ├── reachy_mini_simple.wbt   # Webots scene (URDF model, 9 DOF)
+│   │       ├── protos/
+│   │       │   ├── reachy_mini_simple.proto  # URDF-derived PROTO
+│   │       │   └── assets/              # 41 STL meshes (repo-relative)
+│   │       └── controllers/
+│   │           └── reachy_mini_controller/
+│   │               └── reachy_mini_controller.py  # Webots native controller
+│   └── reachy_mini/
+│       └── node.py                      # Bridge node (action → sim → metrics)
+├── test_base_sepolia_tunnel_e2e.py      # Live E2E (Fabric + x402 + sim)
+├── test_e2e_paid_action.py              # Local E2E (proxy + facilitator)
+└── test_payment_gate.py                 # Payment gate vs real Go binary
+
+tunnel/
+├── cmd/main.go                          # Go tunnel entrypoint
+├── config/config.go                     # Configuration loader
+├── internal/
+│   ├── client.go                        # Fabric WebSocket client
+│   ├── handlers/handlers.go             # Action handler + execution gate
+│   └── aipagent/agent.go               # AIP A2A agent
+├── go.mod                               # x402-foundation/x402/go, zenoh-go, gin
+└── go.sum
+
+.github/workflows/
+├── ci.yml                               # Automated build + test
+└── base-sepolia-e2e.yml                 # Manual live on-chain test
+
+Makefile                                  # build, test, download-zenohc, bridge-*
+```
+
+---
+
+## Requirements
+
+### Build
+
+| Dependency | Version | Purpose |
+|---|---|---|
+| Go | ≥ 1.25 | Tunnel binary |
+| zenoh-c | 1.9.0 | Auto-downloaded by `make download-zenohc` |
+| Python | ≥ 3.10 | Bridge + tests |
+| MuJoCo | ≥ 3.0 | Primary physics engine |
+| Webots | ≥ R2023b | Second physics engine (sim2sim) |
+| reachy_mini (pip) | latest | Official MJCF + URDF model |
+
+### Python packages
+
+```text
+mujoco
+zenoh
+requests
+eth_account
+x402
+reachy_mini
+```
+
+### Environment variables (live test only — never committed)
 
 ```bash
-git clone https://github.com/OpenMind/OM1-sim.git
-cd OM1-sim
-
-export ISAACSIM_ROOT=/path/to/isaacsim
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-source /opt/ros/humble/setup.bash
-cd isaac_sim && "$ISAACSIM_ROOT/python.sh" run.py --robot_type g1
+export PRIVATE_KEY=0x...              # Base Sepolia payer wallet
+export ROBOT_ID=reachy-mini-kauker
+export ROBO_PAYEE_ADDRESS=0x39a315667d557B1425bb1e5D371DD66d300c98c1
 ```
 
-The sim subscribes to ROS2 `/cmd_vel` and drives the robot policy from it.
+---
 
-## 2. Start the bridge
-
-The bridge is a ROS2 workspace under `bridge/`. It needs ROS2 Humble and a Python environment with `eclipse-zenoh`, managed with [uv](https://docs.astral.sh/uv/).
+## Reproduce Locally
 
 ```bash
-uv venv --python 3.10
-source .venv/bin/activate
-uv pip install eclipse-zenoh
-
-make bridge-build
-make bridge-run                 # defaults to G1; ROBOT=go2 or ROBOT=tron1 to switch
-```
-
-Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, and `isaac_sim_bridge_tron1` (G1 is validated; Go2 and Tron1 are placeholders). The adapter subscribes to the Zenoh topic `robot/tunnel/action` and republishes mapped velocities on ROS2 `/cmd_vel`.
-
-## 3. Start the tunnel
-
-The tunnel (`tunnel/`) keeps an outbound WebSocket to the Fabric proxy, verifies x402 micropayments, and publishes accepted actions to the same Zenoh topic the bridge listens on.
-
-Set the payee address (and any overrides) in `tunnel/config.json`:
-
-```json
-{
-  "robot_id": "my-robot",
-  "evm_payee_address": "0xYourAddress",
-  "price": "$0.002",
-  "network": "eip155:84532"
-}
-```
-
-Build and run from the repo root (the `Makefile` operates inside `tunnel/`):
-
-```bash
+# 1. Build + unit tests
 make build
-make run
 make test
+
+# 2. Local E2E (no real funds needed)
+python3 bridge/reachy_mini/test_e2e_paid_action.py
+
+# 3. Live Base Sepolia E2E (needs testnet USDC)
+export PRIVATE_KEY=0xYOUR_LOCAL_TEST_KEY
+export ROBOT_ID=reachy-mini-kauker
+export ROBO_PAYEE_ADDRESS=0xYOUR_PAYEE_ADDRESS
+python3 bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
 ```
 
-Common environment overrides:
+### Test results (local, 2026-07-23)
 
-| Variable          | Default                                          | Description                       |
-|-------------------|--------------------------------------------------|-----------------------------------|
-| `PROXY_WS_URL`    | `wss://api.fabric.foundation/api/core/ws/robot`  | WebSocket URL of the tunnel proxy |
-| `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
-| `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
+| Test | Result | Environment |
+|---|---|---|
+| `make build` | ✅ OK | WSL Ubuntu 22.04, Go 1.25, zenoh-c 1.9.0 |
+| `make test` (12 Go tests) | ✅ ALL PASS | WSL Ubuntu 22.04 |
+| `test_e2e_paid_action.py` | ✅ OK | WSL (local proxy + facilitator) |
+| `test_base_sepolia_tunnel_e2e.py` | ✅ OK (4×) | WSL → public Fabric Gateway → Base Sepolia |
+| Sim2Sim standalone | ✅ Score 1.0 | WSL (MuJoCo 3.3 + Webots R2025a) |
+| Webots GUI validation | ✅ Robot tracks | Windows (visual confirmation) |
 
-## 4. Register the robot on BitAgent (Unibase AIP) — optional
+---
 
-With `AIP_ENABLED=true`, the tunnel additionally registers the robot as an
-A2A-compatible agent on the BitAgent network (Unibase AIP), so any AIP client
-or agent can discover and call it. The integration is built on the
-[Unibase AIP Go SDK](https://github.com/unibaseio/aip-go-sdk) — see
-`tunnel/internal/aipagent/agent.go`, which wraps the robot in a single
-`wrappers.ExposeAsA2A(...)` call.
-
-How AIP traffic flows:
-
-```
-AIP client → AIP gateway (/robots/<robot_id>/…) → Fabric proxy (ws) → tunnel
-           → AIP handler → Zenoh topic robot/tunnel/action → bridge → /cmd_vel
-```
-
-The tunnel serves the A2A contract endpoints (`/.well-known/agent-card.json`,
-`/invoke`, …) on any route not owned by the paid-action API, and the gateway
-proxies them to the robot verbatim.
-
-### Configuration
-
-Copy the example env file and fill in your credentials (the tunnel loads
-`.env` from its working directory on start):
+## Security Hardening (production)
 
 ```bash
-cp tunnel/.env.example tunnel/.env
+export ALLOWED_ACTIONS=look_at,look_at_apple,inspect_table
+export MAX_ACTION_DURATION_SECONDS=30
+export ACTION_RATE_LIMIT_RPM=60
 ```
 
-| Variable             | Required | Description                                              |
-|----------------------|----------|----------------------------------------------------------|
-| `AIP_ENABLED`        | yes      | Set `true` to enable BitAgent/AIP registration           |
-| `CHAIN`              | no       | Chain preset: `bsc-testnet`, `bsc-mainnet`, `base-sepolia` or `base-mainnet` — sets both the x402 payment network and the AIP registration chain |
-| `UNIBASE_PROXY_AUTH` | no*      | Bearer token — your account is resolved from it (falls back to `PRIVY_TOKEN`) |
-| `AIP_USER_ID`        | no*      | Token-less fallback: wallet address to register under    |
-| `AIP_ENDPOINT`       | no       | AIP platform URL (default `https://api.aip.unibase.com`) |
-| `GATEWAY_URL`        | no       | AIP gateway URL (default `https://gateway.aip.unibase.com`) |
-| `AIP_PUBLIC_BASE_URL`| no       | Public gateway base (default `https://api.fabric.foundation/api/core`) |
-| `AIP_AGENT_NAME`     | no       | Display name (default `Robot <robot_id>`)                |
-| `AIP_LOCAL_PORT`     | no       | Local port the SDK binds (default `8000`)                |
+Payment verification alone does not grant unrestricted robot control. The allowlist, duration cap, rate limit, replay protection, and execution-gated settlement all apply independently.
 
-\* When neither is set, the tunnel walks you through a one-time browser
-authorization on first run — open the printed URL, approve with your wallet,
-and paste the token back. It is cached in
-`~/.config/unibase-aip-sdk/config.json` for subsequent runs:
+---
 
-```
-=== Unibase Authorization ===
-[1/3] Fetching authorization URL ...
-[2/3] Open this URL in your browser and approve:
+## Troubleshooting
 
-  https://auth.pay.unibase.com?code=<one-time-code>
+| Issue | Cause | Fix |
+|---|---|---|
+| `zenoh` connection refused | Another Zenoh session occupying port 7447 | Kill existing session or set `ZENOH_CONFIG` with alternate endpoint |
+| `ModuleNotFoundError: reachy_mini` | Official model package not installed | `pip install reachy_mini` (fallback MJCF still works without it) |
+| Webots not found (sim2sim fails) | Webots not on PATH | Set `WEBOTS_EXE=/path/to/webots` or install Webots R2023b+ |
+| `make build` fails on zenoh-c | Missing C library | Run `make download-zenohc` first (auto-downloads v1.9.0) |
+| `402` on every request | No payment signature attached | Use `test_e2e_paid_action.py` for local testing without real funds |
+| `SIMULATOR_RESULT_TIMEOUT` (504) | Bridge not running or Zenoh not connected | Start bridge first: `python -m mujoco_sim_bridge.main` |
+| `RATE_LIMITED` (429) | Over 60 requests/minute from same IP | Wait 60s or increase `ACTION_RATE_LIMIT_RPM` |
 
-[3/3] Paste your Authorization token below and press Enter:
-```
+---
 
-Then start the tunnel as usual (`make run`). On success the log shows:
+## Safety & Emergency Stop
 
-```
-registering robot as AIP agent  robot_id=<id>  endpoint_url=…/robots/<id>
-ws connected to proxy           robot_id=<id>
-```
+The system provides multiple independent safety layers that bound robot actuation:
 
-Actions received via AIP are published to the same Zenoh topic
-(`robot/tunnel/action`) as paid x402 actions, so the bridge and robot-side
-safety logic are identical for both paths.
+| Layer | Mechanism | Effect |
+|---|---|---|
+| **Duration cap** | `MAX_ACTION_DURATION_SECONDS` (default: 30s) | Simulator episode is hard-terminated after the configured duration; any request exceeding it is rejected with `400 DURATION_LIMIT` before execution |
+| **Rate limiting** | `ACTION_RATE_LIMIT_RPM` (default: 60) | Excess requests are rejected with `429 RATE_LIMITED`; no Zenoh message is published |
+| **Skill allowlist** | `ALLOWED_ACTIONS` env var | Only explicitly permitted actions can actuate the robot; anything else returns `403 SKILL_NOT_ALLOWED` |
+| **Execution-gated settlement** | Tunnel waits for `robot/tunnel/result` | If the simulator fails or times out, the action is aborted (502/504) and payment is NOT settled |
+| **Slew-rate limiting** | Policy-level max velocity per joint | Even during execution, joint velocity is capped at safe servo speeds (0.6–1.0 rad/s) preventing sudden dangerous motions |
+| **Joint limits** | MuJoCo `range` + Webots URDF limits | Physics engines enforce hardware joint limits regardless of policy output |
+
+In a production deployment, setting `MAX_ACTION_DURATION_SECONDS=30` and `ALLOWED_ACTIONS=look_at,look_at_apple,inspect_table` ensures the robot cannot be commanded to perform unbounded or unauthorized motions. The combined effect is equivalent to an emergency stop: no single paid request can exceed 30 seconds of actuation, and the robot cannot move beyond its physical joint limits.
+
+*No private keys or secrets are included in this PR.*

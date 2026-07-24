@@ -1,0 +1,31 @@
+schemaVersion: agent-functions.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+functions:
+  - name: request_robot_action
+    method: POST
+    url: /action
+    body:
+      action: string          # skillId, e.g. "look_at_apple"
+      robot_id: string        # must match the tunnel's configured RobotID
+      params: object          # e.g. { "target_object": "apple" }
+      request_id: string      # correlation / action id (also accepts action_id)
+      idempotency_key: string # optional; defaults to request_id
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+  - name: submit_paid_robot_action
+    method: POST
+    url: /action
+    headers:
+      PAYMENT-SIGNATURE: string   # x402 signed USDC authorization (Base Sepolia)
+    responseHeaders:
+      PAYMENT-RESPONSE: string    # x402 settlement receipt
+    body: same as request_robot_action
+    returns:
+      "200": accepted (settled) — only after correlated result status "success"
+      "402": payment required (unpaid/invalid)
+      "403": SKILL_NOT_ALLOWED / WRONG_ROBOT
+      "409": REPLAY_DETECTED (duplicate idempotency key, 10-min TTL)
+      "429": RATE_LIMITED
+      "502": SIMULATOR_EXECUTION_FAILED (no settlement)
+      "504": SIMULATOR_RESULT_TIMEOUT (no settlement)
