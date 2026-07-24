@@ -1,0 +1,3595 @@
+#VRML_SIM R2025a utf8
+# license: Apache License 2.0
+# license url: http://www.apache.org/licenses/LICENSE-2.0
+# This is a proto file for Webots for the reachy_mini_simple
+# Extracted from: C:\Users\Kauker\AppData\Local\Programs\Python\Python312\Lib\site-packages\reachy_mini\descriptions\reachy_mini\urdf\robot_simple_collision_patched.urdf
+
+PROTO reachy_mini_simple [
+  field  SFVec3f     translation     0 0 0
+  field  SFRotation  rotation        0 0 1 0
+  field  SFString    name            "reachy_mini_simple"  # Is `Robot.name`.
+  field  SFString    controller      "void"                # Is `Robot.controller`.
+  field  MFString    controllerArgs  []                    # Is `Robot.controllerArgs`.
+  field  SFString    customData      ""                    # Is `Robot.customData`.
+  field  SFBool      supervisor      FALSE                 # Is `Robot.supervisor`.
+  field  SFBool      synchronization TRUE                  # Is `Robot.synchronization`.
+  field  SFBool      selfCollision   FALSE                 # Is `Robot.selfCollision`.
+]
+{
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    controller IS controller
+    controllerArgs IS controllerArgs
+    customData IS customData
+    supervisor IS supervisor
+    synchronization IS synchronization
+    selfCollision IS selfCollision
+    children [
+      Pose {
+        translation -0.000000 0.000000 0.229800
+        rotation 0.000000 0.000000 1.000000 1.570800
+        children [
+          Shape {
+            appearance DEF body_foot_3dprint_material PBRAppearance {
+              baseColor 0.301961 0.301961 0.301961
+              roughness 1.000000
+              metalness 0
+            }
+            geometry DEF body_foot_3dprint Mesh {
+              url "assets/body_foot_3dprint.stl"
+            }
+          }
+        ]
+      }
+      Pose {
+        translation -0.000000 0.000000 0.041300
+        rotation -0.577350 0.577352 -0.577350 2.094399
+        children [
+          Shape {
+            appearance DEF dc15_a01_horn_dummy_material PBRAppearance {
+              baseColor 0.262745 0.282353 0.301961
+              roughness 1.000000
+              metalness 0
+            }
+            geometry DEF dc15_a01_horn_dummy Mesh {
+              url "assets/dc15_a01_horn_dummy.stl"
+            }
+          }
+        ]
+      }
+      Pose {
+        translation -0.000000 0.000000 0.229800
+        rotation 0.000000 0.000000 1.000000 1.570800
+        children [
+          Shape {
+            appearance DEF body_turning_3dprint_material PBRAppearance {
+              baseColor 0.301961 0.301961 0.301961
+              roughness 1.000000
+              metalness 0
+            }
+            geometry DEF body_turning_3dprint Mesh {
+              url "assets/body_turning_3dprint.stl"
+            }
+          }
+        ]
+      }
+      DEF yaw_body HingeJoint {
+        jointParameters HingeJointParameters {
+          axis 0.000000 -0.000000 1.000000
+          anchor -0.000000 0.000000 0.034800
+        
+          dampingConstant 0.5
+        }
+        device [
+          RotationalMotor {
+            name "yaw_body"
+            maxVelocity 8.0
+            minPosition -2.79253
+            maxPosition 2.79253
+            maxTorque 10.0
+          }
+          PositionSensor {
+            name "yaw_body_sensor"
+          }
+        ]
+        endPoint Solid {
+          translation -0.000000 0.000000 0.034800
+          rotation 0.000000 0.000000 -1.000000 1.570800
+          children [
+            Pose {
+              translation 0.000000 -0.000000 0.195000
+              rotation 0.000000 -0.000000 -1.000000 3.141590
+              children [
+                Shape {
+                  appearance DEF body_down_3dprint_material PBRAppearance {
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF body_down_3dprint Mesh {
+                    url "assets/body_down_3dprint.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.195000
+              rotation 0.000000 0.000000 1.000000 3.141590
+              children [
+                Shape {
+                  appearance DEF stewart_tricap_3dprint_material PBRAppearance {
+                    baseColor 0.301961 0.301961 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF stewart_tricap_3dprint Mesh {
+                    url "assets/stewart_tricap_3dprint.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.005000 0.053583
+              rotation 0.000001 0.707108 0.707105 3.141591
+              children [
+                Shape {
+                  appearance DEF x_5w_speaker_material PBRAppearance {
+                    baseColor 0.196078 0.196078 0.196078
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF x_5w_speaker Mesh {
+                    url "assets/5w_speaker.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 -0.011500
+              rotation 0.577350 0.577352 0.577350 2.094399
+              children [
+                Shape {
+                  appearance DEF bearing_85x110x13_material PBRAppearance {
+                    baseColor 0.768627 0.886275 0.952941
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF bearing_85x110x13 Mesh {
+                    url "assets/bearing_85x110x13.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 0.000000 0.195000
+              rotation 0.000000 -0.000000 -1.000000 3.141590
+              children [
+                Shape {
+                  appearance DEF body_top_3dprint_material PBRAppearance {
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF body_top_3dprint Mesh {
+                    url "assets/body_top_3dprint.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.000000 -0.000000 0.195000
+              rotation 0.000000 -0.000000 -1.000000 3.141590
+              children [
+                Shape {
+                  appearance DEF stewart_main_plate_3dprint_material PBRAppearance {
+                    baseColor 0.301961 0.301961 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF stewart_main_plate_3dprint Mesh {
+                    url "assets/stewart_main_plate_3dprint.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF phs_1_7x20_5_dc10_2 Mesh {
+                    url "assets/phs_1_7x20_5_dc10_2.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF dc15_a01_case_b_dummy Mesh {
+                    url "assets/dc15_a01_case_b_dummy.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF dc15_a01_case_m_dummy Mesh {
+                    url "assets/dc15_a01_case_m_dummy.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF dc15_a01_led_cap2_dummy Mesh {
+                    url "assets/dc15_a01_led_cap2_dummy.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF bts2_m2_6x8 Mesh {
+                    url "assets/bts2_m2_6x8.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF dc15_a01_case_f_dummy Mesh {
+                    url "assets/dc15_a01_case_f_dummy.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF b3b_eh_1 Mesh {
+                    url "assets/b3b_eh_1.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF b3b_eh_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF b3b_eh Mesh {
+                    url "assets/b3b_eh.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF phs_1_7x20_5_dc10_3 Mesh {
+                    url "assets/phs_1_7x20_5_dc10_3.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF phs_1_7x20_5_dc10_1 Mesh {
+                    url "assets/phs_1_7x20_5_dc10_1.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.010000 -0.050161 0.041833
+              rotation -0.000001 -1.000000 0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry DEF phs_1_7x20_5_dc10 Mesh {
+                    url "assets/phs_1_7x20_5_dc10.stl"
+                  }
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_2
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_b_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_m_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_2_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_led_cap2_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE bts2_m2_6x8
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_f_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh_1
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_3
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_2_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_1
+                }
+              ]
+            }
+            Pose {
+              translation -0.038440 0.033741 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance USE phs_1_7x20_5_dc10_2_material
+                  geometry USE phs_1_7x20_5_dc10
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_2
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_b_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_m_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_3_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_led_cap2_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE bts2_m2_6x8
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_f_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF b3b_eh_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_3
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_3_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.000000 -0.000000 0.006500
+              rotation -1.000000 -0.000000 0.000000 1.570800
+              children [
+                Shape {
+                  appearance USE phs_1_7x20_5_dc10_3_material
+                  geometry USE phs_1_7x20_5_dc10
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_2
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_b_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_m_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_4_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_led_cap2_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE bts2_m2_6x8
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_f_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_3
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.038440 0.033741 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_4_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_2
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_b_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_m_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_5_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_led_cap2_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE bts2_m2_6x8
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_f_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF b3b_eh_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_3
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.010000 -0.050161 0.041833
+              rotation -0.000001 1.000000 -0.000001 3.141593
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_5_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_2
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_b_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_m_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_6_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_led_cap2_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE bts2_m2_6x8
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_f_dummy
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh_1
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_3
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_1
+                }
+              ]
+            }
+            Pose {
+              translation -0.048440 0.016420 0.041833
+              rotation -0.866025 -0.500001 0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_6_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_2_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_2
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_b_dummy_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_b_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_m_dummy_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_m_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_led_cap2_dummy_7_material PBRAppearance {
+                    baseColor 0.874510 0.447059 0.317647
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_led_cap2_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF bts2_m2_6x8_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE bts2_m2_6x8
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF dc15_a01_case_f_dummy_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE dc15_a01_case_f_dummy
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_1_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF b3b_eh_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE b3b_eh
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_3_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_3
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_1_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10_1
+                }
+              ]
+            }
+            Pose {
+              translation 0.048440 0.016420 0.041833
+              rotation -0.866025 0.500001 -0.000001 3.141590
+              children [
+                Shape {
+                  appearance DEF phs_1_7x20_5_dc10_7_material PBRAppearance {
+                    baseColor 0.262745 0.282353 0.301961
+                    roughness 1.000000
+                    metalness 0
+                  }
+                  geometry USE phs_1_7x20_5_dc10
+                }
+              ]
+            }
+            DEF stewart_1 HingeJoint {
+              jointParameters HingeJointParameters {
+                axis 0.866027 -0.499998 -0.000004
+                anchor -0.032811 0.030491 0.041833
+              
+          dampingConstant 0.3
+        }
+              device [
+                RotationalMotor {
+                  name "stewart_1"
+                  maxVelocity 8.0
+                  minPosition -0.837758
+                  maxPosition 1.39626
+                  maxTorque 10.0
+                }
+                PositionSensor {
+                  name "stewart_1_sensor"
+                }
+              ]
+              endPoint Solid {
+                translation -0.032811 0.030491 0.041833
+                rotation 0.774596 0.447215 0.447213 1.823481
+                children [
+                  Pose {
+                    translation 0.000000 0.000000 -0.006500
+                    rotation 0.577350 -0.577352 -0.577350 2.094399
+                    children [
+                      Shape {
+                        appearance DEF dc15_a01_horn_dummy_2_material PBRAppearance {
+                          baseColor 0.262745 0.282353 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE dc15_a01_horn_dummy
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.010000 -0.153167 0.043661
+                    rotation 0.774596 -0.447213 0.447215 1.823481
+                    children [
+                      Shape {
+                        appearance DEF mp01062_stewart_arm_3_material PBRAppearance {
+                          baseColor 0.301961 0.301961 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry DEF mp01062_stewart_arm_3 Mesh {
+                          url "assets/mp01062_stewart_arm_3.stl"
+                        }
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation 0.082500 -0.000000 0.007000
+                    children [
+                      Shape {
+                        appearance DEF stewart_link_ball_material PBRAppearance {
+                          baseColor 0.439216 0.474510 0.501961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry DEF stewart_link_ball Mesh {
+                          url "assets/stewart_link_ball.stl"
+                        }
+                      }
+                    ]
+                  }
+                  DEF passive_1_x HingeJoint {
+                    jointParameters HingeJointParameters {
+                      axis -0.505881 0.858093 0.088101
+                      anchor 0.040000 -0.000000 0.007000
+                    
+          dampingConstant 0.2
+        }
+                    device [
+                      RotationalMotor {
+                        name "passive_1_x"
+                        maxVelocity 100000000.0
+                        minPosition -3.141592653589793
+                        maxPosition 3.141592653589793
+                        maxTorque 10.0
+                      }
+                      PositionSensor {
+                        name "passive_1_x_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.040000 -0.000000 0.007000
+                      rotation 0.004773 -0.093841 0.995576 2.101239
+                      children [
+                        DEF passive_1_y HingeJoint {
+                          jointParameters HingeJointParameters {
+                            axis 0.000000 1.000000 0.000000
+                            anchor 0.000000 0.000000 0.000000
+                          
+          dampingConstant 0.2
+        }
+                          device [
+                            RotationalMotor {
+                              name "passive_1_y"
+                              maxVelocity 100000000.0
+                              minPosition -3.141592653589793
+                              maxPosition 3.141592653589793
+                              maxTorque 10.0
+                            }
+                            PositionSensor {
+                              name "passive_1_y_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation 0.000000 0.000000 0.000000
+                            children [
+                              DEF passive_1_z HingeJoint {
+                                jointParameters HingeJointParameters {
+                                  axis 0.000000 0.000000 1.000000
+                                  anchor 0.000000 0.000000 0.000000
+                                
+          dampingConstant 0.2
+        }
+                                device [
+                                  RotationalMotor {
+                                    name "passive_1_z"
+                                    maxVelocity 100000000.0
+                                    minPosition -3.141592653589793
+                                    maxPosition 3.141592653589793
+                                    maxTorque 10.0
+                                  }
+                                  PositionSensor {
+                                    name "passive_1_z_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation 0.000000 0.000000 0.000000
+                                  children [
+                                    Pose {
+                                      translation 0.042500 0.000000 0.000000
+                                      children [
+                                        Shape {
+                                          appearance DEF stewart_link_rod_material PBRAppearance {
+                                            baseColor 0.811765 0.858824 0.898039
+                                            roughness 1.000000
+                                            metalness 0
+                                          }
+                                          geometry DEF stewart_link_rod Mesh {
+                                            url "assets/stewart_link_rod.stl"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                    Solid {
+                                      translation 0.085000 -0.000000 0.000000
+                                      name "closing_1_1"
+                                      physics Physics {
+                                        mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                  name "stewart_link_rod"
+                                  physics Physics {
+                                    mass 0.005034
+                                    centerOfMass [ 0.042500 0.000000 -0.000000 ]
+                                    inertiaMatrix [
+                                      2.639760e-08 3.652110e-06 3.664730e-06
+                                      -3.695170e-13 7.125340e-14 5.210410e-14
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                            name "passive_1_link_y"
+                            physics Physics {
+                              mass 0.0001
+                              centerOfMass [ 0.000000 0.000000 0.000000 ]
+                              inertiaMatrix [
+                                1.000000e-09 1.000000e-09 1.000000e-09
+                                0.000000e+00 0.000000e+00 0.000000e+00
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                      name "passive_1_link_x"
+                      physics Physics {
+                        mass 0.0001
+                        centerOfMass [ 0.000000 0.000000 0.000000 ]
+                        inertiaMatrix [
+                          1.000000e-09 1.000000e-09 1.000000e-09
+                          0.000000e+00 0.000000e+00 0.000000e+00
+                        ]
+                      }
+                    }
+                  }
+                ]
+                name "dc15_a01_horn_dummy"
+                physics Physics {
+                  mass 0.003667
+                  centerOfMass [ 0.023751 0.000000 0.003358 ]
+                  inertiaMatrix [
+                    8.570630e-08 1.280190e-06 1.265460e-06
+                    1.818220e-13 -1.931250e-07 1.090020e-14
+                  ]
+                }
+              }
+            }
+            DEF stewart_2 HingeJoint {
+              jointParameters HingeJointParameters {
+                axis 0.866023 -0.500004 -0.000004
+                anchor -0.042811 0.013170 0.041833
+              
+          dampingConstant 0.3
+        }
+              device [
+                RotationalMotor {
+                  name "stewart_2"
+                  maxVelocity 8.0
+                  minPosition -1.39626
+                  maxPosition 1.22173
+                  maxTorque 10.0
+                }
+                PositionSensor {
+                  name "stewart_2_sensor"
+                }
+              ]
+              endPoint Solid {
+                translation -0.042811 0.013170 0.041833
+                rotation -0.377963 0.654655 -0.654653 2.418863
+                children [
+                  Pose {
+                    translation -0.002500 0.000000 0.007000
+                    rotation 0.000000 -0.000000 -1.000000 3.141590
+                    children [
+                      Shape {
+                        appearance DEF stewart_link_ball_2_material PBRAppearance {
+                          baseColor 0.439216 0.474510 0.501961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE stewart_link_ball
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.000000 0.000000 -0.006500
+                    rotation 0.577350 -0.577352 -0.577350 2.094399
+                    children [
+                      Shape {
+                        appearance DEF dc15_a01_horn_dummy_3_material PBRAppearance {
+                          baseColor 0.262745 0.282353 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE dc15_a01_horn_dummy
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.010000 -0.153167 0.043661
+                    rotation 0.774596 -0.447213 0.447215 1.823481
+                    children [
+                      Shape {
+                        appearance DEF mp01062_stewart_arm_3_2_material PBRAppearance {
+                          baseColor 0.301961 0.301961 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE mp01062_stewart_arm_3
+                      }
+                    ]
+                  }
+                  DEF passive_2_x HingeJoint {
+                    jointParameters HingeJointParameters {
+                      axis -1.000000 -0.000003 -0.000000
+                      anchor 0.040000 0.000000 0.007000
+                    
+          dampingConstant 0.2
+        }
+                    device [
+                      RotationalMotor {
+                        name "passive_2_x"
+                        maxVelocity 100000000.0
+                        minPosition -3.141592653589793
+                        maxPosition 3.141592653589793
+                        maxTorque 10.0
+                      }
+                      PositionSensor {
+                        name "passive_2_x_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.040000 0.000000 0.007000
+                      rotation -0.000001 1.000000 -0.000001 3.141593
+                      children [
+                        DEF passive_2_y HingeJoint {
+                          jointParameters HingeJointParameters {
+                            axis 0.000000 1.000000 0.000000
+                            anchor -0.000000 0.000000 0.000000
+                          
+          dampingConstant 0.2
+        }
+                          device [
+                            RotationalMotor {
+                              name "passive_2_y"
+                              maxVelocity 100000000.0
+                              minPosition -3.141592653589793
+                              maxPosition 3.141592653589793
+                              maxTorque 10.0
+                            }
+                            PositionSensor {
+                              name "passive_2_y_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation -0.000000 0.000000 0.000000
+                            children [
+                              DEF passive_2_z HingeJoint {
+                                jointParameters HingeJointParameters {
+                                  axis 0.000000 0.000000 1.000000
+                                  anchor -0.000000 0.000000 0.000000
+                                
+          dampingConstant 0.2
+        }
+                                device [
+                                  RotationalMotor {
+                                    name "passive_2_z"
+                                    maxVelocity 100000000.0
+                                    minPosition -3.141592653589793
+                                    maxPosition 3.141592653589793
+                                    maxTorque 10.0
+                                  }
+                                  PositionSensor {
+                                    name "passive_2_z_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation -0.000000 0.000000 0.000000
+                                  children [
+                                    Pose {
+                                      translation 0.021500 -0.036469 -0.003744
+                                      rotation 0.496760 0.866170 0.054573 3.180744
+                                      children [
+                                        Shape {
+                                          appearance DEF stewart_link_rod_2_material PBRAppearance {
+                                            baseColor 0.811765 0.858824 0.898039
+                                            roughness 1.000000
+                                            metalness 0
+                                          }
+                                          geometry USE stewart_link_rod
+                                        }
+                                      ]
+                                    }
+                                    Solid {
+                                      translation 0.043000 -0.072938 -0.007489
+                                      rotation 0.496760 0.866170 0.054573 3.180744
+                                      name "closing_2_1"
+                                      physics Physics {
+                                        mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                  name "stewart_link_rod_2"
+                                  physics Physics {
+                                    mass 0.005034
+                                    centerOfMass [ 0.021500 -0.036469 -0.003744 ]
+                                    inertiaMatrix [
+                                      2.724240e-06 9.825860e-07 3.636420e-06
+                                      1.573930e-06 1.613400e-07 -2.755280e-07
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                            name "passive_2_link_y"
+                            physics Physics {
+                              mass 0.0001
+                              centerOfMass [ 0.000000 0.000000 0.000000 ]
+                              inertiaMatrix [
+                                1.000000e-09 1.000000e-09 1.000000e-09
+                                0.000000e+00 0.000000e+00 0.000000e+00
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                      name "passive_2_link_x"
+                      physics Physics {
+                        mass 0.0001
+                        centerOfMass [ 0.000000 0.000000 0.000000 ]
+                        inertiaMatrix [
+                          1.000000e-09 1.000000e-09 1.000000e-09
+                          0.000000e+00 0.000000e+00 0.000000e+00
+                        ]
+                      }
+                    }
+                  }
+                ]
+                name "dc15_a01_horn_dummy_2"
+                physics Physics {
+                  mass 0.003667
+                  centerOfMass [ 0.023751 0.000000 0.003358 ]
+                  inertiaMatrix [
+                    8.570630e-08 1.280190e-06 1.265460e-06
+                    1.794360e-13 -1.931250e-07 1.038180e-14
+                  ]
+                }
+              }
+            }
+            DEF stewart_3 HingeJoint {
+              jointParameters HingeJointParameters {
+                axis 0.000003 1.000000 -0.000004
+                anchor -0.010000 -0.043661 0.041833
+              
+          dampingConstant 0.3
+        }
+              device [
+                RotationalMotor {
+                  name "stewart_3"
+                  maxVelocity 8.0
+                  minPosition -0.837758
+                  maxPosition 1.39626
+                  maxTorque 10.0
+                }
+                PositionSensor {
+                  name "stewart_3_sensor"
+                }
+              ]
+              endPoint Solid {
+                translation -0.010000 -0.043661 0.041833
+                rotation 0.000001 0.707108 0.707105 3.141591
+                children [
+                  Pose {
+                    translation -0.000000 0.000000 -0.006500
+                    rotation 0.577350 -0.577352 -0.577350 2.094399
+                    children [
+                      Shape {
+                        appearance DEF dc15_a01_horn_dummy_4_material PBRAppearance {
+                          baseColor 0.262745 0.282353 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE dc15_a01_horn_dummy
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation 0.040000 -0.042500 0.007000
+                    rotation -0.000000 -0.000000 -1.000000 1.570800
+                    children [
+                      Shape {
+                        appearance DEF stewart_link_ball_3_material PBRAppearance {
+                          baseColor 0.439216 0.474510 0.501961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE stewart_link_ball
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.010000 -0.153167 0.043661
+                    rotation 0.774596 -0.447213 0.447215 1.823481
+                    children [
+                      Shape {
+                        appearance DEF mp01062_stewart_arm_3_3_material PBRAppearance {
+                          baseColor 0.301961 0.301961 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE mp01062_stewart_arm_3
+                      }
+                    ]
+                  }
+                  DEF passive_3_x HingeJoint {
+                    jointParameters HingeJointParameters {
+                      axis 0.505883 -0.858091 -0.088101
+                      anchor 0.040000 0.000000 0.007000
+                    
+          dampingConstant 0.2
+        }
+                    device [
+                      RotationalMotor {
+                        name "passive_3_x"
+                        maxVelocity 100000000.0
+                        minPosition -3.141592653589793
+                        maxPosition 3.141592653589793
+                        maxTorque 10.0
+                      }
+                      PositionSensor {
+                        name "passive_3_x_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.040000 0.000000 0.007000
+                      rotation 0.344797 -0.102749 -0.933037 1.116073
+                      children [
+                        DEF passive_3_y HingeJoint {
+                          jointParameters HingeJointParameters {
+                            axis 0.000000 1.000000 0.000000
+                            anchor -0.000000 0.000000 -0.000000
+                          
+          dampingConstant 0.2
+        }
+                          device [
+                            RotationalMotor {
+                              name "passive_3_y"
+                              maxVelocity 100000000.0
+                              minPosition -3.141592653589793
+                              maxPosition 3.141592653589793
+                              maxTorque 10.0
+                            }
+                            PositionSensor {
+                              name "passive_3_y_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation -0.000000 0.000000 -0.000000
+                            children [
+                              DEF passive_3_z HingeJoint {
+                                jointParameters HingeJointParameters {
+                                  axis 0.000000 0.000000 1.000000
+                                  anchor -0.000000 0.000000 -0.000000
+                                
+          dampingConstant 0.2
+        }
+                                device [
+                                  RotationalMotor {
+                                    name "passive_3_z"
+                                    maxVelocity 100000000.0
+                                    minPosition -3.141592653589793
+                                    maxPosition 3.141592653589793
+                                    maxTorque 10.0
+                                  }
+                                  PositionSensor {
+                                    name "passive_3_z_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation -0.000000 0.000000 -0.000000
+                                  children [
+                                    Pose {
+                                      translation -0.042500 -0.000000 0.000000
+                                      children [
+                                        Shape {
+                                          appearance DEF stewart_link_rod_3_material PBRAppearance {
+                                            baseColor 0.811765 0.858824 0.898039
+                                            roughness 1.000000
+                                            metalness 0
+                                          }
+                                          geometry USE stewart_link_rod
+                                        }
+                                      ]
+                                    }
+                                    Solid {
+                                      translation -0.085000 -0.000000 0.000000
+                                      name "closing_3_1"
+                                      physics Physics {
+                                        mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                  name "stewart_link_rod_3"
+                                  physics Physics {
+                                    mass 0.005034
+                                    centerOfMass [ -0.042500 0.000000 -0.000000 ]
+                                    inertiaMatrix [
+                                      2.639760e-08 3.652110e-06 3.664730e-06
+                                      -3.695170e-13 7.125340e-14 5.210410e-14
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                            name "passive_3_link_y"
+                            physics Physics {
+                              mass 0.0001
+                              centerOfMass [ 0.000000 0.000000 0.000000 ]
+                              inertiaMatrix [
+                                1.000000e-09 1.000000e-09 1.000000e-09
+                                0.000000e+00 0.000000e+00 0.000000e+00
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                      name "passive_3_link_x"
+                      physics Physics {
+                        mass 0.0001
+                        centerOfMass [ 0.000000 0.000000 0.000000 ]
+                        inertiaMatrix [
+                          1.000000e-09 1.000000e-09 1.000000e-09
+                          0.000000e+00 0.000000e+00 0.000000e+00
+                        ]
+                      }
+                    }
+                  }
+                ]
+                name "dc15_a01_horn_dummy_3"
+                physics Physics {
+                  mass 0.003667
+                  centerOfMass [ 0.023751 0.000000 0.003358 ]
+                  inertiaMatrix [
+                    8.570630e-08 1.280190e-06 1.265460e-06
+                    1.794360e-13 -1.931250e-07 1.038180e-14
+                  ]
+                }
+              }
+            }
+            DEF stewart_4 HingeJoint {
+              jointParameters HingeJointParameters {
+                axis -0.000000 1.000000 -0.000004
+                anchor 0.010000 -0.043661 0.041833
+              
+          dampingConstant 0.3
+        }
+              device [
+                RotationalMotor {
+                  name "stewart_4"
+                  maxVelocity 8.0
+                  minPosition -1.39626
+                  maxPosition 0.837758
+                  maxTorque 10.0
+                }
+                PositionSensor {
+                  name "stewart_4_sensor"
+                }
+              ]
+              endPoint Solid {
+                translation 0.010000 -0.043661 0.041833
+                rotation -1.000000 -0.000000 -0.000000 1.570800
+                children [
+                  Pose {
+                    translation 0.040000 0.042500 0.007000
+                    rotation -0.000000 0.000000 1.000000 1.570800
+                    children [
+                      Shape {
+                        appearance DEF stewart_link_ball_4_material PBRAppearance {
+                          baseColor 0.439216 0.474510 0.501961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE stewart_link_ball
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.010000 -0.153167 0.043661
+                    rotation 0.774596 -0.447213 0.447215 1.823481
+                    children [
+                      Shape {
+                        appearance DEF mp01062_stewart_arm_3_4_material PBRAppearance {
+                          baseColor 0.301961 0.301961 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE mp01062_stewart_arm_3
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.000000 -0.000000 -0.006500
+                    rotation 0.577350 -0.577352 -0.577350 2.094399
+                    children [
+                      Shape {
+                        appearance DEF dc15_a01_horn_dummy_5_material PBRAppearance {
+                          baseColor 0.262745 0.282353 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE dc15_a01_horn_dummy
+                      }
+                    ]
+                  }
+                  DEF passive_4_x HingeJoint {
+                    jointParameters HingeJointParameters {
+                      axis 0.505883 0.858091 -0.088101
+                      anchor 0.040000 0.000000 0.007000
+                    
+          dampingConstant 0.2
+        }
+                    device [
+                      RotationalMotor {
+                        name "passive_4_x"
+                        maxVelocity 100000000.0
+                        minPosition -3.141592653589793
+                        maxPosition 3.141592653589793
+                        maxTorque 10.0
+                      }
+                      PositionSensor {
+                        name "passive_4_x_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.040000 0.000000 0.007000
+                      rotation -0.118223 0.033815 0.992411 1.048491
+                      children [
+                        DEF passive_4_y HingeJoint {
+                          jointParameters HingeJointParameters {
+                            axis 0.000000 1.000000 0.000000
+                            anchor 0.000000 0.000000 0.000000
+                          
+          dampingConstant 0.2
+        }
+                          device [
+                            RotationalMotor {
+                              name "passive_4_y"
+                              maxVelocity 100000000.0
+                              minPosition -3.141592653589793
+                              maxPosition 3.141592653589793
+                              maxTorque 10.0
+                            }
+                            PositionSensor {
+                              name "passive_4_y_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation 0.000000 0.000000 0.000000
+                            children [
+                              DEF passive_4_z HingeJoint {
+                                jointParameters HingeJointParameters {
+                                  axis 0.000000 0.000000 1.000000
+                                  anchor 0.000000 0.000000 0.000000
+                                
+          dampingConstant 0.2
+        }
+                                device [
+                                  RotationalMotor {
+                                    name "passive_4_z"
+                                    maxVelocity 100000000.0
+                                    minPosition -3.141592653589793
+                                    maxPosition 3.141592653589793
+                                    maxTorque 10.0
+                                  }
+                                  PositionSensor {
+                                    name "passive_4_z_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation 0.000000 0.000000 0.000000
+                                  children [
+                                    Pose {
+                                      translation -0.042500 0.000000 0.000000
+                                      children [
+                                        Shape {
+                                          appearance DEF stewart_link_rod_4_material PBRAppearance {
+                                            baseColor 0.811765 0.858824 0.898039
+                                            roughness 1.000000
+                                            metalness 0
+                                          }
+                                          geometry USE stewart_link_rod
+                                        }
+                                      ]
+                                    }
+                                    Solid {
+                                      translation -0.085000 0.000000 0.000000
+                                      name "closing_4_1"
+                                      physics Physics {
+                                        mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                  name "stewart_link_rod_4"
+                                  physics Physics {
+                                    mass 0.005034
+                                    centerOfMass [ -0.042500 0.000000 -0.000000 ]
+                                    inertiaMatrix [
+                                      2.639760e-08 3.652110e-06 3.664730e-06
+                                      -3.695170e-13 7.125340e-14 5.210410e-14
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                            name "passive_4_link_y"
+                            physics Physics {
+                              mass 0.0001
+                              centerOfMass [ 0.000000 0.000000 0.000000 ]
+                              inertiaMatrix [
+                                1.000000e-09 1.000000e-09 1.000000e-09
+                                0.000000e+00 0.000000e+00 0.000000e+00
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                      name "passive_4_link_x"
+                      physics Physics {
+                        mass 0.0001
+                        centerOfMass [ 0.000000 0.000000 0.000000 ]
+                        inertiaMatrix [
+                          1.000000e-09 1.000000e-09 1.000000e-09
+                          0.000000e+00 0.000000e+00 0.000000e+00
+                        ]
+                      }
+                    }
+                  }
+                ]
+                name "dc15_a01_horn_dummy_4"
+                physics Physics {
+                  mass 0.003667
+                  centerOfMass [ 0.023751 0.000000 0.003358 ]
+                  inertiaMatrix [
+                    8.570630e-08 1.280190e-06 1.265460e-06
+                    1.794360e-13 -1.931250e-07 1.038180e-14
+                  ]
+                }
+              }
+            }
+            DEF stewart_5 HingeJoint {
+              jointParameters HingeJointParameters {
+                axis -0.866027 -0.499998 -0.000004
+                anchor 0.042811 0.013170 0.041833
+              
+          dampingConstant 0.3
+        }
+              device [
+                RotationalMotor {
+                  name "stewart_5"
+                  maxVelocity 8.0
+                  minPosition -1.22173
+                  maxPosition 1.39626
+                  maxTorque 10.0
+                }
+                PositionSensor {
+                  name "stewart_5_sensor"
+                }
+              ]
+              endPoint Solid {
+                translation 0.042811 0.013170 0.041833
+                rotation 0.774596 -0.447215 -0.447213 1.823481
+                children [
+                  Pose {
+                    translation -0.010000 -0.153167 0.043661
+                    rotation 0.774596 -0.447213 0.447215 1.823481
+                    children [
+                      Shape {
+                        appearance DEF mp01062_stewart_arm_3_5_material PBRAppearance {
+                          baseColor 0.301961 0.301961 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE mp01062_stewart_arm_3
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.002500 0.000000 0.007000
+                    rotation 0.000000 -0.000000 -1.000000 3.141590
+                    children [
+                      Shape {
+                        appearance DEF stewart_link_ball_5_material PBRAppearance {
+                          baseColor 0.439216 0.474510 0.501961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE stewart_link_ball
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation 0.000000 0.000000 -0.006500
+                    rotation 0.577350 -0.577352 -0.577350 2.094399
+                    children [
+                      Shape {
+                        appearance DEF dc15_a01_horn_dummy_6_material PBRAppearance {
+                          baseColor 0.262745 0.282353 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE dc15_a01_horn_dummy
+                      }
+                    ]
+                  }
+                  DEF passive_5_x HingeJoint {
+                    jointParameters HingeJointParameters {
+                      axis 0.505883 -0.858091 -0.088101
+                      anchor 0.040000 0.000000 0.007000
+                    
+          dampingConstant 0.2
+        }
+                    device [
+                      RotationalMotor {
+                        name "passive_5_x"
+                        maxVelocity 100000000.0
+                        minPosition -3.141592653589793
+                        maxPosition 3.141592653589793
+                        maxTorque 10.0
+                      }
+                      PositionSensor {
+                        name "passive_5_x_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.040000 0.000000 0.007000
+                      rotation 0.150306 0.014942 -0.988527 1.053581
+                      children [
+                        DEF passive_5_y HingeJoint {
+                          jointParameters HingeJointParameters {
+                            axis 0.000000 1.000000 0.000000
+                            anchor 0.000000 0.000000 -0.000000
+                          
+          dampingConstant 0.2
+        }
+                          device [
+                            RotationalMotor {
+                              name "passive_5_y"
+                              maxVelocity 100000000.0
+                              minPosition -3.141592653589793
+                              maxPosition 3.141592653589793
+                              maxTorque 10.0
+                            }
+                            PositionSensor {
+                              name "passive_5_y_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation 0.000000 0.000000 -0.000000
+                            children [
+                              DEF passive_5_z HingeJoint {
+                                jointParameters HingeJointParameters {
+                                  axis 0.000000 0.000000 1.000000
+                                  anchor 0.000000 0.000000 -0.000000
+                                
+          dampingConstant 0.2
+        }
+                                device [
+                                  RotationalMotor {
+                                    name "passive_5_z"
+                                    maxVelocity 100000000.0
+                                    minPosition -3.141592653589793
+                                    maxPosition 3.141592653589793
+                                    maxTorque 10.0
+                                  }
+                                  PositionSensor {
+                                    name "passive_5_z_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation 0.000000 0.000000 -0.000000
+                                  children [
+                                    Pose {
+                                      translation -0.042500 0.000000 0.000000
+                                      children [
+                                        Shape {
+                                          appearance DEF stewart_link_rod_5_material PBRAppearance {
+                                            baseColor 0.811765 0.858824 0.898039
+                                            roughness 1.000000
+                                            metalness 0
+                                          }
+                                          geometry USE stewart_link_rod
+                                        }
+                                      ]
+                                    }
+                                    Solid {
+                                      translation -0.085000 -0.000000 0.000000
+                                      name "closing_5_1"
+                                      physics Physics {
+                                        mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                  name "stewart_link_rod_5"
+                                  physics Physics {
+                                    mass 0.005034
+                                    centerOfMass [ -0.042500 0.000000 -0.000000 ]
+                                    inertiaMatrix [
+                                      2.639760e-08 3.652110e-06 3.664730e-06
+                                      -3.695170e-13 7.125340e-14 5.210410e-14
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                            name "passive_5_link_y"
+                            physics Physics {
+                              mass 0.0001
+                              centerOfMass [ 0.000000 0.000000 0.000000 ]
+                              inertiaMatrix [
+                                1.000000e-09 1.000000e-09 1.000000e-09
+                                0.000000e+00 0.000000e+00 0.000000e+00
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                      name "passive_5_link_x"
+                      physics Physics {
+                        mass 0.0001
+                        centerOfMass [ 0.000000 0.000000 0.000000 ]
+                        inertiaMatrix [
+                          1.000000e-09 1.000000e-09 1.000000e-09
+                          0.000000e+00 0.000000e+00 0.000000e+00
+                        ]
+                      }
+                    }
+                  }
+                ]
+                name "dc15_a01_horn_dummy_5"
+                physics Physics {
+                  mass 0.003667
+                  centerOfMass [ 0.023751 0.000000 0.003358 ]
+                  inertiaMatrix [
+                    8.570630e-08 1.280190e-06 1.265460e-06
+                    1.794360e-13 -1.931250e-07 1.038180e-14
+                  ]
+                }
+              }
+            }
+            DEF stewart_6 HingeJoint {
+              jointParameters HingeJointParameters {
+                axis -0.866023 -0.500004 -0.000004
+                anchor 0.032811 0.030491 0.041833
+              
+          dampingConstant 0.3
+        }
+              device [
+                RotationalMotor {
+                  name "stewart_6"
+                  maxVelocity 8.0
+                  minPosition -1.39626
+                  maxPosition 0.837758
+                  maxTorque 10.0
+                }
+                PositionSensor {
+                  name "stewart_6_sensor"
+                }
+              ]
+              endPoint Solid {
+                translation 0.032811 0.030491 0.041833
+                rotation -0.377963 -0.654655 0.654653 2.418863
+                children [
+                  Pose {
+                    translation 0.000000 0.000000 -0.006500
+                    rotation 0.577350 -0.577352 -0.577350 2.094399
+                    children [
+                      Shape {
+                        appearance DEF dc15_a01_horn_dummy_7_material PBRAppearance {
+                          baseColor 0.262745 0.282353 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE dc15_a01_horn_dummy
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation 0.082500 0.000000 0.007000
+                    children [
+                      Shape {
+                        appearance DEF stewart_link_ball_6_material PBRAppearance {
+                          baseColor 0.439216 0.474510 0.501961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE stewart_link_ball
+                      }
+                    ]
+                  }
+                  Pose {
+                    translation -0.010000 -0.153167 0.043661
+                    rotation 0.774596 -0.447213 0.447215 1.823481
+                    children [
+                      Shape {
+                        appearance DEF mp01062_stewart_arm_3_6_material PBRAppearance {
+                          baseColor 0.301961 0.301961 0.301961
+                          roughness 1.000000
+                          metalness 0
+                        }
+                        geometry USE mp01062_stewart_arm_3
+                      }
+                    ]
+                  }
+                  DEF passive_6_x HingeJoint {
+                    jointParameters HingeJointParameters {
+                      axis 0.505883 0.858091 -0.088101
+                      anchor 0.040000 0.000000 0.007000
+                    
+          dampingConstant 0.2
+        }
+                    device [
+                      RotationalMotor {
+                        name "passive_6_x"
+                        maxVelocity 100000000.0
+                        minPosition -3.141592653589793
+                        maxPosition 3.141592653589793
+                        maxTorque 10.0
+                      }
+                      PositionSensor {
+                        name "passive_6_x_sensor"
+                      }
+                    ]
+                    endPoint Solid {
+                      translation 0.040000 0.000000 0.007000
+                      rotation 0.867263 0.497510 -0.018395 3.028191
+                      children [
+                        DEF passive_6_y HingeJoint {
+                          jointParameters HingeJointParameters {
+                            axis 0.000000 1.000000 0.000000
+                            anchor 0.000000 0.000000 0.000000
+                          
+          dampingConstant 0.2
+        }
+                          device [
+                            RotationalMotor {
+                              name "passive_6_y"
+                              maxVelocity 100000000.0
+                              minPosition -3.141592653589793
+                              maxPosition 3.141592653589793
+                              maxTorque 10.0
+                            }
+                            PositionSensor {
+                              name "passive_6_y_sensor"
+                            }
+                          ]
+                          endPoint Solid {
+                            translation 0.000000 0.000000 0.000000
+                            children [
+                              DEF passive_6_z HingeJoint {
+                                jointParameters HingeJointParameters {
+                                  axis 0.000000 0.000000 1.000000
+                                  anchor 0.000000 0.000000 0.000000
+                                
+          dampingConstant 0.2
+        }
+                                device [
+                                  RotationalMotor {
+                                    name "passive_6_z"
+                                    maxVelocity 100000000.0
+                                    minPosition -3.141592653589793
+                                    maxPosition 3.141592653589793
+                                    maxTorque 10.0
+                                  }
+                                  PositionSensor {
+                                    name "passive_6_z_sensor"
+                                  }
+                                ]
+                                endPoint Solid {
+                                  translation 0.000000 0.000000 0.000000
+                                  children [
+                                    Pose {
+                                      translation -0.042500 0.000000 0.000000
+                                      children [
+                                        Shape {
+                                          appearance DEF stewart_link_rod_6_material PBRAppearance {
+                                            baseColor 0.811765 0.858824 0.898039
+                                            roughness 1.000000
+                                            metalness 0
+                                          }
+                                          geometry USE stewart_link_rod
+                                        }
+                                      ]
+                                    }
+                                    DEF passive_7_x HingeJoint {
+                                      jointParameters HingeJointParameters {
+                                        axis 1.000000 0.000000 -0.000000
+                                        anchor -0.085000 0.000000 0.000000
+                                      
+          dampingConstant 0.2
+        }
+                                      device [
+                                        RotationalMotor {
+                                          name "passive_7_x"
+                                          maxVelocity 100000000.0
+                                          minPosition -3.141592653589793
+                                          maxPosition 3.141592653589793
+                                          maxTorque 10.0
+                                        }
+                                        PositionSensor {
+                                          name "passive_7_x_sensor"
+                                        }
+                                      ]
+                                      endPoint Solid {
+                                        translation -0.085000 0.000000 0.000000
+                                        rotation 1.000000 0.000000 -0.000000 3.141590
+                                        children [
+                                          DEF passive_7_y HingeJoint {
+                                            jointParameters HingeJointParameters {
+                                              axis 0.000000 1.000000 0.000000
+                                            
+          dampingConstant 0.2
+        }
+                                            device [
+                                              RotationalMotor {
+                                                name "passive_7_y"
+                                                maxVelocity 100000000.0
+                                                minPosition -3.141592653589793
+                                                maxPosition 3.141592653589793
+                                                maxTorque 10.0
+                                              }
+                                              PositionSensor {
+                                                name "passive_7_y_sensor"
+                                              }
+                                            ]
+                                            endPoint Solid {
+                                              children [
+                                                DEF passive_7_z HingeJoint {
+                                                  jointParameters HingeJointParameters {
+                                                    axis 0.000000 0.000000 1.000000
+                                                  
+          dampingConstant 0.2
+        }
+                                                  device [
+                                                    RotationalMotor {
+                                                      name "passive_7_z"
+                                                      maxVelocity 100000000.0
+                                                      minPosition -3.141592653589793
+                                                      maxPosition 3.141592653589793
+                                                      maxTorque 10.0
+                                                    }
+                                                    PositionSensor {
+                                                      name "passive_7_z_sensor"
+                                                    }
+                                                  ]
+                                                  endPoint Solid {
+                                                    children [
+                                                      Pose {
+                                                        translation -0.038719 -0.032945 -0.024043
+                                                        rotation 0.482963 0.473138 0.736809 2.773583
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF m12_fisheye_lens_1_8mm_material PBRAppearance {
+                                                              baseColor 0.498039 0.498039 0.498039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF m12_fisheye_lens_1_8mm Mesh {
+                                                              url "assets/m12_fisheye_lens_1_8mm.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation 0.017529 0.042077 0.055117
+                                                        rotation -0.202717 0.861469 -0.465594 2.786801
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF stewart_link_ball_7_material PBRAppearance {
+                                                              baseColor 0.439216 0.474510 0.501961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF stewart_link_ball__2 Mesh {
+                                                              url "assets/stewart_link_ball__2.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.026297 -0.051155 -0.037380
+                                                        rotation 0.482963 0.473138 0.736809 2.773583
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF big_lens_d40_material PBRAppearance {
+                                                              baseColor 0.481646 0.492303 0.500592
+                                                              transparency 0.698039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF big_lens_d40 Mesh {
+                                                              url "assets/big_lens_d40.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053572 -0.019018 0.025615
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF neck_reference_3dprint_material PBRAppearance {
+                                                              baseColor 0.901961 0.901961 0.901961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF neck_reference_3dprint Mesh {
+                                                              url "assets/neck_reference_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053572 -0.019018 0.025615
+                                                        rotation 0.516102 -0.856413 -0.014027 1.689529
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF head_back_3dprint_material PBRAppearance {
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF head_back_3dprint Mesh {
+                                                              url "assets/head_back_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.045905 -0.044863 -0.003625
+                                                        rotation -0.641600 -0.382839 0.664668 3.127935
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF arducam_material PBRAppearance {
+                                                              baseColor 0.498039 0.498039 0.498039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF arducam Mesh {
+                                                              url "assets/arducam.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.031151 -0.051884 0.001543
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF pp01102_arducam_carter_material PBRAppearance {
+                                                              baseColor 0.301961 0.301961 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF pp01102_arducam_carter Mesh {
+                                                              url "assets/pp01102_arducam_carter.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053668 -0.018877 0.025718
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF antenna_holder_l_3dprint_material PBRAppearance {
+                                                              baseColor 0.498039 0.498039 0.498039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF antenna_holder_l_3dprint Mesh {
+                                                              url "assets/antenna_holder_l_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.006304 -0.006395 0.073961
+                                                        rotation -0.795028 0.420878 0.436798 2.537587
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF stewart_link_ball_8_material PBRAppearance {
+                                                              baseColor 0.439216 0.474510 0.501961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE stewart_link_ball__2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053656 -0.018894 0.025705
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF lens_cap_d30_3dprint_material PBRAppearance {
+                                                              baseColor 0.098039 0.098039 0.098039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF lens_cap_d30_3dprint Mesh {
+                                                              url "assets/lens_cap_d30_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053639 -0.018919 0.025687
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF lens_cap_d40_3dprint_material PBRAppearance {
+                                                              baseColor 0.098039 0.098039 0.098039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF lens_cap_d40_3dprint Mesh {
+                                                              url "assets/lens_cap_d40_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053668 -0.018877 0.025718
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF antenna_holder_r_3dprint_material PBRAppearance {
+                                                              baseColor 0.498039 0.498039 0.498039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF antenna_holder_r_3dprint Mesh {
+                                                              url "assets/antenna_holder_r_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation 0.015056 0.049082 0.043250
+                                                        rotation -0.202717 0.861469 -0.465594 2.786801
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF stewart_link_ball_9_material PBRAppearance {
+                                                              baseColor 0.439216 0.474510 0.501961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE stewart_link_ball__2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.024405 -0.069617 0.028012
+                                                        rotation 0.482963 0.473138 0.736809 2.773583
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF small_lens_d30_material PBRAppearance {
+                                                              baseColor 0.481646 0.492303 0.500592
+                                                              transparency 0.698039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF small_lens_d30 Mesh {
+                                                              url "assets/small_lens_d30.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.010913 -0.001328 0.086170
+                                                        rotation -0.795028 0.420878 0.436798 2.537587
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF stewart_link_ball_10_material PBRAppearance {
+                                                              baseColor 0.439216 0.474510 0.501961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE stewart_link_ball__2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.021500 0.036646 0.001041
+                                                        rotation 0.113276 -0.036712 -0.992885 1.047826
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF stewart_link_ball_11_material PBRAppearance {
+                                                              baseColor 0.439216 0.474510 0.501961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE stewart_link_ball__2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053572 -0.019018 0.025615
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF glasses_dolder_3dprint_material PBRAppearance {
+                                                              baseColor 0.196078 0.196078 0.196078
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF glasses_dolder_3dprint Mesh {
+                                                              url "assets/glasses_dolder_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053572 -0.019018 0.025615
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF head_front_3dprint_material PBRAppearance {
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF head_front_3dprint Mesh {
+                                                              url "assets/head_front_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.053572 -0.019018 0.025615
+                                                        rotation 0.512387 -0.858706 -0.009138 1.687535
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF head_mic_3dprint_material PBRAppearance {
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry DEF head_mic_3dprint Mesh {
+                                                              url "assets/head_mic_3dprint.stl"
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.027207 -0.065511 0.031020
+                                                        rotation 0.482963 0.473138 0.736809 2.773583
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF m12_fisheye_lens_1_8mm_2_material PBRAppearance {
+                                                              baseColor 0.498039 0.498039 0.498039
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE m12_fisheye_lens_1_8mm
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.028582 0.048717 0.001384
+                                                        rotation 0.113276 -0.036712 -0.992885 1.047826
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF stewart_link_ball_12_material PBRAppearance {
+                                                              baseColor 0.439216 0.474510 0.501961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE stewart_link_ball__2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_2_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10_2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_case_b_dummy_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_case_b_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_case_m_dummy_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_case_m_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_led_cap2_dummy_8_material PBRAppearance {
+                                                              baseColor 0.874510 0.447059 0.317647
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_led_cap2_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF bts2_m2_6x8_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE bts2_m2_6x8
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_case_f_dummy_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_case_f_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF b3b_eh_1_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE b3b_eh_1
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF b3b_eh_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE b3b_eh
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_3_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10_3
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_1_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10_1
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.073702 -0.034447 0.078464
+                                                        rotation 0.155762 0.729215 0.666321 2.069794
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_8_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_2_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10_2
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_case_b_dummy_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_case_b_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_case_m_dummy_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_case_m_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_led_cap2_dummy_9_material PBRAppearance {
+                                                              baseColor 0.874510 0.447059 0.317647
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_led_cap2_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF bts2_m2_6x8_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE bts2_m2_6x8
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF dc15_a01_case_f_dummy_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE dc15_a01_case_f_dummy
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF b3b_eh_1_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE b3b_eh_1
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF b3b_eh_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE b3b_eh
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_3_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10_3
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_1_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10_1
+                                                          }
+                                                        ]
+                                                      }
+                                                      Pose {
+                                                        translation -0.090999 0.014544 -0.004537
+                                                        rotation -0.285235 0.890448 0.354604 1.511103
+                                                        children [
+                                                          Shape {
+                                                            appearance DEF phs_1_7x20_5_dc10_9_material PBRAppearance {
+                                                              baseColor 0.262745 0.282353 0.301961
+                                                              roughness 1.000000
+                                                              metalness 0
+                                                            }
+                                                            geometry USE phs_1_7x20_5_dc10
+                                                          }
+                                                        ]
+                                                      }
+                                                      Solid {
+                                                        translation 0.007689 -0.021777 0.036895
+                                                        rotation -0.795028 0.420878 0.436798 2.537587
+                                                        name "closing_1_2"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation 0.003079 -0.016710 0.049105
+                                                        rotation -0.795028 0.420878 0.436798 2.537587
+                                                        name "closing_2_2"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation -0.018940 0.020821 0.050171
+                                                        rotation -0.755843 0.467881 -0.458027 3.542836
+                                                        name "closing_3_2"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation -0.021413 0.027826 0.038304
+                                                        rotation -0.755843 0.467881 -0.458027 3.542836
+                                                        name "closing_4_2"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation -0.007082 0.012072 0.000343
+                                                        rotation -0.963843 -0.261131 -0.053077 3.087416
+                                                        name "closing_5_2"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation -0.032116 -0.050470 0.002579
+                                                        rotation 0.513084 0.828863 -0.223004 2.210658
+                                                        name "camera_optical"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation -0.032116 -0.050470 0.002579
+                                                        rotation 0.818284 -0.206688 -0.536369 2.173979
+                                                        name "camera"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      Solid {
+                                                        translation -0.006111 0.003705 0.029136
+                                                        rotation 0.818284 -0.206688 -0.536369 2.173979
+                                                        name "head"
+                                                        physics Physics {
+                                                          mass 0.0001
+                                        centerOfMass [ 0 0 0 ]
+                                        inertiaMatrix [
+                                          1.000000e-08 1.000000e-08 1.000000e-08
+                                          0 0 0
+                                        ]
+                                                        }
+                                                      }
+                                                      DEF right_antenna HingeJoint {
+                                                        jointParameters HingeJointParameters {
+                                                          axis 0.592806 -0.805253 -0.012192
+                                                          anchor -0.094852 0.019778 -0.004458
+                                                        
+          dampingConstant 0.05
+        }
+                                                        device [
+                                                          RotationalMotor {
+                                                            name "right_antenna"
+                                                            maxVelocity 8.0
+                                                            minPosition -3.141592653589793
+                                                            maxPosition 3.141592653589793
+                                                            maxTorque 10.0
+                                                          }
+                                                          PositionSensor {
+                                                            name "right_antenna_sensor"
+                                                          }
+                                                        ]
+                                                        endPoint Solid {
+                                                          translation -0.094852 0.019778 -0.004458
+                                                          rotation 0.496990 0.797071 -0.343043 1.718524
+                                                          children [
+                                                            Pose {
+                                                              translation 0.000000 -0.058800 -0.010300
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF antenna_material PBRAppearance {
+                                                                    baseColor 0.000000 0.000000 0.000000
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry DEF antenna Mesh {
+                                                                    url "assets/antenna.stl"
+                                                                  }
+                                                                }
+                                                              ]
+                                                            }
+                                                            Pose {
+                                                              translation 0.000000 0.000000 0.006500
+                                                              rotation -1.000000 -0.000000 0.000000 1.570800
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF dc15_a01_horn_dummy_8_material PBRAppearance {
+                                                                    baseColor 0.262745 0.282353 0.301961
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry USE dc15_a01_horn_dummy
+                                                                }
+                                                              ]
+                                                            }
+                                                            Pose {
+                                                              translation 0.000000 0.000000 0.000000
+                                                              rotation -0.000001 0.707108 -0.707105 3.141591
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF antenna_interface_3dprint_material PBRAppearance {
+                                                                    baseColor 0.713725 0.760784 0.800000
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry DEF antenna_interface_3dprint Mesh {
+                                                                    url "assets/antenna_interface_3dprint.stl"
+                                                                  }
+                                                                }
+                                                              ]
+                                                            }
+                                                            Pose {
+                                                              translation 0.000000 0.000000 -0.002800
+                                                              rotation -0.000001 0.707108 -0.707105 3.141591
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF antenna_body_3dprint_material PBRAppearance {
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry DEF antenna_body_3dprint Mesh {
+                                                                    url "assets/antenna_body_3dprint.stl"
+                                                                  }
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                          name "dc15_a01_horn_dummy_7"
+                                                          physics Physics {
+                                                            mass 0.010593
+                                                            centerOfMass [ 0.000021 -0.037846 -0.008665 ]
+                                                            inertiaMatrix [
+                                                              2.693140e-05 2.982030e-07 2.688760e-05
+                                                              2.222190e-09 3.625990e-10 -6.631070e-07
+                                                            ]
+                                                          }
+                                                        }
+                                                      }
+                                                      DEF left_antenna HingeJoint {
+                                                        jointParameters HingeJointParameters {
+                                                          axis 0.417130 -0.307680 -0.855182
+                                                          anchor -0.076413 -0.032447 0.084022
+                                                        
+          dampingConstant 0.05
+        }
+                                                        device [
+                                                          RotationalMotor {
+                                                            name "left_antenna"
+                                                            maxVelocity 8.0
+                                                            minPosition -3.141592653589793
+                                                            maxPosition 3.141592653589793
+                                                            maxTorque 10.0
+                                                          }
+                                                          PositionSensor {
+                                                            name "left_antenna_sensor"
+                                                          }
+                                                        ]
+                                                        endPoint Solid {
+                                                          translation -0.076413 -0.032447 0.084022
+                                                          rotation 0.472841 0.880254 -0.039673 2.602366
+                                                          children [
+                                                            Pose {
+                                                              translation 0.000000 -0.000000 0.006500
+                                                              rotation -1.000000 -0.000000 0.000000 1.570800
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF dc15_a01_horn_dummy_9_material PBRAppearance {
+                                                                    baseColor 0.262745 0.282353 0.301961
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry USE dc15_a01_horn_dummy
+                                                                }
+                                                              ]
+                                                            }
+                                                            Pose {
+                                                              translation 0.000000 0.000000 -0.002800
+                                                              rotation -0.000001 0.707108 -0.707105 3.141591
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF antenna_body_3dprint_2_material PBRAppearance {
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry USE antenna_body_3dprint
+                                                                }
+                                                              ]
+                                                            }
+                                                            Pose {
+                                                              translation 0.000000 0.000000 0.000000
+                                                              rotation -0.000001 0.707108 -0.707105 3.141591
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF antenna_interface_3dprint_2_material PBRAppearance {
+                                                                    baseColor 0.713725 0.760784 0.800000
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry USE antenna_interface_3dprint
+                                                                }
+                                                              ]
+                                                            }
+                                                            Pose {
+                                                              translation 0.000000 -0.058800 -0.010300
+                                                              children [
+                                                                Shape {
+                                                                  appearance DEF antenna_2_material PBRAppearance {
+                                                                    baseColor 0.000000 0.000000 0.000000
+                                                                    roughness 1.000000
+                                                                    metalness 0
+                                                                  }
+                                                                  geometry USE antenna
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                          name "dc15_a01_horn_dummy_8"
+                                                          physics Physics {
+                                                            mass 0.010593
+                                                            centerOfMass [ 0.000021 -0.037846 -0.008665 ]
+                                                            inertiaMatrix [
+                                                              2.693140e-05 2.982030e-07 2.688760e-05
+                                                              2.222190e-09 3.625990e-10 -6.631070e-07
+                                                            ]
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
+                                                    name "xl_330"
+                                                    boundingObject Pose {
+                                                      translation -0.053572 -0.019018 0.025615
+                                                      rotation 0.413860 0.432449 -0.801067 1.045918
+                                                      children [
+                                                        Cylinder {
+                                                          radius 0.049
+                                                          height 0.14
+                                                        }
+                                                      ]
+                                                    }
+                                                    physics Physics {
+                                                      mass 0.259259
+                                                      centerOfMass [ -0.048705 -0.023765 0.020658 ]
+                                                      inertiaMatrix [
+                                                        6.346510e-04 5.877860e-04 4.602830e-04
+                                                        3.656910e-05 -2.180870e-05 9.294670e-05
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                              name "passive_7_link_y"
+                                              physics Physics {
+                                                mass 0.0001
+                                                centerOfMass [ 0.000000 0.000000 0.000000 ]
+                                                inertiaMatrix [
+                                                  1.000000e-09 1.000000e-09 1.000000e-09
+                                                  0.000000e+00 0.000000e+00 0.000000e+00
+                                                ]
+                                              }
+                                            }
+                                          }
+                                        ]
+                                        name "passive_7_link_x"
+                                        physics Physics {
+                                          mass 0.0001
+                                          centerOfMass [ 0.000000 0.000000 0.000000 ]
+                                          inertiaMatrix [
+                                            1.000000e-09 1.000000e-09 1.000000e-09
+                                            0.000000e+00 0.000000e+00 0.000000e+00
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  ]
+                                  name "stewart_link_rod_6"
+                                  physics Physics {
+                                    mass 0.005034
+                                    centerOfMass [ -0.042500 0.000000 -0.000000 ]
+                                    inertiaMatrix [
+                                      2.639760e-08 3.652110e-06 3.664730e-06
+                                      -3.695170e-13 7.125340e-14 5.210410e-14
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                            name "passive_6_link_y"
+                            physics Physics {
+                              mass 0.0001
+                              centerOfMass [ 0.000000 0.000000 0.000000 ]
+                              inertiaMatrix [
+                                1.000000e-09 1.000000e-09 1.000000e-09
+                                0.000000e+00 0.000000e+00 0.000000e+00
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                      name "passive_6_link_x"
+                      physics Physics {
+                        mass 0.0001
+                        centerOfMass [ 0.000000 0.000000 0.000000 ]
+                        inertiaMatrix [
+                          1.000000e-09 1.000000e-09 1.000000e-09
+                          0.000000e+00 0.000000e+00 0.000000e+00
+                        ]
+                      }
+                    }
+                  }
+                ]
+                name "dc15_a01_horn_dummy_6"
+                physics Physics {
+                  mass 0.003667
+                  centerOfMass [ 0.023751 0.000000 0.003358 ]
+                  inertiaMatrix [
+                    8.570630e-08 1.280190e-06 1.265460e-06
+                    1.794360e-13 -1.931250e-07 1.038180e-14
+                  ]
+                }
+              }
+            }
+          ]
+          name "body_down_3dprint"
+          boundingObject Group {
+            children [
+              Pose {
+                translation 0.000000 -0.055000 0.055000
+                rotation 0.000001 -0.706825 -0.707388 3.141591
+                children [
+                  Cylinder {
+                    radius 0.08
+                    height 0.01
+                  }
+                ]
+              }
+              Pose {
+                translation 0.000000 0.058000 0.070000
+                rotation 0.000001 -0.706825 -0.707388 3.141591
+                children [
+                  Cylinder {
+                    radius 0.08
+                    height 0.01
+                  }
+                ]
+              }
+              Pose {
+                translation -0.058000 0.000000 0.070000
+                rotation 0.000000 -0.000000 -1.000000 3.141590
+                children [
+                  Box {
+                     size 0.010000 0.100000 0.050000
+                  }
+                ]
+              }
+              Pose {
+                translation 0.058000 0.000000 0.070000
+                rotation 0.000000 -0.000000 -1.000000 3.141590
+                children [
+                  Box {
+                     size 0.010000 0.100000 0.050000
+                  }
+                ]
+              }
+            ]
+          }
+          physics Physics {
+            mass 0.782090
+            centerOfMass [ 0.000002 0.000621 0.020169 ]
+            inertiaMatrix [
+              2.337910e-03 2.244580e-03 2.544240e-03
+              1.103760e-07 -1.418920e-07 -4.461220e-05
+            ]
+          }
+        }
+      }
+    ]
+    name IS name
+  }
+}

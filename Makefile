@@ -9,8 +9,25 @@ BINARY_ENTRY=./cmd
 BRIDGE_DIR=bridge
 ROS_DISTRO?=humble
 ROBOT?=g1
-BRIDGE_PKG=isaac_sim_bridge_$(ROBOT)
+ifeq ($(ROBOT),reachy_mini)
+	BRIDGE_PKG=mujoco_sim_bridge_reachy_mini
+	LAUNCH_FILE=mujoco_sim_bridge.launch.py
+else ifeq ($(ROBOT),spot)
+	BRIDGE_PKG=mujoco_sim_bridge_spot
+	LAUNCH_FILE=mujoco_sim_bridge.launch.py
+else
+	BRIDGE_PKG=isaac_sim_bridge_$(ROBOT)
+	LAUNCH_FILE=isaac_sim_bridge.launch.py
+endif
 RMW_IMPLEMENTATION?=rmw_cyclonedds_cpp
+
+# ROS2 Humble's Debian packages use Python 3.10.  When the Reachy bridge is
+# launched from this checkout, make the uv-managed ROS2 environment visible to
+# the system Python that runs rclpy.
+REACHY_ROS2_SITE=$(CURDIR)/.venv_ros2/lib/python3.10/site-packages
+ifneq ($(wildcard $(REACHY_ROS2_SITE)),)
+export PYTHONPATH := $(REACHY_ROS2_SITE):/opt/ros/$(ROS_DISTRO)/local/lib/python3.10/dist-packages:/opt/ros/$(ROS_DISTRO)/lib/python3.10/site-packages:$(PYTHONPATH)
+endif
 
 ZENOH_C_VERSION=1.9.0
 ZENOH_C_DIR=.zenoh-c
@@ -59,7 +76,7 @@ help:
 	@echo "  tidy           - Tidy and verify Go modules"
 	@echo "Bridge (ROS2):"
 	@echo "  bridge-build   - colcon build the ROS2 bridge workspace"
-	@echo "  bridge-run     - Launch the bridge adapter (ROBOT=g1|go2|tron1, default g1)"
+	@echo "  bridge-run     - Launch the bridge adapter (ROBOT=g1|go2|tron1|reachy_mini, default g1)"
 	@echo "  bridge-clean   - Remove bridge build/install/log dirs"
 	@echo "Common:"
 	@echo "  clean          - Remove all build artifacts (tunnel + bridge)"
@@ -109,7 +126,7 @@ bridge-build:
 
 bridge-run:
 	cd $(BRIDGE_DIR) && . /opt/ros/$(ROS_DISTRO)/setup.sh && . install/setup.sh && \
-		RMW_IMPLEMENTATION=$(RMW_IMPLEMENTATION) ros2 launch $(BRIDGE_PKG) isaac_sim_bridge.launch.py
+		RMW_IMPLEMENTATION=$(RMW_IMPLEMENTATION) ros2 launch $(BRIDGE_PKG) $(LAUNCH_FILE)
 
 bridge-clean:
 	rm -rf $(BRIDGE_DIR)/build $(BRIDGE_DIR)/install $(BRIDGE_DIR)/log

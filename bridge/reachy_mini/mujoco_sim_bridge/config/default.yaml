@@ -1,0 +1,4 @@
+robot_id: "reachy_mini_sim_01"
+robot_model: "Hugging Face Reachy Mini (Official MJCF)"
+simulator: "MuJoCo"
+default_task: "object_tracking"

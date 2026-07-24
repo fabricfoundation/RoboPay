@@ -35,3 +35,10 @@ log/
 .colcon_settings.yaml
 
 PROJECT_MEMORY.md
+
+# Generated sim artifacts
+bridge/reachy_mini/mujoco_sim_bridge/simulation/webots_sim2sim_result.json
+bridge/reachy_mini/mujoco_sim_bridge/simulation/scenes/.reachy_mini_tabletop.wbproj
+*.wbproj
+PR_DESCRIPTION*
+tunnel_bin
