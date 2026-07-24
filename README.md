@@ -162,7 +162,7 @@ bridge/reachy_mini/
 │   │   ├── environment.py               # MuJoCo env (official MJCF)
 │   │   ├── metrics.py                   # Angular error tracker
 │   │   ├── sim2sim.py                   # Sim2SimValidator (no fallback, honest reporting)
-│   │   ├── webots_env.py                # DISABLED (raises RuntimeError)
+│   │   ├── webots_env.py                # Disabled — old non-physics mock (kept out of sim2sim on purpose)
 │   │   └── scenes/
 │   │       ├── reachy_mini_simple.wbt   # Webots scene (URDF model, 9 DOF)
 │   │       ├── protos/
