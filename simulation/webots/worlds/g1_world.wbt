@@ -1,0 +1,30 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
+
+WorldInfo {
+  info [
+    "Unitree G1 MuJoCo Sim-to-Sim Validation World"
+    "Used for Sim-to-Sim comparison between MuJoCo and Webots"
+  ]
+  title "G1 Sim-to-Sim Validation"
+  basicTimeStep 2
+  gravity 0 -9.81 0
+}
+Viewpoint {
+  orientation -0.5 -0.5 -0.5 1.2
+  position 3 3 2
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 20 20
+  floorTileSize 1 1
+}
+# Robot would be defined here with PROTO or imported from URDF
+# For Sim-to-Sim validation, the controller runs the same policy
+# as the MuJoCo runner and compares metrics
