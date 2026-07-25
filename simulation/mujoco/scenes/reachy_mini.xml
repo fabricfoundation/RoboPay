@@ -1,0 +1,129 @@
+<mujoco model="reachy_mini_manipulation">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81"/>
+
+  <visual>
+    <global offwidth="960" offheight="540"/>
+  </visual>
+
+  <default>
+    <joint armature="0.01" damping="0.5"/>
+    <geom condim="4" friction="1.0 0.005 0.0001"/>
+    <position kp="200" kv="10"/>
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.4 0.4 0.4" rgb2="0.5 0.5 0.5" width="512" height="512"/>
+    <material name="grid_mat" texture="grid" texrepeat="5 5" reflectance="0.1"/>
+    <material name="robot_mat" rgba="0.9 0.9 0.9 1"/>
+    <material name="red_obj" rgba="0.9 0.2 0.2 1"/>
+    <material name="blue_obj" rgba="0.2 0.2 0.9 1"/>
+    <material name="table_mat" rgba="0.6 0.4 0.2 1"/>
+  </asset>
+
+  <worldbody>
+    <geom name="ground" type="plane" size="5 5 0.1" material="grid_mat"/>
+    <light name="top" pos="0 0 3" dir="0 0 -1"/>
+    <light name="side" pos="2 2 2" dir="-1 -1 -1"/>
+
+    <!-- Reachy Mini base (table-mounted arm) -->
+    <body name="base" pos="0 0 0.5">
+      <inertial mass="2.0" pos="0 0 0" diaginertia="0.05 0.05 0.05"/>
+      <geom name="base_geom" type="cylinder" size="0.06 0.03" material="robot_mat"/>
+
+      <!-- Head (pan/tilt) -->
+      <body name="head_base" pos="0 0 0.06">
+        <inertial mass="0.5" pos="0 0 0.03" diaginertia="0.005 0.005 0.005"/>
+        <joint name="head_pan" type="hinge" axis="0 0 1" range="-1.5 1.5"/>
+        <geom name="head_base_geom" type="cylinder" size="0.04 0.02" material="robot_mat"/>
+
+        <body name="head_tilt" pos="0 0 0.04">
+          <inertial mass="0.3" pos="0 0.02 0" diaginertia="0.002 0.002 0.002"/>
+          <joint name="head_tilt" type="hinge" axis="1 0 0" range="-0.5 0.5"/>
+          <geom name="head_geom" type="sphere" size="0.04" material="robot_mat"/>
+        </body>
+      </body>
+
+      <!-- Right arm (main arm for manipulation) -->
+      <body name="r_shoulder" pos="0.06 0 0.04">
+        <inertial mass="0.3" pos="0 0 -0.06" diaginertia="0.003 0.003 0.003"/>
+        <joint name="r_shoulder_pitch" type="hinge" axis="1 0 0" range="-2 2"/>
+        <geom name="r_upper_arm" type="capsule" size="0.02" fromto="0 0 0 0 0 -0.12" material="robot_mat"/>
+
+        <body name="r_elbow" pos="0 0 -0.12">
+          <inertial mass="0.2" pos="0 0 -0.08" diaginertia="0.002 0.002 0.002"/>
+          <joint name="r_elbow" type="hinge" axis="1 0 0" range="-2.5 0"/>
+          <geom name="r_forearm" type="capsule" size="0.015" fromto="0 0 0 0 0 -0.16" material="robot_mat"/>
+
+          <body name="r_wrist" pos="0 0 -0.16">
+            <inertial mass="0.1" pos="0 0 0" diaginertia="0.001 0.001 0.001"/>
+            <joint name="r_wrist" type="hinge" axis="0 1 0" range="-1 1"/>
+            <geom name="r_wrist_geom" type="sphere" size="0.02" material="robot_mat"/>
+
+            <!-- Gripper -->
+            <body name="r_gripper_base" pos="0 0 -0.02">
+              <inertial mass="0.05" pos="0 0 0" diaginertia="0.0005 0.0005 0.0005"/>
+              <joint name="gripper" type="hinge" axis="0 1 0" range="-0.5 0.5"/>
+              <geom name="r_gripper_l" type="box" size="0.01 0.005 0.03" pos="0 0.01 -0.03" material="robot_mat"/>
+              <geom name="r_gripper_r" type="box" size="0.01 0.005 0.03" pos="0 -0.01 -0.03" material="robot_mat"/>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- Left arm (secondary) -->
+      <body name="l_shoulder" pos="-0.06 0 0.04">
+        <inertial mass="0.3" pos="0 0 -0.06" diaginertia="0.003 0.003 0.003"/>
+        <joint name="l_shoulder_pitch" type="hinge" axis="1 0 0" range="-2 2"/>
+        <geom name="l_upper_arm" type="capsule" size="0.02" fromto="0 0 0 0 0 -0.12" material="robot_mat"/>
+
+        <body name="l_elbow" pos="0 0 -0.12">
+          <inertial mass="0.2" pos="0 0 -0.08" diaginertia="0.002 0.002 0.002"/>
+          <joint name="l_elbow" type="hinge" axis="1 0 0" range="-2.5 0"/>
+          <geom name="l_forearm" type="capsule" size="0.015" fromto="0 0 0 0 0 -0.16" material="robot_mat"/>
+
+          <body name="l_wrist" pos="0 0 -0.16">
+            <inertial mass="0.1" pos="0 0 0" diaginertia="0.001 0.001 0.001"/>
+            <joint name="l_wrist" type="hinge" axis="0 1 0" range="-1 1"/>
+            <geom name="l_hand" type="sphere" size="0.02" material="robot_mat"/>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Table -->
+    <body name="table" pos="0.3 0 0.25">
+      <geom name="table_top" type="box" size="0.2 0.15 0.01" material="table_mat"/>
+      <geom name="table_leg1" type="cylinder" size="0.015 0.25" pos="0.18 0.13 0" material="table_mat"/>
+      <geom name="table_leg2" type="cylinder" size="0.015 0.25" pos="-0.18 0.13 0" material="table_mat"/>
+      <geom name="table_leg3" type="cylinder" size="0.015 0.25" pos="0.18 -0.13 0" material="table_mat"/>
+      <geom name="table_leg4" type="cylinder" size="0.015 0.25" pos="-0.18 -0.13 0" material="table_mat"/>
+    </body>
+
+    <!-- Manipulation objects -->
+    <body name="red_cube" pos="0.3 0 0.28">
+      <freejoint name="red_cube_joint"/>
+      <inertial mass="0.05" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
+      <geom name="red_cube_geom" type="box" size="0.02 0.02 0.02" material="red_obj"/>
+    </body>
+
+    <body name="blue_cube" pos="0.35 0.05 0.28">
+      <freejoint name="blue_cube_joint"/>
+      <inertial mass="0.05" pos="0 0 0" diaginertia="0.0001 0.0001 0.0001"/>
+      <geom name="blue_cube_geom" type="box" size="0.02 0.02 0.02" material="blue_obj"/>
+    </body>
+  </worldbody>
+
+  <!-- Actuators -->
+  <actuator>
+    <position name="head_pan_ctrl" joint="head_pan" kp="100"/>
+    <position name="head_tilt_ctrl" joint="head_tilt" kp="100"/>
+    <position name="r_shoulder_ctrl" joint="r_shoulder_pitch" kp="200"/>
+    <position name="r_elbow_ctrl" joint="r_elbow" kp="150"/>
+    <position name="r_wrist_ctrl" joint="r_wrist" kp="100"/>
+    <position name="gripper_ctrl" joint="gripper" kp="50"/>
+    <position name="l_shoulder_ctrl" joint="l_shoulder_pitch" kp="200"/>
+    <position name="l_elbow_ctrl" joint="l_elbow" kp="150"/>
+  </actuator>
+
+</mujoco>

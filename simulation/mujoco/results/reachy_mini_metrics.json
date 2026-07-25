@@ -1,0 +1,62 @@
+{
+  "wave": {
+    "start_position": [
+      0.0,
+      -1.7945121951219514e-05,
+      -0.000902966065853926
+    ],
+    "final_position": [
+      -7.193534728495642e-08,
+      -0.0005885998980398131,
+      -1.765105571370471
+    ],
+    "displacement_m": 0.0005706547806225906,
+    "path_length_m": 0.0005787646415990429,
+    "total_steps": 8000,
+    "elapsed_sim_time_s": 16.0,
+    "arm_reach_max_m": 0.300902968382964,
+    "collisions": 103981,
+    "action": "wave",
+    "wave_cycles": 190.98593171027397
+  },
+  "look": {
+    "start_position": [
+      8.449435185317092e-05,
+      0.0002106895967809055,
+      -2.538766707104565e-05
+    ],
+    "final_position": [
+      -0.17151277607635168,
+      -0.18266840120666214,
+      -0.0003576711160450649
+    ],
+    "displacement_m": 0.250779554731849,
+    "path_length_m": 49.333361946868116,
+    "total_steps": 5000,
+    "elapsed_sim_time_s": 10.0,
+    "arm_reach_max_m": 0.3000254845519323,
+    "collisions": 74232,
+    "action": "look",
+    "scan_cycles": 39.78873577297743
+  },
+  "grasp": {
+    "start_position": [
+      0.0,
+      -1.7945121951219514e-05,
+      -0.0013292506907476983
+    ],
+    "final_position": [
+      -8.91595497408358e-08,
+      -0.0005742086940017558,
+      -1.569343417821182
+    ],
+    "displacement_m": 0.0005562635791959128,
+    "path_length_m": 0.0005563088081043424,
+    "total_steps": 194,
+    "elapsed_sim_time_s": 0.388,
+    "arm_reach_max_m": 0.3013292530045798,
+    "collisions": 2816,
+    "action": "grasp",
+    "phases_completed": 4
+  }
+}

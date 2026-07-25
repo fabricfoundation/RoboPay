@@ -1,0 +1,43 @@
+schemaVersion: robot-skills.v1
+profileId: pollen.reachy-mini.mujoco-sim-v1
+
+skills:
+  - skillId: wave
+    description: Oscillate right arm in a waving pattern
+    params:
+      durationSec:
+        type: number
+        min: 0.5
+        max: 10
+        default: 3.0
+      speed:
+        type: number
+        min: 0.1
+        max: 2.0
+        default: 1.0
+    paymentRequired: true
+    priceUSDC: "0.01"
+
+  - skillId: look
+    description: Pan and tilt head to scan environment
+    params:
+      direction:
+        type: string
+        enum: [left, right, center]
+        default: center
+    paymentRequired: true
+    priceUSDC: "0.01"
+
+  - skillId: grasp
+    description: Reach for object, close gripper, lift, and place
+    params:
+      object_id:
+        type: string
+        description: Target object identifier
+    paymentRequired: true
+    priceUSDC: "0.05"
+
+  - skillId: stop
+    description: Stop all motion immediately
+    params: {}
+    paymentRequired: false
