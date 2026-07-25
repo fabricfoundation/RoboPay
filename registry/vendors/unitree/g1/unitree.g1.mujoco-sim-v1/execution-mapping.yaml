@@ -1,0 +1,55 @@
+schemaVersion: execution-mapping.v1
+
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+
+mappings:
+  move_forward:
+    output: mujoco_actuator
+    actuators:
+      vx: "$params.speed"
+      vy: 0
+      wz: 0
+    durationSec: "$params.durationSec"
+    metrics:
+      - type: position_change
+        description: Robot displaced from start position
+      - type: collision_status
+        description: No collisions during movement
+
+  navigate_obstacle:
+    output: mujoco_actuator
+    planner: rrt_star + dwa
+    actuators:
+      vx: "$planner.vx"
+      vy: "$planner.vy"
+      wz: "$planner.wz"
+    metrics:
+      - type: path_completion
+        description: Reached goal within 0.3m tolerance
+      - type: collision_status
+        description: No collisions during navigation
+      - type: path_length
+        description: Total path length in meters
+
+  pick_and_place:
+    output: mujoco_actuator
+    sequence:
+      - navigate_to_object
+      - grasp
+      - navigate_to_target
+      - release
+    metrics:
+      - type: grasp_success
+        description: Object attached to gripper
+      - type: placement_accuracy
+        description: Object within 0.05m of target
+
+  stop:
+    output: mujoco_actuator
+    actuators:
+      vx: 0
+      vy: 0
+      wz: 0
+    metrics: []

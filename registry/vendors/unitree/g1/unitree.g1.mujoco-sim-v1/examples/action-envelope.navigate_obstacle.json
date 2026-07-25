@@ -1,0 +1,16 @@
+{
+  "actionId": "act_g1_navigate_001",
+  "robotId": "g1-demo-001",
+  "skillId": "navigate_obstacle",
+  "params": {
+    "goal_x": 5.0,
+    "goal_y": 3.0
+  },
+  "idempotencyKey": "example-navigate-001",
+  "payment": {
+    "provider": "aeon-bnb-x402",
+    "amount": "50000",
+    "asset": "USDT_OR_USDC_CONTRACT",
+    "network": "eip155:56"
+  }
+}

@@ -1,45 +1,37 @@
-"""Zenoh bridge adapter for MuJoCo simulation.
+"""Zenoh bridge adapter for MuJoCo simulation — RoboPay integration.
 
 Subscribes to Fabric tunnel ActionEvents via Zenoh and routes them to the
-MuJoCo simulator's policy. This is the missing integration layer that the
-reviewer requires: payment-verified ActionEvent → Zenoh → this adapter →
-MuJoCo actuator control.
+MuJoCo simulator. Publishes execution results back to Zenoh.
+
+End-to-end flow:
+    Fabric → Tunnel (x402 verify) → Zenoh (robot/tunnel/action) →
+    this bridge → MuJoCo actuators → state metrics →
+    Zenoh (robot/tunnel/result) → Fabric
 
 Usage:
-    # Start the tunnel first (verifies x402 payment)
-    # Then start this adapter:
     python -m simulation.common.zenoh_mujoco_bridge \
-        --robot unitree_g1 \
         --scene simulation/mujoco/scenes/unitree_g1.xml \
-        --zenoh-endpoint tcp/127.0.0.1:7447
-
-Control flow:
-    tunnel (x402 verify) → zenoh topic "robot/action" →
-    this adapter → ActionEvent → policy goal → MuJoCo actuators
+        --robot-id g1-demo-001
 """
 
 import argparse
+import json
 import logging
 import sys
 import time
-from typing import Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-# Reuse the existing bridge components
+# Import ActionEvent from bridge
 try:
     from bridge.common.zenoh_bridge.zenoh_bridge.action_event import (
         ActionEvent,
         parse_action_event,
     )
-    from bridge.common.zenoh_bridge.zenoh_bridge.zenoh_subscriber import (
-        ZenohSubscriberHelper,
-    )
 except ImportError:
-    # Fallback for standalone simulation use (without bridge installed)
-    import json
+    # Standalone fallback
     from dataclasses import dataclass, field
-    from typing import Any, Dict
 
     @dataclass
     class ActionEvent:
@@ -56,63 +48,43 @@ except ImportError:
         if not isinstance(payload, dict):
             return None
         return ActionEvent(
-            action=payload.get("action", "stop"),
+            action=payload.get("action", payload.get("skillId", "stop")),
             params=payload.get("params") or {},
             timestamp=event.get("timestamp", ""),
         )
 
-    class ZenohSubscriberHelper:
-        def __init__(self, listen_endpoint: str = "tcp/127.0.0.1:7447"):
-            import zenoh
-            conf = zenoh.Config.from_json5(
-                f'{{"listen":{{"endpoints":["{listen_endpoint}"]}}}}'
-            )
-            self._session = zenoh.open(conf)
-            self._subs = []
-        def subscribe(self, topic: str, callback) -> None:
-            sub = self._session.declare_subscriber(topic, callback)
-            self._subs.append(sub)
-        def close(self) -> None:
-            for s in self._subs:
-                s.undeclare()
-            self._session.close()
 
-
-# Action → goal mapping (same actions the bridge supports)
-ACTION_GOAL_MAP = {
-    "move_forward": {"vx": 0.5, "vy": 0.0, "wz": 0.0},
-    "move_backward": {"vx": -0.3, "vy": 0.0, "wz": 0.0},
-    "turn_left": {"vx": 0.0, "vy": 0.0, "wz": 0.5},
-    "turn_right": {"vx": 0.0, "vy": 0.0, "wz": -0.5},
-    "stop": {"vx": 0.0, "vy": 0.0, "wz": 0.0},
-    "navigate": None,  # params.goal_x, params.goal_y
+ACTION_SKILL_MAP = {
+    "move_forward": {"vx": 0.5, "vy": 0.0, "wz": 0.0, "skill": "move_forward"},
+    "move_backward": {"vx": -0.3, "vy": 0.0, "wz": 0.0, "skill": "move_backward"},
+    "turn_left": {"vx": 0.0, "vy": 0.0, "wz": 0.5, "skill": "turn_left"},
+    "turn_right": {"vx": 0.0, "vy": 0.0, "wz": -0.5, "skill": "turn_right"},
+    "navigate_obstacle": {"navigate": True, "skill": "navigate_obstacle"},
+    "pick_and_place": {"pick_place": True, "skill": "pick_and_place"},
+    "stop": {"vx": 0.0, "vy": 0.0, "wz": 0.0, "skill": "stop"},
+    "cancel": {"vx": 0.0, "vy": 0.0, "wz": 0.0, "skill": "stop"},
 }
 
 
 class MuJoCoZenohBridge:
-    """Bridges Fabric ActionEvents to MuJoCo simulation control.
+    """Bridges Fabric ActionEvents to MuJoCo simulation.
 
-    Security model: only actions that arrive through the verified Zenoh
-    topic (published by the tunnel after x402 verification) are accepted.
-    Direct control of the simulator without going through the tunnel is
-    not possible — the simulator only listens on Zenoh.
+    Security: only tunnel-verified actions reach this bridge.
+    The tunnel's x402 middleware rejects unverified requests before publishing.
     """
 
-    def __init__(self, scene_path: str, robot_type: str, zenoh_endpoint: str):
+    def __init__(self, scene_path: str, robot_id: str, zenoh_endpoint: str):
         self.scene_path = scene_path
-        self.robot_type = robot_type
+        self.robot_id = robot_id
         self.zenoh_endpoint = zenoh_endpoint
-        self._current_goal = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
+        self._current_goal: Dict[str, Any] = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
         self._running = False
         self._action_count = 0
         self._rejected_count = 0
+        self._start_pos = None
 
     def _on_action_event(self, sample) -> None:
-        """Handle incoming ActionEvent from Zenoh.
-
-        Only verified actions reach this point — the tunnel's x402
-        middleware rejects unverified requests before publishing.
-        """
+        """Handle incoming ActionEvent from Zenoh."""
         raw = bytes(sample.payload)
         event = parse_action_event(raw)
         if event is None:
@@ -120,118 +92,157 @@ class MuJoCoZenohBridge:
             logger.warning("Rejected malformed action event")
             return
 
-        logger.info(
-            "Received action: %s (params: %s, ts: %s)",
-            event.action, event.params, event.timestamp,
-        )
+        logger.info("Action: %s | params: %s", event.action, event.params)
 
-        if event.action == "stop" or event.action == "cancel":
-            self._current_goal = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
-            logger.info("STOP: zeroing all velocities")
-            self._action_count += 1
-            return
+        # Extract actionId for result correlation
+        try:
+            envelope = json.loads(raw)
+            action_id = envelope.get("payload", {}).get("actionId", "unknown")
+            idempotency_key = envelope.get("payload", {}).get("idempotencyKey", "")
+        except Exception:
+            action_id = "unknown"
+            idempotency_key = ""
 
-        if event.action == "navigate":
-            # Navigation uses goal coordinates from params
-            goal_x = event.params.get("goal_x", 0.0)
-            goal_y = event.params.get("goal_y", 0.0)
-            self._current_goal = {"navigate": True, "goal_x": goal_x, "goal_y": goal_y}
-            logger.info("NAVIGATE: goal=(%.2f, %.2f)", goal_x, goal_y)
-            self._action_count += 1
-            return
+        # Check for duplicate idempotency
+        if idempotency_key and hasattr(self, '_seen_keys'):
+            if idempotency_key in self._seen_keys:
+                self._publish_result(action_id, "already_executed", None)
+                return
+        if not hasattr(self, '_seen_keys'):
+            self._seen_keys = set()
+        if idempotency_key:
+            self._seen_keys.add(idempotency_key)
 
-        goal = ACTION_GOAL_MAP.get(event.action)
+        goal = ACTION_SKILL_MAP.get(event.action)
         if goal is None:
             self._rejected_count += 1
-            logger.warning("Unknown action: %s", event.action)
+            logger.warning("Unknown skill: %s", event.action)
+            self._publish_result(action_id, "error", {
+                "code": "UNKNOWN_SKILL",
+                "message": f"Skill '{event.action}' not found",
+            })
             return
 
-        self._current_goal = goal
+        self._current_goal = {**goal, **event.params}
+        self._current_goal["action_id"] = action_id
         self._action_count += 1
-        logger.info("ACTION: %s → goal=%s", event.action, goal)
+
+    def _publish_result(self, action_id: str, status: str, error: Optional[dict]) -> None:
+        """Publish execution result to Zenoh."""
+        if not hasattr(self, '_zenoh_session'):
+            return
+
+        result = {
+            "actionId": action_id,
+            "robotId": self.robot_id,
+            "status": status,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        if error:
+            result["error"] = error
+        else:
+            result["result"] = {"message": "Action completed"}
+
+        self._zenoh_session.put("robot/tunnel/result", json.dumps(result))
+        logger.info("Result published: %s", status)
 
     def run(self) -> None:
-        """Start the bridge: subscribe to Zenoh and run MuJoCo sim loop."""
-        logger.info("Starting MuJoCo Zenoh bridge for %s", self.robot_type)
-        logger.info("Scene: %s", self.scene_path)
-        logger.info("Zenoh endpoint: %s", self.zenoh_endpoint)
+        """Start the bridge."""
+        logger.info("Starting MuJoCo Zenoh bridge")
+        logger.info("Robot: %s | Scene: %s", self.robot_id, self.scene_path)
 
-        # Import MuJoCo here to allow standalone testing without mujoco
         try:
             import mujoco
         except ImportError:
-            logger.error("mujoco not installed. Install with: pip install mujoco")
+            logger.error("mujoco not installed: pip install mujoco")
             sys.exit(1)
 
-        # Load scene
+        try:
+            import zenoh
+        except ImportError:
+            logger.error("zenoh-py not installed: pip install zenoh-py")
+            sys.exit(1)
+
+        # Load MuJoCo scene
         model = mujoco.MjModel.from_xml_path(self.scene_path)
         data = mujoco.MjData(model)
+        self._start_pos = data.qpos[:3].copy() if model.nq >= 3 else data.qpos.copy()
 
-        # Set up Zenoh subscriber
-        zenoh_helper = ZenohSubscriberHelper(listen_endpoint=self.zenoh_endpoint)
-        zenoh_helper.subscribe("robot/action", self._on_action_event)
+        # Connect Zenoh
+        conf = zenoh.Config.from_json5(
+            f'{{"listen":{{"endpoints":["{self.zenoh_endpoint}"]}}}}'
+        )
+        self._zenoh_session = zenoh.open(conf)
+        sub = self._zenoh_session.declare_subscriber("robot/tunnel/action", self._on_action_event)
 
-        logger.info("Bridge active. Waiting for ActionEvents on 'robot/action'...")
-        logger.info("Security: only tunnel-verified actions are accepted.")
+        logger.info("Bridge active on robot/tunnel/action")
+        logger.info("Results published to robot/tunnel/result")
+        logger.info("Security: only tunnel-verified actions accepted")
 
         self._running = True
         step_count = 0
-        report_interval = 1000  # Report every N steps
+        report_interval = 500
+        last_action_id = None
 
         try:
             while self._running:
-                # Apply current goal to actuators
                 self._apply_goal(model, data)
-
-                # Step simulation
                 mujoco.mj_step(model, data)
                 step_count += 1
 
-                # Periodic state report
+                # Check if current action completed
+                current_action_id = self._current_goal.get("action_id")
+                if current_action_id and current_action_id != last_action_id:
+                    last_action_id = current_action_id
+
+                # Periodic metrics
                 if step_count % report_interval == 0:
+                    pos = data.qpos[:3] if model.nq >= 3 else data.qpos
+                    displacement = sum((pos[i] - self._start_pos[i])**2 for i in range(min(3, len(pos)))) ** 0.5
+                    collision = self._check_collision(data)
                     logger.info(
-                        "Step %d: pos=(%.2f, %.2f) actions=%d rejected=%d",
-                        step_count,
-                        data.qpos[0] if model.nq > 0 else 0,
-                        data.qpos[1] if model.nq > 1 else 0,
-                        self._action_count,
-                        self._rejected_count,
+                        "Step %d | pos=(%.2f, %.2f) | disp=%.2fm | collision=%s | actions=%d",
+                        step_count, pos[0], pos[1], displacement, collision, self._action_count,
                     )
 
-                # Real-time pacing (simulation time)
+                    # Auto-complete navigate actions when goal reached
+                    if self._current_goal.get("navigate"):
+                        goal_x = self._current_goal.get("goal_x", 0)
+                        goal_y = self._current_goal.get("goal_y", 0)
+                        dx = goal_x - pos[0]
+                        dy = goal_y - pos[1]
+                        if (dx**2 + dy**2)**0.5 < 0.3:
+                            self._publish_result(last_action_id, "success", None)
+                            self._current_goal = {"vx": 0, "vy": 0, "wz": 0}
+
                 time.sleep(model.opt.timestep)
 
         except KeyboardInterrupt:
-            logger.info("Interrupted. Stopping simulation.")
+            logger.info("Interrupted")
         finally:
             self._running = False
-            zenoh_helper.close()
-            logger.info(
-                "Bridge stopped. Total actions: %d, rejected: %d",
-                self._action_count, self._rejected_count,
-            )
+            sub.undeclare()
+            self._zenoh_session.close()
+            logger.info("Bridge stopped. actions=%d rejected=%d", self._action_count, self._rejected_count)
 
     def _apply_goal(self, model, data) -> None:
         """Apply current goal to MuJoCo actuators."""
-        import mujoco
-
         if self._current_goal.get("navigate"):
-            # Navigation: compute velocity toward goal
-            goal_x = self._current_goal["goal_x"]
-            goal_y = self._current_goal["goal_y"]
+            goal_x = self._current_goal.get("goal_x", 0)
+            goal_y = self._current_goal.get("goal_y", 0)
             dx = goal_x - data.qpos[0]
             dy = goal_y - data.qpos[1]
-            dist = (dx**2 + dy**2) ** 0.5
+            dist = (dx**2 + dy**2)**0.5
             if dist > 0.1:
-                # Proportional control
                 speed = min(0.5, dist * 0.5)
-                data.ctrl[0] = speed * dx / dist  # vx
-                data.ctrl[1] = speed * dy / dist  # vy
+                if model.nu >= 2:
+                    data.ctrl[0] = speed * dx / dist
+                    data.ctrl[1] = speed * dy / dist
             else:
-                data.ctrl[0] = 0.0
-                data.ctrl[1] = 0.0
+                if model.nu >= 2:
+                    data.ctrl[0] = 0
+                    data.ctrl[1] = 0
         else:
-            # Direct velocity commands
             vx = self._current_goal.get("vx", 0.0)
             vy = self._current_goal.get("vy", 0.0)
             wz = self._current_goal.get("wz", 0.0)
@@ -242,11 +253,20 @@ class MuJoCoZenohBridge:
             elif model.nu >= 1:
                 data.ctrl[0] = vx
 
+    def _check_collision(self, data) -> bool:
+        """Check for collisions in simulation."""
+        if hasattr(data, 'contact') and data.ncon > 0:
+            for i in range(data.ncon):
+                contact = data.contact[i]
+                if contact.geom1 != 0 or contact.geom2 != 0:
+                    return True
+        return False
+
 
 def main():
     parser = argparse.ArgumentParser(description="MuJoCo Zenoh Bridge")
-    parser.add_argument("--scene", required=True, help="Path to MuJoCo XML scene")
-    parser.add_argument("--robot", default="unitree_g1", help="Robot type")
+    parser.add_argument("--scene", required=True, help="MuJoCo XML scene path")
+    parser.add_argument("--robot-id", default="g1-demo-001", help="Robot ID")
     parser.add_argument("--zenoh-endpoint", default="tcp/127.0.0.1:7447")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
@@ -256,7 +276,7 @@ def main():
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     )
 
-    bridge = MuJoCoZenohBridge(args.scene, args.robot, args.zenoh_endpoint)
+    bridge = MuJoCoZenohBridge(args.scene, args.robot_id, args.zenoh_endpoint)
     bridge.run()
 
 

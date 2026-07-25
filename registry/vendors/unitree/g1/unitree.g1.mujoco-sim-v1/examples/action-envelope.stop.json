@@ -1,0 +1,8 @@
+{
+  "actionId": "act_g1_stop_001",
+  "robotId": "g1-demo-001",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "example-stop-001",
+  "payment": null
+}
