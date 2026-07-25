@@ -102,7 +102,8 @@ class MuJoCoZenohBridge:
         self.scene_path = scene_path
         self.robot_type = robot_type
         self.zenoh_endpoint = zenoh_endpoint
-        self.mapper = get_mapper(robot_type)        self._current_cmd = self.mapper.zero()
+        self.mapper = get_mapper(robot_type)
+        self._current_cmd = self.mapper.zero()
         self._current_goal = {"vx": 0.0, "vy": 0.0, "wz": 0.0}
         self._running = False
         self._action_count = 0
