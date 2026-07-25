@@ -1,0 +1,199 @@
+<mujoco model="unitree_g1_obstacle_navigation">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicit"/>
+
+  <default>
+    <joint armature="0.01" damping="0.5"/>
+    <geom condim="4" friction="1.0 0.005 0.0001"/>
+    <motor ctrllimited="true" ctrlrange="-1 1"/>
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.4 0.4 0.4" rgb2="0.5 0.5 0.5" width="512" height="512"/>
+    <material name="grid_mat" texture="grid" texrepeat="10 10" reflectance="0.1"/>
+    <material name="robot_mat" rgba="0.2 0.3 0.8 1"/>
+    <material name="obstacle_mat" rgba="0.8 0.2 0.2 1"/>
+    <material name="goal_mat" rgba="0.2 0.8 0.2 0.5"/>
+    <material name="red_cube" rgba="0.9 0.1 0.1 1"/>
+    <material name="blue_cube" rgba="0.1 0.1 0.9 1"/>
+    <material name="table_mat" rgba="0.6 0.4 0.2 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Ground plane -->
+    <geom name="ground" type="plane" size="20 20 0.1" material="grid_mat"/>
+    <light name="top" pos="0 0 10" dir="0 0 -1"/>
+    <light name="side" pos="5 5 8" dir="-1 -1 -2"/>
+
+    <!-- G1 Humanoid (simplified bipedal, 29 DOF) -->
+    <body name="pelvis" pos="0 0 0.75">
+      <freejoint name="root"/>
+      <site name="pelvis_site" pos="0 0 0" size="0.01"/>
+      <inertial mass="8.5" pos="0 0 0" diaginertia="0.15 0.15 0.15"/>
+      <geom name="pelvis_geom" type="capsule" size="0.08" fromto="-0.05 0 0.05 0.05 0 0.05" material="robot_mat"/>
+
+      <!-- Torso -->
+      <body name="torso" pos="0 0 0.2">
+        <inertial mass="12.0" pos="0 0 0.1" diaginertia="0.3 0.3 0.3"/>
+        <joint name="torso_pitch" type="hinge" axis="1 0 0" range="-0.5 0.5"/>
+        <geom name="torso_geom" type="capsule" size="0.1" fromto="0 -0.08 0 0 0.08 0" material="robot_mat"/>
+
+        <!-- Head -->
+        <body name="head" pos="0 0 0.25">
+          <inertial mass="2.0" pos="0 0 0" diaginertia="0.02 0.02 0.02"/>
+          <joint name="head_yaw" type="hinge" axis="0 0 1" range="-1 1"/>
+          <geom name="head_geom" type="sphere" size="0.08" material="robot_mat"/>
+        </body>
+
+        <!-- Left arm -->
+        <body name="left_shoulder" pos="0 0.18 0.18">
+          <inertial mass="1.5" pos="0 0 -0.1" diaginertia="0.02 0.02 0.02"/>
+          <joint name="l_shoulder_pitch" type="hinge" axis="1 0 0" range="-2 2"/>
+          <joint name="l_shoulder_roll" type="hinge" axis="0 1 0" range="-1.5 1.5"/>
+          <geom name="l_upper_arm" type="capsule" size="0.035" fromto="0 0 0 0 0 -0.18" material="robot_mat"/>
+
+          <body name="left_elbow" pos="0 0 -0.18">
+            <inertial mass="1.0" pos="0 0 -0.1" diaginertia="0.01 0.01 0.01"/>
+            <joint name="l_elbow_pitch" type="hinge" axis="1 0 0" range="-2.5 0"/>
+            <geom name="l_forearm" type="capsule" size="0.03" fromto="0 0 0 0 0 -0.18" material="robot_mat"/>
+
+            <body name="left_hand" pos="0 0 -0.18">
+              <inertial mass="0.5" pos="0 0 0" diaginertia="0.005 0.005 0.005"/>
+              <geom name="l_hand" type="sphere" size="0.04" material="robot_mat"/>
+            </body>
+          </body>
+        </body>
+
+        <!-- Right arm -->
+        <body name="right_shoulder" pos="0 -0.18 0.18">
+          <inertial mass="1.5" pos="0 0 -0.1" diaginertia="0.02 0.02 0.02"/>
+          <joint name="r_shoulder_pitch" type="hinge" axis="1 0 0" range="-2 2"/>
+          <joint name="r_shoulder_roll" type="hinge" axis="0 1 0" range="-1.5 1.5"/>
+          <geom name="r_upper_arm" type="capsule" size="0.035" fromto="0 0 0 0 0 -0.18" material="robot_mat"/>
+
+          <body name="right_elbow" pos="0 0 -0.18">
+            <inertial mass="1.0" pos="0 0 -0.1" diaginertia="0.01 0.01 0.01"/>
+            <joint name="r_elbow_pitch" type="hinge" axis="1 0 0" range="-2.5 0"/>
+            <geom name="r_forearm" type="capsule" size="0.03" fromto="0 0 0 0 0 -0.18" material="robot_mat"/>
+
+            <body name="right_hand" pos="0 0 -0.18">
+              <inertial mass="0.5" pos="0 0 0" diaginertia="0.005 0.005 0.005"/>
+              <geom name="r_hand" type="sphere" size="0.04" material="robot_mat"/>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- Left leg -->
+      <body name="left_hip" pos="0 0.1 -0.05">
+        <inertial mass="2.0" pos="0 0 -0.15" diaginertia="0.03 0.03 0.03"/>
+        <joint name="l_hip_roll" type="hinge" axis="0 1 0" range="-0.5 1.5"/>
+        <joint name="l_hip_pitch" type="hinge" axis="1 0 0" range="-1.5 1"/>
+        <geom name="l_thigh" type="capsule" size="0.05" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+
+        <body name="left_knee" pos="0 0 -0.3">
+          <inertial mass="1.5" pos="0 0 -0.15" diaginertia="0.02 0.02 0.02"/>
+          <joint name="l_knee" type="hinge" axis="1 0 0" range="-2.5 0"/>
+          <geom name="l_shin" type="capsule" size="0.04" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+
+          <body name="left_ankle" pos="0 0 -0.3">
+            <inertial mass="1.0" pos="0 0 -0.02" diaginertia="0.01 0.01 0.01"/>
+            <joint name="l_ankle_pitch" type="hinge" axis="1 0 0" range="-1 1"/>
+            <geom name="l_foot" type="box" size="0.06 0.04 0.02" pos="0 0 -0.02" material="robot_mat"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- Right leg -->
+      <body name="right_hip" pos="0 -0.1 -0.05">
+        <inertial mass="2.0" pos="0 0 -0.15" diaginertia="0.03 0.03 0.03"/>
+        <joint name="r_hip_roll" type="hinge" axis="0 1 0" range="-1.5 0.5"/>
+        <joint name="r_hip_pitch" type="hinge" axis="1 0 0" range="-1.5 1"/>
+        <geom name="r_thigh" type="capsule" size="0.05" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+
+        <body name="right_knee" pos="0 0 -0.3">
+          <inertial mass="1.5" pos="0 0 -0.15" diaginertia="0.02 0.02 0.02"/>
+          <joint name="r_knee" type="hinge" axis="1 0 0" range="-2.5 0"/>
+          <geom name="r_shin" type="capsule" size="0.04" fromto="0 0 0 0 0 -0.3" material="robot_mat"/>
+
+          <body name="right_ankle" pos="0 0 -0.3">
+            <inertial mass="1.0" pos="0 0 -0.02" diaginertia="0.01 0.01 0.01"/>
+            <joint name="r_ankle_pitch" type="hinge" axis="1 0 0" range="-1 1"/>
+            <geom name="r_foot" type="box" size="0.06 0.04 0.02" pos="0 0 -0.02" material="robot_mat"/>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Obstacles for navigation -->
+    <body name="obstacle_1" pos="3.0 0.5 0.5" mocap="true">
+      <geom name="obs1" type="box" size="0.4 0.4 0.5" material="obstacle_mat"/>
+    </body>
+    <body name="obstacle_2" pos="5.0 -1.0 0.5" mocap="true">
+      <geom name="obs2" type="box" size="0.3 0.5 0.6" material="obstacle_mat"/>
+    </body>
+    <body name="obstacle_3" pos="7.0 0.8 0.4" mocap="true">
+      <geom name="obs3" type="cylinder" size="0.3 0.4" material="obstacle_mat"/>
+    </body>
+
+    <!-- Table for pick-and-place -->
+    <body name="table" pos="4.0 -3.0 0.35">
+      <geom name="table_top" type="box" size="0.5 0.3 0.02" material="table_mat"/>
+      <geom name="table_leg1" type="cylinder" size="0.03 0.35" pos="0.4 0.2 0" material="table_mat"/>
+      <geom name="table_leg2" type="cylinder" size="0.03 0.35" pos="-0.4 0.2 0" material="table_mat"/>
+      <geom name="table_leg3" type="cylinder" size="0.03 0.35" pos="0.4 -0.2 0" material="table_mat"/>
+      <geom name="table_leg4" type="cylinder" size="0.03 0.35" pos="-0.4 -0.2 0" material="table_mat"/>
+    </body>
+
+    <!-- Pick-and-place objects -->
+    <body name="red_cube" pos="3.8 -3.0 0.45">
+      <freejoint name="red_cube_joint"/>
+      <inertial mass="0.1" pos="0 0 0" diaginertia="0.001 0.001 0.001"/>
+      <geom name="red_cube_geom" type="box" size="0.04 0.04 0.04" material="red_cube"/>
+    </body>
+    <body name="blue_cube" pos="4.2 -3.0 0.45">
+      <freejoint name="blue_cube_joint"/>
+      <inertial mass="0.1" pos="0 0 0" diaginertia="0.001 0.001 0.001"/>
+      <geom name="blue_cube_geom" type="box" size="0.04 0.04 0.04" material="blue_cube"/>
+    </body>
+
+    <!-- Goal marker -->
+    <body name="goal" pos="8.0 0 0.01">
+      <geom name="goal_geom" type="cylinder" size="0.3 0.01" material="goal_mat"/>
+    </body>
+  </worldbody>
+
+  <!-- Actuators for locomotion -->
+  <actuator>
+    <general name="ctrl_vx" joint="root" gainprm="100" gear="1 0 0 0 0 0"/>
+    <general name="ctrl_vy" joint="root" gainprm="100" gear="0 1 0 0 0 0"/>
+    <general name="ctrl_wz" joint="root" gainprm="50" gear="0 0 0 0 0 1"/>
+    <position name="torso_pitch_ctrl" joint="torso_pitch" kp="100"/>
+    <position name="l_shoulder_pitch_ctrl" joint="l_shoulder_pitch" kp="50"/>
+    <position name="l_shoulder_roll_ctrl" joint="l_shoulder_roll" kp="50"/>
+    <position name="l_elbow_ctrl" joint="l_elbow_pitch" kp="30"/>
+    <position name="r_shoulder_pitch_ctrl" joint="r_shoulder_pitch" kp="50"/>
+    <position name="r_shoulder_roll_ctrl" joint="r_shoulder_roll" kp="50"/>
+    <position name="r_elbow_ctrl" joint="r_elbow_pitch" kp="30"/>
+    <position name="l_hip_roll_ctrl" joint="l_hip_roll" kp="100"/>
+    <position name="l_hip_pitch_ctrl" joint="l_hip_pitch" kp="100"/>
+    <position name="l_knee_ctrl" joint="l_knee" kp="100"/>
+    <position name="l_ankle_ctrl" joint="l_ankle_pitch" kp="50"/>
+    <position name="r_hip_roll_ctrl" joint="r_hip_roll" kp="100"/>
+    <position name="r_hip_pitch_ctrl" joint="r_hip_pitch" kp="100"/>
+    <position name="r_knee_ctrl" joint="r_knee" kp="100"/>
+    <position name="r_ankle_ctrl" joint="r_ankle_pitch" kp="50"/>
+  </actuator>
+
+  <!-- Sensors -->
+  <sensor>
+    <framepos name="pelvis_pos" objtype="body" objname="pelvis"/>
+    <framequat name="pelvis_quat" objtype="body" objname="pelvis"/>
+    <velocimeter name="pelvis_vel" site="pelvis_site"/>
+  </sensor>
+
+  <!-- Key frames -->
+  <keyframe>
+    <key name="standing" qpos="0 0 0.75 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+  </keyframe>
+</mujoco>
