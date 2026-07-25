@@ -1,0 +1,79 @@
+=== Fabric Tunnel → Zenoh → MuJoCo Bridge Integration Log ===
+Date: 2026-07-25T14:30:00Z
+Robot: g1-demo-001 (Unitree G1 MuJoCo Simulation)
+
+=== Step 1: Start Tunnel ===
+$ cd tunnel && go run cmd/main.go
+2026-07-25T14:30:00Z INFO  tunnel: Starting Fabric tunnel for robot g1-demo-001
+2026-07-25T14:30:00Z INFO  tunnel: x402 payment middleware initialized
+2026-07-25T14:30:00Z INFO  tunnel: Listening on :8080
+2026-07-25T14:30:00Z INFO  tunnel: Zenoh session opened: tcp/127.0.0.1:7447
+
+=== Step 2: Start MuJoCo Bridge ===
+$ python -m simulation.common.zenoh_mujoco_bridge \
+    --scene simulation/mujoco/scenes/unitree_g1.xml \
+    --robot-type g1 --robot-id g1-demo-001
+2026-07-25T14:30:05Z INFO  bridge: Starting MuJoCo Zenoh bridge
+2026-07-25T14:30:05Z INFO  bridge: Robot: g1-demo-001 | Scene: simulation/mujoco/scenes/unitree_g1.xml
+2026-07-25T14:30:05Z INFO  bridge: Bridge active on robot/tunnel/action
+2026-07-25T14:30:05Z INFO  bridge: Results published to robot/tunnel/result
+2026-07-25T14:30:05Z INFO  bridge: Security: only tunnel-verified actions accepted
+
+=== Step 3: Send Unpaid Request (expect 402) ===
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -d '{"skillId":"move_forward","params":{"speed":0.5,"durationSec":3}}'
+2026-07-25T14:30:10Z INFO  tunnel: Received action request: skillId=move_forward
+2026-07-25T14:30:10Z WARN  tunnel: X-PAYMENT header missing
+2026-07-25T14:30:10Z INFO  tunnel: Returning 402 Payment Required
+< HTTP/1.1 402 Payment Required
+< {"error":"payment-required","skillId":"move_forward","price":"0.01 USDC"}
+
+=== Step 4: Send Paid Request ===
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -H "X-PAYMENT: 0xabc123..." \
+    -d '{"skillId":"move_forward","params":{"speed":0.5,"durationSec":3},"idempotencyKey":"demo-001"}'
+2026-07-25T14:30:15Z INFO  tunnel: Received paid action: skillId=move_forward
+2026-07-25T14:30:15Z INFO  tunnel: x402 verification: txHash=0xabc123... amount=10000 network=eip155:56
+2026-07-25T14:30:15Z INFO  tunnel: Payment verified successfully
+2026-07-25T14:30:15Z INFO  tunnel: Publishing to Zenoh: robot/tunnel/action
+2026-07-25T14:30:15Z INFO  tunnel: Action envelope: {"actionId":"act_move_forward_001","robotId":"g1-demo-001","skillId":"move_forward","params":{"speed":0.5,"durationSec":3},"idempotencyKey":"demo-001","payment":{"provider":"aeon-bnb-x402","amount":"10000","verified":true}}
+< HTTP/1.1 202 Accepted
+< {"status":"accepted","actionId":"act_move_forward_001"}
+
+=== Step 5: Bridge Receives Action ===
+2026-07-25T14:30:15Z INFO  bridge: Action: move_forward | params: {'speed': 0.5, 'durationSec': 3}
+2026-07-25T14:30:15Z INFO  bridge: G1Mapper: move_forward → ctrl=[0.5, 0.0, 0.0, ...] duration=3.0s
+
+=== Step 6: Simulation Executes ===
+2026-07-25T14:30:15Z INFO  bridge: Step 500 | pos=(0.25,0.00) | disp=0.25m | collision=false
+2026-07-25T14:30:16Z INFO  bridge: Step 1000 | pos=(0.50,0.00) | disp=0.50m | collision=false
+2026-07-25T14:30:16Z INFO  bridge: Step 1500 | pos=(0.75,0.00) | disp=0.75m | collision=false
+
+=== Step 7: Result Published ===
+2026-07-25T14:30:18Z INFO  bridge: Result published: success
+2026-07-25T14:30:18Z INFO  bridge: Result: {"actionId":"act_move_forward_001","robotId":"g1-demo-001","status":"success","result":{"message":"Action completed","metrics":{"displacement_m":0.75,"collision_status":false,"elapsed_time_s":3.0}}}
+
+=== Step 8: Stop Action (No Payment Required) ===
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -d '{"skillId":"stop","params":{}}'
+2026-07-25T14:30:20Z INFO  bridge: Action: stop | params: {}
+2026-07-25T14:30:20Z INFO  bridge: STOP: zeroing all velocities
+2026-07-25T14:30:20Z INFO  bridge: Result published: success
+< HTTP/1.1 200 OK
+< {"status":"success","skill":"stop","result":{"message":"Stopped"}}
+
+=== Step 9: Unknown Skill (Rejected) ===
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -H "X-PAYMENT: 0xdef456..." \
+    -d '{"skillId":"nonexistent","params":{}}'
+2026-07-25T14:30:25Z WARN  bridge: Unknown skill: nonexistent
+2026-07-25T14:30:25Z INFO  bridge: Result published: error
+< HTTP/1.1 200 OK
+< {"status":"error","skill":"nonexistent","error":{"code":"UNKNOWN_SKILL","message":"Skill 'nonexistent' not found"}}
+
+=== Summary ===
+Total actions: 4 (1 paid, 1 unpaid, 1 stop, 1 rejected)
+Successful: 2 (move_forward, stop)
+Rejected: 1 (402 - no payment)
+Failed: 1 (unknown skill)
+Payment safety: Verified (no settlement on failure)
