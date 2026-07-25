@@ -1,0 +1,90 @@
+schemaVersion: skill-contract-test.v1
+
+profileId: unitree.g1.mujoco-sim-v1
+
+tests:
+  - name: skill_catalog_returns_expected_skills
+    description: Verify the skill catalog lists all registered skills.
+    steps:
+      - action: list_skills
+        expected:
+          contains:
+            - move_forward
+            - navigate_obstacle
+            - pick_and_place
+            - stop
+
+  - name: unpaid_request_returns_402
+    description: Verify that an unpaid request for a paid skill returns 402.
+    steps:
+      - action: request_robot_action
+        body:
+          skillId: move_forward
+          params: {durationSec: 3, speed: 0.5}
+          idempotencyKey: test-402-001
+        expected:
+          status: 402
+
+  - name: paid_request_executes_successfully
+    description: Verify that a paid request executes and returns success.
+    steps:
+      - action: submit_paid_robot_action
+        headers:
+          X-PAYMENT: "mock-payment-proof"
+        body:
+          skillId: move_forward
+          params: {durationSec: 3, speed: 0.5}
+          idempotencyKey: test-paid-001
+        expected:
+          status: 200
+          zenoh_message_received: true
+          robot_action_executed: true
+          result_status: success
+
+  - name: stop_action_works_without_payment
+    description: Verify that stop action works without payment.
+    steps:
+      - action: request_robot_action
+        body:
+          skillId: stop
+          params: {}
+          idempotencyKey: test-stop-001
+        expected:
+          status: 200
+          result_status: success
+
+  - name: invalid_action_rejected
+    description: Verify that an invalid action is rejected.
+    steps:
+      - action: submit_paid_robot_action
+        headers:
+          X-PAYMENT: "mock-payment-proof"
+        body:
+          skillId: nonexistent_skill
+          params: {}
+          idempotencyKey: test-invalid-001
+        expected:
+          status: error
+          error_code: UNKNOWN_SKILL
+
+  - name: duplicate_idempotency_key_rejected
+    description: Verify that duplicate idempotency keys are handled.
+    steps:
+      - action: submit_paid_robot_action
+        headers:
+          X-PAYMENT: "mock-payment-proof"
+        body:
+          skillId: move_forward
+          params: {durationSec: 1, speed: 0.3}
+          idempotencyKey: test-dup-001
+        expected:
+          status: 200
+      - action: submit_paid_robot_action
+        headers:
+          X-PAYMENT: "mock-payment-proof"
+        body:
+          skillId: move_forward
+          params: {durationSec: 1, speed: 0.3}
+          idempotencyKey: test-dup-001
+        expected:
+          status: already_executed

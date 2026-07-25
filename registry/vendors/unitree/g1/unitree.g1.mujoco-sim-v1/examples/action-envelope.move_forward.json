@@ -1,0 +1,16 @@
+{
+  "actionId": "act_g1_move_forward_001",
+  "robotId": "g1-demo-001",
+  "skillId": "move_forward",
+  "params": {
+    "durationSec": 3,
+    "speed": 0.5
+  },
+  "idempotencyKey": "example-move-forward-001",
+  "payment": {
+    "provider": "aeon-bnb-x402",
+    "amount": "10000",
+    "asset": "USDT_OR_USDC_CONTRACT",
+    "network": "eip155:56"
+  }
+}
