@@ -1,0 +1,160 @@
+# VRML_SEGMENT_INLINE
+# AGIBot X2 Webots PROTO for Sim-to-Sim validation.
+# Humanoid model matching MuJoCo scene.
+# Velocity limits: vx [0, 1.0], wz [-0.3, 0.3]
+PROTO X2Robot [
+  field SFVec3f    translation  0 0 0.85
+  field SFRotation rotation     0 0 1 0
+  field SFString   name         "x2"
+]
+{
+  DEF X2 Robot {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    children [
+      # Torso
+      DEF TORSO Solid {
+        children [
+          Capsule {
+            height 0.35
+            radius 0.18
+            appearance PBRAppearance {
+              baseColor 0.2 0.4 0.7
+              roughness 0.6
+            }
+          }
+          # Head
+          Solid {
+            translation 0 0 0.28
+            children [
+              Sphere {
+                radius 0.13
+                appearance PBRAppearance {
+                  baseColor 0.2 0.4 0.7
+                }
+              }
+            ]
+          }
+          # Left Leg
+          Solid {
+            translation 0 0.12 -0.22
+            children [
+              Capsule {
+                height 0.44
+                radius 0.065
+                appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+              }
+              Solid {
+                translation 0 0 -0.44
+                children [
+                  Capsule {
+                    height 0.4
+                    radius 0.055
+                    appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+                  }
+                  Solid {
+                    translation 0 0 -0.4
+                    children [
+                      Box {
+                        size 0.2 0.1 0.06
+                        appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+                      }
+                    ]
+                    name "left_foot"
+                  }
+                ]
+              }
+            ]
+          }
+          # Right Leg
+          Solid {
+            translation 0 -0.12 -0.22
+            children [
+              Capsule {
+                height 0.44
+                radius 0.065
+                appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+              }
+              Solid {
+                translation 0 0 -0.44
+                children [
+                  Capsule {
+                    height 0.4
+                    radius 0.055
+                    appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+                  }
+                  Solid {
+                    translation 0 0 -0.4
+                    children [
+                      Box {
+                        size 0.2 0.1 0.06
+                        appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+                      }
+                    ]
+                    name "right_foot"
+                  }
+                ]
+              }
+            ]
+          }
+          # Left Arm
+          Solid {
+            translation 0 0.22 0.12
+            children [
+              Capsule {
+                height 0.32
+                radius 0.045
+                appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+              }
+              Solid {
+                translation 0 0 -0.32
+                children [
+                  Capsule {
+                    height 0.3
+                    radius 0.038
+                    appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+                  }
+                ]
+              }
+            ]
+          }
+          # Right Arm
+          Solid {
+            translation 0 -0.22 0.12
+            children [
+              Capsule {
+                height 0.32
+                radius 0.045
+                appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+              }
+              Solid {
+                translation 0 0 -0.32
+                children [
+                  Capsule {
+                    height 0.3
+                    radius 0.038
+                    appearance PBRAppearance { baseColor 0.2 0.4 0.7 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+        name "torso"
+        physics Physics {
+          mass 45.0
+          inertiaMatrix [
+            1.5 0 0
+            0 1.5 0
+            0 0 1.5
+          ]
+        }
+      }
+    ]
+    physics Physics {
+      mass 70.0
+    }
+    controller "x2_navigation"
+  }
+}
