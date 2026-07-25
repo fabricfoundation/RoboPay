@@ -1,0 +1,28 @@
+name: sim-arm-01 bridge checks
+
+on:
+  push:
+    paths:
+      - "bridge/sim_arm/01/**"
+      - "bridge/common/zenoh_bridge/**"
+      - ".github/workflows/sim-arm-01-bridge.yml"
+  pull_request:
+    paths:
+      - "bridge/sim_arm/01/**"
+      - "bridge/common/zenoh_bridge/**"
+      - ".github/workflows/sim-arm-01-bridge.yml"
+
+jobs:
+  python:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install mujoco numpy pytest
+      - name: Compile sources
+        run: python -m compileall bridge/sim_arm/01/mujoco_bridge
+      - name: Run simulator tests
+        run: pytest bridge/sim_arm/01/mujoco_bridge/test/test_simulator.py -v
