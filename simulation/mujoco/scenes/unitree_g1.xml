@@ -1,5 +1,8 @@
 <mujoco model="unitree_g1_obstacle_navigation">
   <compiler angle="radian" autolimits="true"/>
+  <visual>
+    <global offwidth="1920" offheight="1080"/>
+  </visual>
   <option timestep="0.002" gravity="0 0 -9.81" integrator="implicit"/>
 
   <default>
