@@ -1,0 +1,20 @@
+schemaVersion: payment-policy.v1
+
+provider: aeon-bnb-x402
+network: eip155:56
+asset: USDT_OR_USDC_CONTRACT
+amountUnit: smallest
+
+policies:
+  - skillId: walk
+    required: true
+    amount: "0.01"
+  - skillId: inspect
+    required: true
+    amount: "0.03"
+  - skillId: dock
+    required: true
+    amount: "0.05"
+  - skillId: stop
+    required: false
+    amount: "0"

@@ -1,0 +1,17 @@
+schemaVersion: payment-policy.v1
+
+provider: aeon-bnb-x402
+network: eip155:56
+asset: USDT_OR_USDC_CONTRACT
+amountUnit: smallest
+
+policies:
+  - skillId: move_forward
+    required: true
+    amount: "0.01"
+  - skillId: navigate
+    required: true
+    amount: "0.05"
+  - skillId: stop
+    required: false
+    amount: "0"

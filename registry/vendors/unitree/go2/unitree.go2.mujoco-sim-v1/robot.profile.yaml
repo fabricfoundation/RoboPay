@@ -1,0 +1,14 @@
+schemaVersion: robot-profile.v1
+vendor: unitree
+robotModel: go2
+profileId: unitree.go2.mujoco-sim-v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: mujoco-zenoh
+  simulator: mujoco
+maintainers:
+  - github: JonthanaHanh
+status: experimental

@@ -1,0 +1,20 @@
+schemaVersion: robot-skills.v1
+
+profileId: unitree.g1-tron2.mujoco-sim-v1
+
+skills:
+  - skillId: move_forward
+    description: Execute move_forward action on g1
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.01"
+  - skillId: wave
+    description: Execute wave action on g1
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.02"
+  - skillId: stop
+    description: Execute stop action on g1
+    params: {}
+    paymentRequired: false
+    priceUSDC: "0"
