@@ -1,0 +1,11 @@
+{
+  "results": {
+    "unpaid_402": true,
+    "paid_accepted": false,
+    "stop_no_payment": true,
+    "invalid_skill": true
+  },
+  "passed": 3,
+  "total": 4,
+  "tunnel_running": false
+}
