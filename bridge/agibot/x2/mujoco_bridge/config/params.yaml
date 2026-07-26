@@ -4,3 +4,5 @@ mujoco_bridge_agibot_x2:
     zenoh_listen: tcp/127.0.0.1:7447
     cmd_vel_topic: /cmd_vel
     model_path: ""
+    result_topic: robot/tunnel/result
+    robot_id: agibot-x2-sim-001
