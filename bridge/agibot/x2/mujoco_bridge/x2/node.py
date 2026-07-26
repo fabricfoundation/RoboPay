@@ -17,7 +17,9 @@ class MuJoCoX2BridgeNode(Node):
         p = self.get_parameter; self._mapper = X2Mapper(); self._pub = self.create_publisher(Twist, p("cmd_vel_topic").value, 10)
         self._sim = X2Simulator(p("model_path").value) if p("model_path").value else None
         self._robot_id = p("robot_id").value; self._result_topic = p("result_topic").value; self._replays = ReplayGuard()
-        self._result_session = zenoh.open(zenoh.Config.from_json5(f'{{"listen":{{"endpoints":["{p("zenoh_listen").value}"]}}}}'))
+        # The subscriber helper owns the listening endpoint; this publisher session
+        # uses the default peer/discovery configuration to avoid binding the port twice.
+        self._result_session = zenoh.open(zenoh.Config())
         self._result_pub = self._result_session.declare_publisher(self._result_topic)
         self._zenoh = ZenohSubscriberHelper(p("zenoh_listen").value); self._zenoh.subscribe(p("zenoh_topic").value, self._on_action)
     def _on_action(self, sample):
