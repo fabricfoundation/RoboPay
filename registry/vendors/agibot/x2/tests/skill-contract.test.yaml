@@ -1,0 +1,9 @@
+tests:
+  - name: paid_action_returns_correlated_success
+    expect: [verified_payment, action_event, terminal_result, settlement]
+  - name: invalid_payment_does_not_actuate
+    expect: [rejection, no_settlement]
+  - name: duplicate_idempotency_key_does_not_execute_twice
+    expect: [one_simulation, replay_rejection]
+  - name: timeout_does_not_settle
+    expect: [terminal_failure, no_settlement]

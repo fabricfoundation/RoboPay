@@ -1,0 +1,1 @@
+{"actionId":"demo-001","robotId":"agibot-x2-sim-001","idempotencyKey":"demo-key-001","action":"move_forward","params":{"speed":0.3,"duration":1.0}}
