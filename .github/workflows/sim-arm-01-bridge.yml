@@ -15,14 +15,21 @@ on:
 jobs:
   python:
     runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: bridge/sim_arm/01/mujoco_bridge
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install mujoco numpy pytest
+        run: pip install mujoco numpy pybullet pytest
       - name: Compile sources
-        run: python -m compileall bridge/sim_arm/01/mujoco_bridge
-      - name: Run simulator tests
-        run: pytest bridge/sim_arm/01/mujoco_bridge/test/test_simulator.py -v
+        run: python -m compileall sim_arm_01
+      - name: Simulator + full pay-to-actuate flow + sim-to-sim tests
+        run: pytest test/ -v
+      - name: Reproduce pay-to-actuate transcript (accepted -> result -> settle)
+        run: python -m sim_arm_01.flow.demo
+      - name: Reproduce sim-to-sim validation (MuJoCo vs PyBullet)
+        run: python -m sim_arm_01.sim_to_sim

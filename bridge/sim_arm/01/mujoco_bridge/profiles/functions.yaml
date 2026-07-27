@@ -1,0 +1,26 @@
+# Agent-facing function definitions.
+# Describes how an agent calls the action API to invoke a skill. The action
+# envelope published to Zenoh preserves the payment-safety fields.
+robotId: sim-arm-01
+
+functions:
+  - name: move_to_pose
+    skillId: move_to_pose
+    description: "Command the simulated arm to a target joint pose (paid skill)."
+    invocation:
+      transport: zenoh
+      topic: robot/tunnel/action
+      envelope:
+        robotId: sim-arm-01
+        skillId: move_to_pose
+        params:
+          target_qpos: [number, number]   # radians, 2 joints
+        # payment-safety fields required on every envelope
+        actionId: string          # unique per request
+        idempotencyKey: string    # dedup key; duplicate must not re-execute
+        paramsHash: string        # sha256 of canonical params
+        payment: object           # verified receipt / txHash
+    result:
+      transport: zenoh
+      topic: robot/tunnel/result
+      correlateBy: actionId       # async terminal result matched back by actionId

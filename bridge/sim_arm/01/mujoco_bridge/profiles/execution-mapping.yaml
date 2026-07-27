@@ -1,0 +1,19 @@
+# Execution mapping: skillId -> the controller that executes it.
+# The robot node uses this mapping to dispatch an incoming paid action to the
+# code that actuates the simulator and returns a terminal result with metrics.
+robotId: sim-arm-01
+
+mappings:
+  - skillId: move_to_pose
+    handler: "sim_arm_01.flow.executor:execute_skill"
+    controllerType: position-servo      # closed-loop; not a replayed trajectory
+    simulator: mujoco
+    paramsMapping:
+      target_qpos: params.target_qpos
+    successCriteria:
+      joint_error_below: 0.03           # radians
+      settled_velocity_below: 0.05      # rad/s
+    failureModes:
+      - INVALID_PARAMS                  # malformed target_qpos
+      - ACTION_FAILED                   # did not reach target within step budget
+      - UNKNOWN_SKILL

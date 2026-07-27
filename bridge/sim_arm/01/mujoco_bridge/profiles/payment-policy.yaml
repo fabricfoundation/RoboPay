@@ -1,0 +1,24 @@
+# Payment policy: amounts, currency, and payment headers.
+# Defines what is charged and how a paid request is proven. Enforced by the
+# payment-safety layer: unpaid -> 402; success settles, failure/timeout does not.
+robotId: sim-arm-01
+
+currency: USDC
+chain: base
+recipientWallet: "0xROBOTWALLETADDRESSPLACEHOLDER"
+
+# Header carried on paid requests; the relay verifies it before actuating.
+paymentHeader: X-Payment-Receipt
+
+pricing:
+  - skillId: move_to_pose
+    amountUSDC: "0.50"
+
+rules:
+  unpaidResponse: 402                 # unpaid/invalid requests are rejected
+  settleOn: success                   # payment settles only on successful execution
+  noSettleOn: [failure, timeout, error]
+  idempotency:
+    enabled: true                     # duplicate idempotencyKey must not re-execute
+    dedupWindowSeconds: 3600
+  replayProtection: true              # invalid/expired/replayed requests never actuate

@@ -16,11 +16,11 @@ def test_reaches_target():
 
 
 def test_unreachable_target_fails():
-    # Target well outside the reachable joint range → cannot converge.
+    # [5.0, 5.0] is outside the reachable +/-3.14 rad joint range. The actuator
+    # drives to its limit (~3.14) but physically cannot reach 5.0, so the arm
+    # genuinely fails to converge. This must be reported as a real failure.
     sim = SimArm01Simulator()
-    metrics = sim.execute([3.14, 3.14])
-    # clamped target is still reachable; use a genuinely impossible one via error check
-    # here we assert the metrics structure is always well-formed
-    assert "joint_error" in metrics
-    assert "success" in metrics
-    assert metrics["steps_taken"] >= 1
+    metrics = sim.execute([5.0, 5.0])
+    assert metrics["success"] is False, "unreachable target must fail, not succeed"
+    assert metrics["joint_error"] > 1.0, f"error should be large: {metrics}"
+    assert metrics["steps_taken"] == 1200, "should exhaust the step budget without settling"

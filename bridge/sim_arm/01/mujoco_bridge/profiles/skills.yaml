@@ -1,0 +1,34 @@
+# Discoverable, priced robot skills.
+# Each skill lists the metadata reviewers/agents use to discover and price it
+# before execution: name, description, priceUSDC, paramsSchema, robotId.
+robotId: sim-arm-01
+
+skills:
+  - skillId: move_to_pose
+    name: "Move to joint pose"
+    description: >
+      Drives the 2-DOF arm to a target joint configuration using a closed-loop
+      position servo (controller), then reports simulator state metrics:
+      final joint angles, joint error, settling velocity, and collision status.
+    priceUSDC: "0.50"
+    requiresPayment: true
+    paramsSchema:
+      type: object
+      properties:
+        target_qpos:
+          type: array
+          description: "Target joint angles [joint1, joint2] in radians"
+          items:
+            type: number
+            minimum: -3.14
+            maximum: 3.14
+          minItems: 2
+          maxItems: 2
+      required: [target_qpos]
+    resultMetrics:
+      - joint_angles
+      - joint_error
+      - joint_velocities
+      - success
+      - collision
+      - steps_taken
