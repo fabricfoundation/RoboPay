@@ -1,3 +1,5 @@
+"""ROS2 ament_python package setup for zenoh_bridge."""
+
 from setuptools import setup, find_packages
 
 package_name = "zenoh_bridge"
