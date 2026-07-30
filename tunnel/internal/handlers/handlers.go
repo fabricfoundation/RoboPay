@@ -115,6 +115,7 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	if err != nil {
 		h.Logger.Warn("failed to marshal action event", zap.Error(err))
 	} else {
+		h.Logger.Info("publishing action event", zap.Any("event", event))
 		pub, err := getZenohPublisher()
 		if err != nil {
 			h.Logger.Warn("failed to initialize zenoh publisher", zap.Error(err))
