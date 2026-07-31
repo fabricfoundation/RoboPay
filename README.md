@@ -197,3 +197,8 @@ ws connected to proxy           robot_id=<id>
 Actions received via AIP are published to the same Zenoh topic
 (`robot/tunnel/action`) as paid x402 actions, so the bridge and robot-side
 safety logic are identical for both paths.
+## 5. Legal Notice
+
+This initiative will be operated by an independent third-party provider in partnership with Fabric Protocol.
+
+Fabric Foundation and Fabric Protocol Ltd. do not provide payment services and are not a payment service provider.
