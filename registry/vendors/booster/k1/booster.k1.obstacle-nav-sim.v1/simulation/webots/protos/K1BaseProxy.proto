@@ -1,0 +1,42 @@
+#VRML_SIM R2025a utf8
+# Booster K1 base proxy for Webots — geometric proxy matching the MuJoCo
+# scene (cylinder torso), NOT an official Booster K1 CAD model.
+
+PROTO K1BaseProxy [
+  field SFVec3f translation 0 0 0.4
+  field SFRotation rotation 0 0 1 0
+  field SFString name "k1_base"
+]
+{
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    controller "<extern>"
+    children [
+      DEF TORSO Transform {
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.4 0.9 }
+            geometry Cylinder { height 0.8 radius 0.25 }
+          }
+        ]
+      }
+      DEF HEADING Transform {
+        translation 0.2 0 0.35
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 1 0 0 }
+            geometry Box { size 0.1 0.1 0.1 }
+          }
+        ]
+      }
+    ]
+    boundingObject USE TORSO
+    physics Physics {
+      density -1
+      mass 20
+    }
+    supervisor TRUE
+  }
+}
