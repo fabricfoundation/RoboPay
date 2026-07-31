@@ -1,0 +1,67 @@
+schemaVersion: execution-mapping.v1
+profileId: booster.k1.obstacle-nav-sim.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  actionSchema: robopay-action.v1
+  resultSchema: robot-action-result.v1
+
+envelope:
+  requiredFields:
+    - actionId
+    - robotId
+    - skillId
+    - params
+    - paramsHash
+    - idempotencyKey
+    - payment
+  requiredPaymentFields:
+    - provider
+    - authorizationId
+    - verified
+    - status
+    - settled
+    - network
+    - asset
+    - amount
+    - payTo
+    - issuedAt
+    - expiresAt
+  paramsHashAlgorithm: sha256(canonical-json(params))
+  correlationField: actionId
+
+mappings:
+  k1_navigate_avoid_obstacles:
+    output: mujoco_dwa_navigation
+    simulator: mujoco
+    scene: simulation/mujoco/scenes/booster_k1_obstacle_nav.xml
+    runner: simulation/mujoco/runner.py
+    completion:
+      runningEvidence:
+        - policy loop step count > 0
+        - actuator control values change over time
+      successEvidence:
+        - distance_to_goal <= 0.3m
+        - collision_count == 0
+      failure:
+        modes:
+          - timeout_exceeded
+          - collision_detected
+          - goal_unreachable
+        action: stop_actuators
+        retryAutomatically: false
+
+replayProtection:
+  storage: sqlite
+  key: idempotencyKey
+  uniqueFields:
+    - actionId
+    - payment.authorizationId
+  fingerprintFields:
+    - actionId
+    - robotId
+    - skillId
+    - paramsHash
+    - payment.authorizationId

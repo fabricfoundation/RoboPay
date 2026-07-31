@@ -1,0 +1,43 @@
+schemaVersion: robot-profile.v1
+vendor: booster
+robotModel: k1
+robotType: simulated-humanoid
+profileId: booster.k1.obstacle-nav-sim.v1
+profileVersion: 1.0.0
+
+displayName: "Fabric Foundation x Booster K1 simulated obstacle navigation"
+description: >-
+  Simulation-only Booster K1 humanoid integration. A policy-driven
+  obstacle-avoidance navigation skill is triggered end-to-end from a
+  paid RoboPay action through the tunnel, over Zenoh, into a MuJoCo
+  simulation, with cross-validation against an independent Webots
+  simulation of the same scene and policy.
+
+submission:
+  scope: simulation
+  tier: 1
+  simulators:
+    - mujoco
+    - webots
+  simToSimValidation: simulation/sim_to_sim_validate.py
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: booster-k1-zenoh
+  controlStack:
+    primarySimulator: "MuJoCo 3.11.0"
+    secondarySimulator: "Webots R2025a"
+    policy: "Dynamic Window Approach (DWA) local planner, own implementation"
+
+identity:
+  robotIdEnv: ROBOT_ID
+  robotPrivateKeyEnv: ROBOT_PRIVATE_KEY
+  payeeWalletEnv: ROBOT_PAYEE_ADDRESS
+  note: Secrets are never stored in this profile.
+
+maintainers:
+  - github: yunaiko
+
+status: experimental

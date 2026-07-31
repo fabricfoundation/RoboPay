@@ -1,0 +1,43 @@
+<mujoco model="booster_k1_obstacle_nav">
+  <option timestep="0.01" gravity="0 0 -9.81"/>
+
+  <default>
+    <geom friction="1 0.5 0.5" density="500"/>
+  </default>
+
+  <worldbody>
+    <light diffuse=".8 .8 .8" pos="0 0 5" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="10 10 0.1" rgba="0.8 0.8 0.8 1"/>
+
+    <!-- Booster K1 base proxy: planar body (slide x, slide y, hinge yaw)
+         representing the robot's mobile/torso footprint for navigation
+         purposes. This is a geometric proxy, not an official Booster K1
+         CAD model. -->
+    <body name="k1_base" pos="0 0 0.4">
+      <joint name="jx" type="slide" axis="1 0 0" damping="2"/>
+      <joint name="jy" type="slide" axis="0 1 0" damping="2"/>
+      <joint name="jz" type="hinge" axis="0 0 1" damping="1"/>
+      <geom name="k1_torso" type="cylinder" size="0.25 0.4" rgba="0.2 0.4 0.9 1" mass="20"/>
+      <geom name="k1_heading_marker" type="box" pos="0.2 0 0.35" size="0.05 0.05 0.05" rgba="1 0 0 1"/>
+    </body>
+
+    <!-- Static obstacles -->
+    <body name="obstacle_1" pos="2.5 0 0.3">
+      <geom name="obs1" type="cylinder" size="0.4 0.3" rgba="0.9 0.2 0.2 1"/>
+    </body>
+    <body name="obstacle_2" pos="1.2 1.0 0.3">
+      <geom name="obs2" type="box" size="0.3 0.3 0.3" rgba="0.9 0.6 0.1 1"/>
+    </body>
+
+    <!-- Goal marker (visual only, non-colliding) -->
+    <body name="goal_marker" pos="5 0 0.05">
+      <geom name="goal" type="cylinder" size="0.3 0.02" rgba="0.1 0.9 0.1 0.5" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <velocity name="act_vx" joint="jx" kv="100" ctrlrange="-1 1"/>
+    <velocity name="act_vy" joint="jy" kv="100" ctrlrange="-1 1"/>
+    <velocity name="act_wz" joint="jz" kv="60" ctrlrange="-2 2"/>
+  </actuator>
+</mujoco>
