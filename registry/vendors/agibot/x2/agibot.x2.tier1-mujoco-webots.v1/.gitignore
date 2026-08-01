@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.webots_episode_tmp/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
