@@ -3,7 +3,7 @@ navigation. Simulator-agnostic: takes a plain robot state + obstacle
 list, returns a (v, omega) command. MuJoCo and Webots both import this
 exact module, so sim-to-sim validation compares two physics engines
 running the same policy, not two different policies."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
 
 

@@ -28,7 +28,6 @@ robot = Supervisor()
 timestep = int(robot.getBasicTimeStep())
 dt = timestep / 1000.0
 
-k1_node = robot.getFromDef("K1BASE") or robot.getSelf()
 # We're the robot's own controller; get our own node for pose/velocity
 self_node = robot.getSelf()
 obstacle_1 = robot.getFromDef("OBSTACLE_1")
