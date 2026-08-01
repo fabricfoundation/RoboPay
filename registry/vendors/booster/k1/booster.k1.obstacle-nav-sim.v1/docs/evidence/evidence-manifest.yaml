@@ -1,0 +1,110 @@
+schemaVersion: robopay-evidence.v1
+profileId: booster.k1.obstacle-nav-sim.v1
+
+claimBoundary:
+  scope: simulation-only
+  claimed: >-
+    A real, unmocked run of the RoboPay integration gate
+    (bridge/booster_k1_zenoh_bridge.py) over a live Zenoh session,
+    covering three scenarios in a single continuous session: a valid
+    paid action reaching the simulator and returning a correlated
+    success result, an unpaid action rejected before simulator
+    dispatch, and a replayed actionId rejected before a second
+    simulator dispatch.
+  notClaimed: >-
+    This evidence does not involve real x402 payment infrastructure,
+    a real Tunnel service, or physical hardware -- the payment fields
+    in the demo action envelopes are constructed directly by
+    demo/send_test_action.py to exercise the bridge's validation
+    logic, not produced by an actual x402 payment flow. The
+    action_validator.py logic that would accept or reject a real
+    x402-verified payment is unit-tested separately (see
+    tests/test_action_validator.py) against the same field contract.
+
+evidence:
+  - evidenceId: BK1-E2E-001
+    file: terminal/bridge-e2e-session.log
+    sha256: 705cbe3ebc54e22c211268abf5b686e942160bcb1f5cbbb9fb7c648b365a2876
+    bytes: 2184
+    format: plain-text-log
+    captureDate: 2026-08-01
+    scope: real-bridge-real-zenoh-real-mujoco-three-scenarios
+    source:
+      description: >-
+        Direct terminal output from bridge/booster_k1_zenoh_bridge.py
+        (subscriber/dispatcher side), captured verbatim during a live
+        session against a real Zenoh router and the real MuJoCo
+        runner. Client-side (demo/send_test_action.py) results for
+        the same three requests are appended as comments at the end
+        of the log for cross-reference.
+      redaction: >-
+        none -- no secrets, wallet addresses, or personal data appear
+        in bridge log output (payment fields in the demo envelopes are
+        synthetic placeholder values, not real credentials).
+    trace:
+      scenario1:
+        actionId: act_12936446e2a44324
+        request: "payment.verified=true, status=authorized, settled=false"
+        result: "status=success, distance_to_goal_m=0.2979, path_length_m=5.4299, collision_count=0"
+        simulatorDispatched: true
+      scenario2:
+        actionId: act_f5cb658f626443d9
+        request: "payment.verified=false"
+        result: "status=rejected, errorCode=payment_not_verified"
+        simulatorDispatched: false
+      scenario3:
+        actionId: "act_12936446e2a44324 (replay of scenario1)"
+        request: "same actionId, new idempotencyKey and authorizationId"
+        result: "status=rejected, errorCode=replay_detected"
+        simulatorDispatched: false
+    visibleEvidence:
+      - >-
+        Dispatching action_id=... to MuJoCo simulator logged exactly
+        once for the valid action, and never for the unpaid or
+        replayed requests
+      - Zenoh session opened and subscription established on robot/tunnel/action
+      - Published result actionId=... status=success for the valid action
+      - "Rejected action_id=...: payment_not_verified for the unpaid action"
+      - >-
+        Rejected replay for action_id=...: replay detected (actionId
+        already used) for the replay attempt
+    limitations:
+      - Synthetic x402 payment fields, not a real Tunnel/x402 payment flow.
+      - >-
+        Single-process, single-session demonstration; does not cover
+        concurrent multi-client load or a distributed replay-guard store.
+      - >-
+        Does not include a captured screenshot/video; this is a raw
+        terminal log, which is the actual, complete output rather
+        than a cropped visual excerpt.
+
+  - evidenceId: BK1-MUJOCO-001
+    file: ../../simulation/mujoco/results/metrics.json
+    scope: real-mujoco-physics-run
+    captureDate: 2026-08-01
+    trace:
+      status: success
+      distance_to_goal_m: 0.2979
+      path_length_m: 5.4299
+      collision_count: 0
+      sim_time_sec: 30.5
+    limitations:
+      - K1 base is a geometric proxy, not an official CAD model.
+
+  - evidenceId: BK1-WEBOTS-001
+    file: ../../simulation/webots/results/metrics.json
+    scope: real-webots-physics-run-independent-engine-same-policy
+    captureDate: 2026-08-01
+    trace:
+      status: success
+      distance_to_goal_m: 0.2984
+      path_length_m: 5.3593
+      collision_count: 0
+      sim_time_sec: 9.9
+    limitations:
+      - K1 base is a geometric proxy, not an official CAD model.
+      - >-
+        Base motion is applied kinematically (direct pose integration)
+        rather than through a wheeled/actuator physics model, since
+        the proxy has no drivetrain of its own; documented in
+        docs/validation-report.md.
