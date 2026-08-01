@@ -1,9 +1,7 @@
-"""
-MuJoCo runner for the Booster K1 obstacle-avoidance navigation skill.
-
-Loads the scene, steps physics in a closed loop where the DWA policy
-observes robot state + obstacle positions from the simulator itself
-(not hardcoded), and writes real metrics to results/metrics.json.
+"""MuJoCo runner for the Booster K1 obstacle-avoidance navigation
+skill. Steps physics in a closed loop where the DWA policy reads
+robot/obstacle state from the simulator itself, and writes metrics
+to results/metrics.json.
 
 Usage:
     python runner.py --goal_x 5.0 --goal_y 0.0 --max_time_sec 60
@@ -25,7 +23,7 @@ RESULTS_PATH = os.path.join(os.path.dirname(__file__), "results", "metrics.json"
 
 
 def get_obstacles(model, data):
-    """Read obstacle world positions + radii directly from the live sim state."""
+    """Reads obstacle positions + radii from the live sim state."""
     obstacles = []
     for name, radius in [("obstacle_1", 0.4), ("obstacle_2", 0.42)]:
         body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)

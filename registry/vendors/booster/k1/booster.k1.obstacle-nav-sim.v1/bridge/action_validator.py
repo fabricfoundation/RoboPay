@@ -1,13 +1,6 @@
-"""
-Validates incoming RoboPay action envelopes before they are allowed to
-reach the simulator. This is the payment/security gate described in
-execution-mapping.yaml and payment-policy.yaml.
-
-Deliberately strict and explicit: any missing field, invalid payment
-state, expired authorization, or replayed idempotency key is REJECTED
-here. There is no fallback path that lets an action through without a
-valid, verified, unsettled x402 authorization.
-"""
+"""Payment/security gate for incoming RoboPay action envelopes.
+Rejects anything missing, tampered, unpaid, expired, or already
+settled -- there is no path around this into the simulator."""
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -31,9 +24,7 @@ EXPECTED_AMOUNT = "1000"
 
 
 class ValidationError(Exception):
-    """Raised when an action envelope must be rejected. Carries a
-    machine-readable reason code so the bridge can publish a precise
-    error result rather than a generic failure."""
+    """Carries a machine-readable code so the bridge can publish a precise error result."""
     def __init__(self, code: str, message: str):
         self.code = code
         self.message = message
@@ -65,11 +56,7 @@ def _require_fields(envelope: dict, fields: list, where: str):
 
 
 def validate_envelope(envelope: dict, now: datetime = None) -> ValidatedAction:
-    """Raises ValidationError on any problem. Returns a ValidatedAction
-    only if the envelope is structurally sound, params hash matches,
-    the skill is the one this bridge serves, and the payment is a
-    verified, currently-authorized (not settled, not expired) x402
-    authorization for the correct network/asset/amount."""
+    """Raises ValidationError on the first check that fails."""
     if now is None:
         now = datetime.now(timezone.utc)
 

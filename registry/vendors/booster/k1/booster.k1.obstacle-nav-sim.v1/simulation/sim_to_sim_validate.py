@@ -1,14 +1,10 @@
-"""
-Sim-to-Sim validation for the Booster K1 obstacle-avoidance navigation skill.
-
-Runs the same scenario (goal, obstacles, policy) in both MuJoCo and
-Webots, then compares the resulting metrics.json files against
-explicit tolerances. Exits non-zero if any metric disagrees beyond
-tolerance, so this can be wired into CI.
+"""Sim-to-sim validation for the Booster K1 obstacle-avoidance skill.
+Compares MuJoCo vs Webots metrics.json against explicit tolerances and
+exits non-zero on disagreement, so this can run in CI.
 
 Usage:
     python3 sim_to_sim_validate.py --goal_x 5.0 --goal_y 0.0 --max_time_sec 60
-    python3 sim_to_sim_validate.py --skip-run   # just compare existing results/*.json
+    python3 sim_to_sim_validate.py --skip-run   # compare existing results/*.json
 """
 import argparse
 import json

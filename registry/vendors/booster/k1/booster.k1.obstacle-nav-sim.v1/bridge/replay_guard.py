@@ -1,27 +1,13 @@
-"""
-Replay protection for Booster K1 action execution, per the
-replayProtection block in execution-mapping.yaml:
-
-  storage: sqlite
-  key: idempotencyKey
-  uniqueFields: [actionId, payment.authorizationId]
-  fingerprintFields: [actionId, robotId, skillId, paramsHash, payment.authorizationId]
-
-Guarantees: the same idempotencyKey, the same actionId, or the same
-payment authorizationId can never trigger a second execution. If a
-replay is detected, the caller must NOT re-dispatch to the simulator
-and must NOT re-attempt settlement.
-"""
+"""SQLite-backed replay guard: idempotencyKey, actionId, and
+payment.authorizationId are each unique. A repeat of any one blocks
+execution before the simulator is ever dispatched."""
 import sqlite3
 import threading
 from dataclasses import dataclass
 
 
 class ReplayDetected(Exception):
-    """Raised when an action has already been recorded as executed.
-    Carries the original recorded fingerprint so the caller can
-    decide whether this is a legitimate retry (identical fingerprint)
-    or a suspicious mismatch (same key, different content)."""
+    """Carries the original recorded fingerprint alongside the new one."""
     def __init__(self, reason: str, original_fingerprint: str, new_fingerprint: str):
         self.reason = reason
         self.original_fingerprint = original_fingerprint
@@ -47,9 +33,8 @@ class Fingerprint:
 
 
 class ReplayGuard:
-    """Thread-safe SQLite-backed replay guard. One instance per bridge
-    process; safe to share across the async event loop via a lock
-    because sqlite3 connections are not otherwise thread-safe."""
+    """One instance per bridge process. Lock-guarded since sqlite3
+    connections aren't thread-safe on their own."""
 
     def __init__(self, db_path: str):
         self._lock = threading.Lock()
@@ -72,13 +57,9 @@ class ReplayGuard:
             self._conn.commit()
 
     def check_and_reserve(self, idempotency_key: str, fp: Fingerprint) -> None:
-        """Atomically checks whether this action has been seen before
-        (by idempotencyKey, actionId, or authorizationId) and, if not,
-        reserves the slot so a concurrent duplicate request is also
-        rejected. Raises ReplayDetected if any of the three unique
-        keys already exists.
-
-        Must be called BEFORE dispatching to the simulator."""
+        """Must be called BEFORE dispatching to the simulator. Raises
+        ReplayDetected if idempotencyKey, actionId, or authorizationId
+        was already used."""
         fingerprint_str = fp.as_string()
         with self._lock:
             cur = self._conn.execute(
@@ -97,8 +78,7 @@ class ReplayGuard:
                     reason = "payment.authorizationId already used"
                 raise ReplayDetected(reason, existing_fp, fingerprint_str)
 
-            # Reserve the slot immediately (result_status set later via
-            # record_result) so a concurrent duplicate sees this row.
+            # Reserve now, before dispatch, so a concurrent duplicate sees this row.
             self._conn.execute(
                 "INSERT INTO executed_actions "
                 "(idempotency_key, action_id, authorization_id, fingerprint, result_status) "

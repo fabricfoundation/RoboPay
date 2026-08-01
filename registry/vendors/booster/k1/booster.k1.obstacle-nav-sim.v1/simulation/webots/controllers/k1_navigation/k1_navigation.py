@@ -1,13 +1,10 @@
-"""
-Webots controller for the Booster K1 obstacle-avoidance navigation skill.
+"""Webots controller for the Booster K1 obstacle-avoidance navigation
+skill. Imports the same DWA planner as the MuJoCo runner, so
+sim-to-sim validation compares two physics engines running identical
+policy code.
 
-Imports the exact same DWA planner used by the MuJoCo runner, so
-sim-to-sim validation compares two independent physics engines driving
-identical policy code -- not two different policies.
-
-Reads GOAL_X / GOAL_Y / MAX_TIME_SEC from environment variables so the
-same scenario used in MuJoCo can be replayed here without editing code.
-"""
+Reads GOAL_X / GOAL_Y / MAX_TIME_SEC from the environment so the same
+scenario used in MuJoCo can be replayed here without editing code."""
 import json
 import os
 import sys
@@ -88,10 +85,9 @@ def get_obstacle_positions():
 
 
 def apply_velocity(v, w, yaw):
-    """Directly integrate + write pose (kinematic proxy — Webots Robot node
-    has no built-in wheeled physics here, so we move it exactly as MuJoCo's
-    velocity actuators would drive a planar base, honestly labeled as such
-    in docs/validation-report.md)."""
+    """Kinematic integration -- the K1 proxy has no wheeled physics of
+    its own, so this drives the base the same way MuJoCo's velocity
+    actuators do. Documented in docs/validation-report.md."""
     x, y, _ = translation_field.getSFVec3f()
     new_yaw = yaw + w * dt
     new_x = x + v * np.cos(new_yaw) * dt

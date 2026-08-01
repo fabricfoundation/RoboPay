@@ -1,29 +1,15 @@
-"""
-Booster K1 Zenoh bridge -- the RoboPay integration gate.
+"""Booster K1 Zenoh bridge -- the RoboPay integration gate.
 
-Flow (matches execution-mapping.yaml / functions.yaml):
+    Tunnel (x402 verify) -> robot/tunnel/action -> [this bridge]
+        validate -> replay-check -> dispatch to MuJoCo -> robot/tunnel/result
 
-    Fabric backend -> Tunnel (x402 verify) -> Zenoh (robot/tunnel/action)
-        -> [THIS BRIDGE]
-            1. validate envelope + payment (action_validator.py)
-            2. check replay (replay_guard.py) -- reserve BEFORE dispatch
-            3. dispatch to MuJoCo simulator (simulation/mujoco/runner.py)
-            4. publish terminal result correlated by actionId on
-               robot/tunnel/result
+No fallback path: an unreachable Zenoh session, a failed validation,
+or a detected replay all reject the action. This is the only route
+into simulation/mujoco/runner.py.
 
-No fallback path: if Zenoh is unreachable, if the envelope fails
-validation, or if replay is detected, the action is REJECTED. There
-is no direct-simulator-write path that bypasses this gate -- this is
-the only way a payload can reach simulation/mujoco/runner.py through
-this bridge.
-
-Settlement gating (payment-policy.yaml): the result published here
-carries status=success only when the simulator actually reports
-status=success. A downstream settlement service is expected to only
-settle on status=success, and never settle on error/pending/timeout/
-rejected -- this bridge enforces that by construction, since it is
-the sole source of truth for the result's status field.
-"""
+Published status is 'success' only when the simulator itself reports
+success, so a downstream settlement service never settles on a
+failed run."""
 import argparse
 import json
 import logging
@@ -55,8 +41,7 @@ log = logging.getLogger("booster_k1_bridge")
 
 
 def make_result(action_id: str, status: str, **extra) -> dict:
-    """Every published result is correlated to the originating actionId,
-    per the correlationField requirement in execution-mapping.yaml."""
+    """Every result carries the originating actionId for correlation."""
     result = {
         "schemaVersion": "robot-action-result.v1",
         "actionId": action_id,
@@ -68,9 +53,7 @@ def make_result(action_id: str, status: str, **extra) -> dict:
 
 
 def dispatch_to_simulator(params: dict) -> dict:
-    """Runs the MuJoCo policy-driven simulation for this action's
-    params and returns the resulting metrics dict. Raises
-    subprocess.CalledProcessError if the runner itself fails."""
+    """Runs the MuJoCo simulation for this action and returns its metrics."""
     goal_x = params["goal_x"]
     goal_y = params["goal_y"]
     max_time_sec = params.get("max_time_sec", 60)
@@ -118,8 +101,7 @@ class BoosterK1Bridge:
             envelope = json.loads(raw)
         except json.JSONDecodeError as e:
             log.warning("Rejecting malformed JSON on %s: %s", ACTION_TOPIC, e)
-            # No actionId available to correlate -- cannot publish a
-            # terminal result without one. Drop and log only.
+            # No actionId to correlate a result with -- drop and log only.
             return
 
         action_id = envelope.get("actionId", "<unknown>")

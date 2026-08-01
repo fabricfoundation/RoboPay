@@ -1,17 +1,12 @@
-"""
-Manual E2E demo helper: publishes a single paid action envelope to
-robot/tunnel/action and prints whatever comes back on
-robot/tunnel/result correlated by actionId, then exits.
-
-This simulates the "Tunnel" component publishing an already-x402-
-verified action after payment authorization -- it is NOT a payment
-gateway itself, just a way to demonstrate the bridge's behavior
-without standing up the full Fabric/Tunnel stack.
+"""Manual E2E demo: publishes one action envelope to robot/tunnel/action
+and prints the correlated robot/tunnel/result. Stands in for the Tunnel
+component (which would normally publish after x402 verification) so the
+bridge's behavior can be demonstrated without the full Fabric/Tunnel stack.
 
 Usage:
     python3 send_test_action.py                      # valid action, expect success
     python3 send_test_action.py --unpaid              # expect status=rejected
-    python3 send_test_action.py --replay-of ACTIONID  # resend an existing actionId, expect rejected
+    python3 send_test_action.py --replay-of ACTIONID  # resend an actionId, expect rejected
 """
 import argparse
 import hashlib

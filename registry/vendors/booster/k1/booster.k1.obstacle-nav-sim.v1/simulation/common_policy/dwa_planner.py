@@ -1,13 +1,8 @@
-"""
-Dynamic Window Approach (DWA) local planner for Booster K1 base navigation.
-
-This module is simulator-agnostic: it only consumes a plain robot state
-(x, y, yaw, v, omega) and a list of obstacle circles, and returns a
-(v, omega) velocity command. Both the MuJoCo runner and the Webots
-controller import this exact module, so sim-to-sim validation compares
-two different physics engines driving the *same* policy code, not two
-different policies.
-"""
+"""Dynamic Window Approach (DWA) local planner for Booster K1 base
+navigation. Simulator-agnostic: takes a plain robot state + obstacle
+list, returns a (v, omega) command. MuJoCo and Webots both import this
+exact module, so sim-to-sim validation compares two physics engines
+running the same policy, not two different policies."""
 from dataclasses import dataclass, field
 import numpy as np
 
@@ -88,7 +83,7 @@ def obstacle_cost(traj, obstacles, robot_radius):
 
 
 def plan_step(state: RobotState, goal, obstacles, cfg: DWAConfig):
-    """Returns (v, omega, best_traj). Pure function, no side effects."""
+    """Returns (v, omega, best_traj)."""
     dw = dynamic_window(state, cfg)
     best_cost = float("inf")
     best_u = (0.0, 0.0)
