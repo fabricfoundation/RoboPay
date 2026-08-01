@@ -1,0 +1,56 @@
+name: booster-k1-obstacle-nav-sim tests
+
+on:
+  pull_request:
+    paths:
+      - 'registry/vendors/booster/k1/booster.k1.obstacle-nav-sim.v1/**'
+  push:
+    branches:
+      - booster-k1-tier-1
+    paths:
+      - 'registry/vendors/booster/k1/booster.k1.obstacle-nav-sim.v1/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: registry/vendors/booster/k1/booster.k1.obstacle-nav-sim.v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install mujoco numpy scipy pyyaml eclipse-zenoh pytest
+
+      - name: Run unit + integration tests
+        run: python3 -m pytest tests/ -v
+
+      - name: Run MuJoCo simulation
+        run: |
+          cd simulation/mujoco
+          python3 runner.py --goal_x 5.0 --goal_y 0.0 --max_time_sec 60
+
+      - name: Verify MuJoCo run succeeded
+        run: |
+          python3 -c "
+          import json
+          with open('simulation/mujoco/results/metrics.json') as f:
+              m = json.load(f)
+          assert m['status'] == 'success', f'MuJoCo run did not succeed: {m[\"status\"]}'
+          assert m['collision_count'] == 0
+          print('MuJoCo run OK:', m['status'], m['distance_to_goal_m'])
+          "
+
+      - name: Sim-to-sim comparison against committed Webots baseline
+        run: |
+          python3 simulation/sim_to_sim_validate.py --skip-run
+        # Note: Webots itself is not run in CI -- it requires a GUI/extern-
+        # controller session (see docs/README.md). This step compares the
+        # freshly-generated MuJoCo results.json against the Webots
+        # results.json committed to the repo from the last manual run.
