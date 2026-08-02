@@ -1,0 +1,25 @@
+{
+  "skills": [
+    {
+      "skillId": "look_at_apple",
+      "description": "Turn the head to look at the apple target on the table.",
+      "priceUSDC": "0.001",
+      "paymentRequired": true,
+      "params": {}
+    },
+    {
+      "skillId": "inspect_table",
+      "description": "Scan across the tabletop targets (apple, croissant, duck) in sequence.",
+      "priceUSDC": "0.001",
+      "paymentRequired": true,
+      "params": {}
+    },
+    {
+      "skillId": "stop",
+      "description": "Immediately halt gaze tracking and hold the current pose.",
+      "priceUSDC": "0.000",
+      "paymentRequired": false,
+      "params": {}
+    }
+  ]
+}

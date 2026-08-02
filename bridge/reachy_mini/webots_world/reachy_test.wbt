@@ -1,0 +1,41 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "ReachyMini.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation 0.19710803313007602 0.7036778105048167 -0.6826316446508613 1.215198732106784
+  position -0.543588570375873 1.3396584165576355 2.4445990761595877
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+Floor {
+  size 2 2
+}
+ReachyMini {
+  translation 0 0 0.1
+  rotation 0.07054026594697203 -0.43468870498736206 0.897813900892908 0.35763386050049906
+  controller "reachy_gaze_controller"
+  supervisor TRUE
+}
+DEF APPLE Solid {
+  translation 0.3 0.1 0.15
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.1 0.1
+        roughness 0.6
+      }
+      geometry Sphere {
+        radius 0.04
+      }
+    }
+  ]
+  name "apple"
+}

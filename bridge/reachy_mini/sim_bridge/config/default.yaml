@@ -1,0 +1,11 @@
+sim_bridge_reachy_mini:
+  ros__parameters:
+    zenoh_topic: "robot/tunnel/action"
+    zenoh_listen: "tcp/127.0.0.1:7447"
+    metrics_topic: "robot/reachy_mini/metrics"
+    # Gaze-lock FSM tuning. Achievable steady-state accuracy with the
+    # vendor's analytical IK is ~0.15-0.17 rad (~9-10 deg) for this
+    # geometry, so tolerance carries margin above that instead of an
+    # idealized zero (see src/policy/controller.py).
+    lock_tolerance_rad: 0.30
+    lock_hold_steps: 15
