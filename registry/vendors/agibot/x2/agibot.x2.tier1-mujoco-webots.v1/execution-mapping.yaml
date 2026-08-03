@@ -1,0 +1,55 @@
+schemaVersion: execution-mapping.v1
+profileId: agibot.x2.tier1-mujoco-webots.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+
+validation:
+  requiredActionFields:
+    - actionId
+    - robotId
+    - skillId
+    - params
+    - paramsHash
+    - idempotencyKey
+    - payment
+  paramsHash: sha256 of UTF-8 canonical JSON, sorted keys, compact separators
+  replayStore: SQLite path from ROBOPAY_STATE_DB
+  rejectBeforeActuation:
+    - malformed envelope
+    - wrong robotId
+    - unknown skillId
+    - invalid params or paramsHash
+    - unverified, mismatched, expired, or reused payment
+
+mappings:
+  x2_obstacle_avoid_nav:
+    output: dual_simulator_policy
+    policy: bridge/policy/obstacle_avoid_policy.py::ObstacleAvoidPolicy
+    primarySimulator: mujoco
+    validationSimulator: webots
+    executionSemantics:
+      - Both simulators are loaded fresh from their model/world file (no cached/stale state).
+      - The same policy module drives both simulators from identical initial params.
+      - Each simulator independently reports terminal state: reached_target, collided, or timed_out.
+      - Success requires primary AND validation simulators to both report reached_target
+        without a collision, within maxDurationSec.
+      - Disagreement between the two simulators is reported as an error, never as success.
+    completion:
+      success: both simulators report reached_target and no collision
+      pending: episode still running in either simulator
+      error: collision, timeout, simulator crash, or Sim-to-Sim disagreement
+
+result:
+  correlationFields:
+    - actionId
+    - robotId
+    - skillId
+    - idempotencyKey
+    - paramsHash
+  settlementEligibleOnlyWhen:
+    - status == success
+    - both simulators agree on reached_target
+    - execution is not a dry run
