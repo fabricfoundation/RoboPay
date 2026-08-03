@@ -25,7 +25,35 @@ import (
 	"github.com/fabricfoundation/tunnel/internal"
 	"github.com/fabricfoundation/tunnel/internal/aipagent"
 	"github.com/fabricfoundation/tunnel/internal/handlers"
+	"github.com/fabricfoundation/tunnel/internal/ledger"
+	"github.com/fabricfoundation/tunnel/internal/settle"
+	"github.com/fabricfoundation/tunnel/internal/skillbook"
 )
+
+// facilitatorSettleAdapter adapts *x402http.HTTPFacilitatorClient to
+// settle.FacilitatorSettler, translating the SDK's *x402.SettleResponse
+// into settle's local SettleResponse so the settle package stays free
+// of a direct x402 SDK dependency.
+type facilitatorSettleAdapter struct {
+	client *x402http.HTTPFacilitatorClient
+}
+
+func (a *facilitatorSettleAdapter) Settle(ctx context.Context, payloadBytes, requirementsBytes []byte) (*settle.SettleResponse, error) {
+	resp, err := a.client.Settle(ctx, payloadBytes, requirementsBytes)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, nil
+	}
+	return &settle.SettleResponse{
+		Success:      resp.Success,
+		ErrorReason:  resp.ErrorReason,
+		ErrorMessage: resp.ErrorMessage,
+		Transaction:  resp.Transaction,
+		Network:      string(resp.Network),
+	}, nil
+}
 
 const (
 	RobotConfigTopicPrefix = "robot/config/"
@@ -137,8 +165,24 @@ func main() {
 		}()
 	}
 
+	// Skillbook and ledger are created once for the process lifetime, not
+	// per setupRouter call -- setupRouter re-runs on every relay reconnect
+	// (see the for loop below), and re-creating the ledger there would wipe
+	// in-flight action state on every reconnect.
+	book, err := skillbook.Load(cfg.SkillsPath)
+	if err != nil {
+		logger.Fatal("failed to load skill book", zap.Error(err))
+	}
+	ldg := ledger.New()
+
+	settleFacilitator := x402http.NewHTTPFacilitatorClient(&x402http.FacilitatorConfig{
+		URL: cfg.FacilitatorURL,
+	})
+	settleWatcher := settle.New(ldg, &facilitatorSettleAdapter{client: settleFacilitator}, logger, 2*time.Second)
+	go settleWatcher.Run(ctx)
+
 	for {
-		router := setupRouter(cfg, aipSrv, logger)
+		router := setupRouter(cfg, aipSrv, logger, book, ldg)
 		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)
@@ -162,7 +206,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger) *gin.Engine {
+func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger, book *skillbook.Book, ldg *ledger.Ledger) *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
@@ -212,7 +256,7 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		Timeout: 30 * time.Second,
 	}))
 
-	h := handlers.NewHandlers(logger)
+	h := handlers.NewHandlers(logger, book, ldg)
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)
@@ -227,4 +271,5 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 // RegisterAllRoutes registers all real handlers on the router.
 func RegisterAllRoutes(router *gin.Engine, h *handlers.Handlers) {
 	router.POST("/action", h.PostAction)
+	router.GET("/action/:actionId/status", h.GetActionStatus)
 }

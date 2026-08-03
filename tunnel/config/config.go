@@ -19,6 +19,7 @@ const (
 	DefaultAIPGatewayURL    = "https://gateway.aip.unibase.com"
 	DefaultAIPChainID       = 97
 	DefaultAIPLocalPort     = 8000
+	DefaultSkillsPath       = "config/skills.json"
 )
 
 func getEnvOrDefault(key, defaultVal string) string {
@@ -46,6 +47,7 @@ type Config struct {
 	AIPAgentName     string `json:"-"`
 	AIPChainID       int    `json:"-"`
 	AIPLocalPort     int    `json:"-"` // localhost port the SDK binds for its (tunnel-bypassed) listener
+	SkillsPath       string `json:"-"` // path to the skill allowlist JSON file
 }
 
 // PriceAmount returns the numeric value of the configured price ("$0.002" → 0.002).
@@ -96,6 +98,7 @@ func LoadConfig(path string) (*Config, error) {
 
 	cfg.ProxyWSURL = getEnvOrDefault("PROXY_WS_URL", DefaultProxyWSURL)
 	cfg.FacilitatorURL = getEnvOrDefault("FACILITATOR_URL", DefaultFacilitatorURL)
+	cfg.SkillsPath = getEnvOrDefault("SKILLS_PATH", DefaultSkillsPath)
 
 	if cfg.RobotID == "" {
 		cfg.RobotID = uuid.NewString()
