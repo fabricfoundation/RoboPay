@@ -146,17 +146,17 @@ Sim-to-Sim result.
 
 ```bash
 # Local E2E (proxy + facilitator, no real funds)
-python3 test_e2e_paid_action.py
+python3 bridge/reachy_mini/test_e2e_paid_action.py
 
 # Mandatory no-settlement proof: simulator failure/timeout/replay/restart
 # against the real tunnel binary + recording facilitator (zero /settle calls)
-python3 test_x402_no_settlement.py
+python3 bridge/reachy_mini/test_x402_no_settlement.py
 
 # Live Base Sepolia E2E (needs PRIVATE_KEY env var); writes base_sepolia_result_<ts>.json
-python3 test_base_sepolia_tunnel_e2e.py
+python3 bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
 
 # Payment gate vs real Go binary
-python3 test_payment_gate.py
+python3 bridge/reachy_mini/test_payment_gate.py
 ```
 
 ## Requirements
