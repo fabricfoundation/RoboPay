@@ -147,7 +147,7 @@ jobs:
           make build
       - name: Start local Zenoh router
         run: |
-          wget -q https://download.eclipse.org/zenoh/zenoh/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+          wget -q https://github.com/eclipse-zenoh/zenoh/releases/download/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
           unzip -q zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d .zenoh-router
           .zenoh-router/zenohd > zenohd.log 2>&1 &
           sleep 2
