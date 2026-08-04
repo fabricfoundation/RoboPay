@@ -1,4 +1,6 @@
 """Parse Fabric tunnel Action Event payloads."""
+import hashlib
+import hmac
 import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
@@ -13,6 +15,7 @@ class ActionEvent:
     robot_id: str = ""
     skill_id: str = ""
     params_hash: str = ""
+    params_canonical: str = ""
     idempotency_key: str = ""
     transaction_details: Dict[str, Any] = field(default_factory=dict)
 
@@ -63,6 +66,26 @@ def parse_action_event(raw: bytes) -> Optional[ActionEvent]:
         params = {}
     if not isinstance(params, dict):
         return None
+
+    # Go computes params_hash from encoding/json's exact canonical byte
+    # sequence.  Carry that sequence alongside the structured payload so a
+    # Python bridge can prove integrity without trying to reproduce Go's float
+    # rendering rules.  A local Zenoh publisher cannot alter valid parameters
+    # while retaining the Tunnel's paid correlation hash.
+    params_canonical = event.get("params_canonical")
+    if not isinstance(params_canonical, str):
+        return None
+    try:
+        canonical_params = json.loads(params_canonical)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    expected_hash = "sha256:" + hashlib.sha256(params_canonical.encode("utf-8")).hexdigest()
+    if (
+        not isinstance(canonical_params, dict)
+        or canonical_params != params
+        or not hmac.compare_digest(expected_hash, correlation["params_hash"].strip())
+    ):
+        return None
     transaction_details = event.get("transaction_details") or {}
     if not isinstance(transaction_details, dict):
         transaction_details = {}
@@ -75,6 +98,7 @@ def parse_action_event(raw: bytes) -> Optional[ActionEvent]:
         robot_id=correlation["robot_id"].strip(),
         skill_id=correlation["skill_id"].strip(),
         params_hash=correlation["params_hash"].strip(),
+        params_canonical=params_canonical,
         idempotency_key=correlation["idempotency_key"].strip(),
         transaction_details=transaction_details,
     )
