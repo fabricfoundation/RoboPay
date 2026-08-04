@@ -270,7 +270,14 @@ def main() -> int:
 
             status_url = f"{FABRIC_API_BASE}/robots/{robot_id}/action/{request_id}/status"
             terminal = None
-            deadline = time.monotonic() + 180
+            # The evidence workflow may intentionally run the real Webots
+            # cross-engine validation after MuJoCo. Keep polling longer than
+            # the Tunnel execution timeout so a valid correlated success is
+            # observed instead of being misreported as a client timeout.
+            execution_timeout = float(
+                os.environ.get("EXECUTION_TIMEOUT_SECONDS", "90")
+            )
+            deadline = time.monotonic() + execution_timeout + 60
             while time.monotonic() < deadline:
                 poll = requests.get(status_url, timeout=45)
                 if poll.status_code == 200:

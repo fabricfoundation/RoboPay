@@ -156,6 +156,10 @@ jobs:
           PRIVATE_KEY: ${{ secrets.BASE_SEPOLIA_PRIVATE_KEY }}
           ROBO_PAYEE_ADDRESS: ${{ secrets.ROBO_PAYEE_ADDRESS }}
           ROBOT_ID: reachy-mini-kauker
+          # The paid bridge performs the same real MuJoCo + Webots validation
+          # used by the profile. The production default remains 90 seconds;
+          # this evidence job gives that cross-engine result time to finish.
+          EXECUTION_TIMEOUT_SECONDS: "300"
           TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
           LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib:/usr/local/webots/lib
           PROXY_WS_URL: wss://api.fabric.foundation/api/core/ws/robot
