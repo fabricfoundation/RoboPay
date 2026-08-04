@@ -36,6 +36,8 @@ action/status contract, troubleshooting, and test commands:
 
 → [Reachy Mini bridge README](bridge/reachy_mini/README.md)
 
+Visual evidence: [multi-object MuJoCo inspection](https://github.com/user-attachments/assets/c95d07bd-22c7-458f-8486-529226f85780) and [paid Base Sepolia → Tunnel → Zenoh → MuJoCo execution](https://github.com/user-attachments/assets/a5a31509-d85d-493f-bee6-fff58ad9dd34).
+
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 
