@@ -56,6 +56,26 @@ the goal, proving timeout produces no settlement:
 Terminal log: `docs/evidence/failure_terminal_log.txt`
 Raw metrics: `docs/evidence/m20_pro_failure_metrics.json`
 
+
+## Sim-to-Sim validation (MuJoCo vs Webots)
+
+The same potential-field navigation policy runs in both MuJoCo (primary
+scene) and Webots (proxy rigid body, identical obstacle/goal layout),
+proving the skill is driven by policy logic rather than a
+simulator-specific scripted trajectory.
+
+| Check | Result |
+|-------|--------|
+| status_matches | PASS -- mujoco=goal_reached webots=goal_reached |
+| zero_collisions_both_engines | PASS -- mujoco=0 webots=0 |
+| displacement_within_tolerance | PASS -- mujoco=7.6507 webots=7.6518 diff=0.0011 |
+| remaining_distance_within_tolerance | PASS -- mujoco=0.3493 webots=0.3482 diff=0.0011 |
+
+Overall: **PASS**
+
+Raw comparison: `docs/evidence/sim_to_sim_validation.json`
+Webots run output: `simulation/webots/results/webots_metrics.json`
+
 ## Reviewer verification checklist
 
 Before accepting this Tier 1 simulation submission, reviewers should confirm:

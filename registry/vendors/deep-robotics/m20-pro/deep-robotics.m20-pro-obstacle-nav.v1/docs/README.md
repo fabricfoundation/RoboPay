@@ -21,6 +21,9 @@ Zenoh tunnel transport.
 | `demo/run_failure_demo.py` | Deliberate-failure demo: timeout → no settlement |
 | `tests/skill-contract.test.yaml` | Human-readable contract cases |
 | `tests/test_bridge.py` | Executable parser, replay, result, and settlement-gate tests |
+| `simulation/webots/worlds/m20_pro_obstacle_nav.wbt` | Webots world (proxy robot, same obstacle/goal layout) for Sim-to-Sim validation |
+| `simulation/webots/controllers/m20_pro_navigation/m20_pro_navigation.py` | Webots controller running the identical navigation policy |
+| `simulation/validation/validate_sim_to_sim.py` | Compares MuJoCo vs Webots outcome and writes a PASS/FAIL report |
 
 ## End-to-end architecture
 
@@ -82,6 +85,24 @@ control (out of scope for a Tier 1 navigation skill): the base does not
 rely on the legs for support, so we avoid needing a full standing/walking
 balance controller while still exercising real per-step physics, real
 actuation, and real collision detection for the obstacle-avoidance skill.
+
+## Sim-to-Sim validation
+
+The same potential-field navigation policy runs unmodified in two physics
+engines -- MuJoCo (primary scene) and Webots (proxy robot body, same
+obstacle layout and goal). This is a consistency check on the policy
+itself, not a replication of the full leg model: the Webots side uses a
+simple rigid body driven by the same policy code, not a 12-DOF quadruped.
+
+```bash
+python demo/run_demo.py   # writes docs/evidence/m20_pro_metrics.json
+webots --mode=fast --batch simulation/webots/worlds/m20_pro_obstacle_nav.wbt
+python simulation/validation/validate_sim_to_sim.py
+```
+
+Both engines must reach `goal_reached` with zero collisions, and
+displacement/remaining-distance must agree within tolerance. Results are
+written to `docs/evidence/sim_to_sim_validation.json`.
 
 ## Running locally
 
