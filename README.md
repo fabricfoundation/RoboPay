@@ -26,6 +26,16 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 
 The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
 
+## Tier 1 simulator profile: Boston Dynamics Spot
+
+This branch includes the Boston Dynamics Spot **simulator-only** Tier 1
+profile: a payment-gated MuJoCo obstacle-course policy, a shared-policy Webots
+cross-check, and a real Base Sepolia x402 evidence workflow. Start with the
+profile runbook for its pinned model, Zenoh setup, tunnel configuration,
+action/status contract, troubleshooting, and test commands:
+
+→ [Spot bridge README](bridge/boston_dynamics/spot_mujoco_bridge/README.md)
+
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 
