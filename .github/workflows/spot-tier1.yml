@@ -15,6 +15,13 @@ on:
       - ".github/workflows/spot-tier1.yml"
   push:
     branches: [boston-dynamics-spot-tier-1]
+    paths:
+      - "tunnel/**"
+      - "bridge/common/**"
+      - "bridge/boston_dynamics/**"
+      - "registry/vendors/boston-dynamics/**"
+      - "scripts/registry/**"
+      - ".github/workflows/spot-tier1.yml"
 
 jobs:
   tunnel-and-contract:
@@ -132,6 +139,12 @@ jobs:
     # Secrets are available on this fork's trusted push runs, not on the
     # upstream pull_request event that evaluates an external contribution.
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # The Fabric relay permits one live Tunnel for a robot ID at a time.
+    # Serialize settlement evidence instead of allowing concurrent branch
+    # pushes to race for the same robot identity.
+    concurrency:
+      group: spot-base-sepolia-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     needs: tunnel-and-contract
     steps:
