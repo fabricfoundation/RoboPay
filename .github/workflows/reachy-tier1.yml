@@ -14,6 +14,12 @@ on:
       - ".github/workflows/reachy-tier1.yml"
   push:
     branches: [hugging-face-reachy-mini-tier-1]
+    paths:
+      - "tunnel/**"
+      - "bridge/common/**"
+      - "bridge/reachy_mini/**"
+      - "registry/vendors/pollen-robotics/**"
+      - ".github/workflows/reachy-tier1.yml"
 
 jobs:
   tunnel-and-contract:
@@ -111,6 +117,12 @@ jobs:
     # Secrets are available on this fork's trusted push runs, not on the
     # upstream pull_request event that evaluates an external contribution.
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # The Fabric relay permits one live Tunnel for a robot ID at a time.
+    # Queue evidence jobs on this branch instead of letting doc/code pushes
+    # race and turn a valid run into a 409 duplicate-connection failure.
+    concurrency:
+      group: reachy-base-sepolia-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     needs: tunnel-and-contract
     steps:
