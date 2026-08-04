@@ -1,0 +1,7 @@
+{
+  "source": "https://github.com/google-deepmind/mujoco_menagerie",
+  "commit": "71f066ad0be9cd271f7ed58c030243ef157af9f4",
+  "directory": "boston_dynamics_spot",
+  "license": "BSD-3-Clause",
+  "licenseCopyright": "Copyright (c) 2021, Clearpath Robotics Inc."
+}

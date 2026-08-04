@@ -1,0 +1,31 @@
+[
+  {
+    "skill_id": "navigate_obstacle_course",
+    "description": "Run the bounded, left-corridor Spot obstacle course in simulation.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "maxDurationSec": {
+        "type": "number",
+        "minimum": 5,
+        "maximum": 60
+      },
+      "side": {
+        "type": "string",
+        "values": ["left"]
+      },
+      "speedScale": {
+        "type": "number",
+        "minimum": 0.25,
+        "maximum": 1
+      }
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Safely interrupt an active Spot simulation and command neutral controls.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]

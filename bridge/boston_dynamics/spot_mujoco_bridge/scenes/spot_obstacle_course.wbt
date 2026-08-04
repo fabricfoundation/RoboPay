@@ -1,0 +1,69 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/boston_dynamics/spot/protos/Spot.proto"
+
+WorldInfo {
+  basicTimeStep 16
+  title "RoboPay Spot obstacle course"
+  info ["Closed-loop obstacle avoidance; simulator-only validation."]
+}
+Viewpoint {
+  orientation 0.111 0.198 0.974 2.80
+  position 3.7 -4.3 3.2
+}
+Background {
+  skyColor [ 0.08 0.12 0.18 ]
+}
+DirectionalLight {
+  direction -0.35 -0.45 -1
+  color 1 0.96 0.86
+  intensity 2.4
+  ambientIntensity 0.55
+  castShadows FALSE
+}
+PointLight {
+  location 1.5 -0.5 3.5
+  color 0.75 0.86 1
+  intensity 1.5
+  radius 8
+  castShadows FALSE
+}
+DEF FLOOR Solid {
+  name "floor"
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.16 0.21 0.25 roughness 0.8 }
+      geometry Box { size 7 5 0.1 }
+    }
+  ]
+  translation 1.5 0 -0.05
+  boundingObject Box { size 7 5 0.1 }
+}
+DEF OBSTACLE_CENTER Solid {
+  name "obstacle_center"
+  translation 1.4 0 0.4
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.8 0.16 0.10 roughness 0.7 }
+      geometry Box { size 0.52 0.64 0.8 }
+    }
+  ]
+  boundingObject Box { size 0.52 0.64 0.8 }
+}
+DEF GOAL_MARKER Solid {
+  name "goal_marker"
+  translation 2.3 1.6 0.015
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.10 0.80 0.25 transparency 0.3 }
+      geometry Cylinder { radius 0.22 height 0.03 }
+    }
+  ]
+}
+DEF SPOT Spot {
+  translation 0 0 0.624
+  rotation 0 0 1 0.785398
+  controller "spot_obstacle_controller"
+  supervisor TRUE
+  selfCollision TRUE
+}
