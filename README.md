@@ -36,6 +36,8 @@ action/status contract, troubleshooting, and test commands:
 
 → [Spot bridge README](bridge/boston_dynamics/spot_mujoco_bridge/README.md)
 
+Visual evidence: [paid MuJoCo Spot obstacle-course recording](bridge/boston_dynamics/spot_mujoco_bridge/docs/evidence/spot-paid-mujoco-demo-2026-07-28.mp4).
+
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 
