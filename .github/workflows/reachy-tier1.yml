@@ -144,7 +144,7 @@ jobs:
           rm webots-R2025a-x86-64.tar.bz2
       - name: Start local Zenoh router for the Tunnel and bridge
         run: |
-          wget -q https://download.eclipse.org/zenoh/zenoh/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+          wget -q https://github.com/eclipse-zenoh/zenoh/releases/download/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
           unzip -q zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d .zenoh-router
           .zenoh-router/zenohd > zenohd.log 2>&1 &
           sleep 2

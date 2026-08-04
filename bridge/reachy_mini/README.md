@@ -92,7 +92,7 @@ make build
 
 # Start a local Zenoh router in a second terminal (or point both processes at
 # an existing router with ZENOH_CONFIG).
-wget -q https://download.eclipse.org/zenoh/zenoh/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+wget -q https://github.com/eclipse-zenoh/zenoh/releases/download/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
 unzip -q zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d .zenoh-router
 .zenoh-router/zenohd
 ```
@@ -125,6 +125,22 @@ local paid-flow proof. The paid `POST /action` returns `202` plus an
 `action_id`; poll `GET /action/<action_id>/status` for `succeeded`, `failed`,
 or `timeout` and the correlated simulator result. Install Webots R2025a before
 running the cross-engine Sim-to-Sim validation in CI or locally.
+
+## Expected results and troubleshooting
+
+The local E2E prints the accepted `action_id` followed by a terminal status
+with the same ID. The mandatory negative proof ends with `settle_calls=0` and
+reports each injected simulator failure, timeout, replay, and restart replay
+as rejected or un-settled. A missing `SKILL_CATALOG_PATH`, missing
+`ALLOWED_ACTIONS`, mismatched `ROBOT_ID`, unknown action, or altered
+`params_hash` is intentionally rejected before the bridge receives a Zenoh
+action. If an otherwise valid request remains pending, first confirm that the
+router is running and that Tunnel and bridge use the identical Zenoh topics and
+identity above.
+
+For visual evidence, run the Webots job without headless mode and record the
+same bounded policy; the CI artifacts contain the corresponding machine-readable
+Sim-to-Sim result.
 
 ## Tests
 
