@@ -1,0 +1,46 @@
+schemaVersion: robot-profile.v1
+vendor: deep-robotics
+robotModel: x30-pro
+robotType: simulated-quadruped
+profileId: deep-robotics.x30-pro-obstacle-nav.v1
+profileVersion: 1.0.0
+scope: simulator-only
+tier: 1
+brand: Fabric Foundation × Deep Robotics
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: bridge/x30_pro_zenoh_bridge.py
+  controlStack:
+    simulator: MuJoCo
+    sceneFile: simulation/scenes/x30_pro.xml
+    middleware: Zenoh (direct, no ROS2 dependency)
+
+kinematics:
+  vxForwardRange: [0.0, 1.5]
+  wzRange: [-1.0, 1.0]
+  massKg: 59.0
+  heightM: 0.47
+  dof: 12
+  jointConvention: "FL/FR/HL/HR x {HipX, HipY, Knee}"
+  sourceReference: "legubiao/quadruped_ros2_control descriptions/deep_robotics/x30_description"
+
+identity:
+  handshake: robotsdk
+  robotIdEnv: ROBOPAY_ROBOT_ID
+  payeeWalletEnv: ROBOPAY_PAYEE_ADDRESS
+  privateKeyEnv: ROBOT_PRIVATE_KEY
+
+safety:
+  scope: simulator-only, no physical actuation
+  notes:
+    - This is a Tier 1 simulator submission. No physical robot is controlled.
+    - A RUNNING/mid-episode simulator state is pending, not successful, and is never settlement-eligible.
+    - Stop/cancel actions must zero all velocities immediately and require no payment.
+
+maintainers:
+  - github: Wanbogang
+
+status: experimental

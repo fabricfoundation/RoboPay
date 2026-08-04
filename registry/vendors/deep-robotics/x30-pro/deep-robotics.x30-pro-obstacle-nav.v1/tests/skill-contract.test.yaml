@@ -1,0 +1,22 @@
+schemaVersion: skill-contract-test.v1
+profileId: deep-robotics.x30-pro-obstacle-nav.v1
+cases:
+  - name: success_settles
+    description: A verified, well-formed action reaching the goal with zero collisions settles.
+    expect: { status: success, settlementEligible: true }
+  - name: unpaid_action_rejected
+    description: Unverified payment is rejected before the simulator is touched.
+    expect: { status: rejected, settlementEligible: false, reason: payment_unverified }
+  - name: expired_payment_rejected
+    expect: { status: rejected, settlementEligible: false, reason: payment_expired }
+  - name: bad_params_hash_rejected
+    expect: { status: rejected, settlementEligible: false, reason: invalid_params_hash }
+  - name: replay_same_action_id_no_second_motion
+    description: Submitting the same actionId twice must not run the simulator a second time.
+    expect: { status: rejected, settlementEligible: false, reason: duplicate_action, secondRunnerCall: false }
+  - name: collision_never_settles
+    expect: { status: error, settlementEligible: false }
+  - name: timeout_never_settles
+    expect: { status: error, settlementEligible: false }
+  - name: stop_requires_no_payment
+    expect: { status: success, settlementEligible: false }

@@ -1,0 +1,46 @@
+{
+  "mujoco_metrics": {
+    "avoidance_events": 2432,
+    "collisions": 0,
+    "displacement_m": 6.6526,
+    "path_length_m": 6.6788,
+    "sim_seconds": 10.832,
+    "sim_steps": 5417,
+    "status": "goal_reached",
+    "target_distance_remaining_m": 0.3499
+  },
+  "webots_metrics": {
+    "engine": "webots",
+    "status": "goal_reached",
+    "displacement_m": 6.6547,
+    "path_length_m": 6.6551,
+    "collisions": 0,
+    "target_distance_remaining_m": 0.3466,
+    "sim_steps": 405,
+    "sim_seconds": 6.48,
+    "avoidance_events": 212
+  },
+  "checks": [
+    {
+      "name": "status_matches",
+      "passed": true,
+      "detail": "mujoco=goal_reached webots=goal_reached"
+    },
+    {
+      "name": "zero_collisions_both_engines",
+      "passed": true,
+      "detail": "mujoco=0 webots=0"
+    },
+    {
+      "name": "displacement_within_tolerance",
+      "passed": true,
+      "detail": "mujoco=6.6526 webots=6.6547 diff=0.0021"
+    },
+    {
+      "name": "remaining_distance_within_tolerance",
+      "passed": true,
+      "detail": "mujoco=0.3499 webots=0.3466 diff=0.0033"
+    }
+  ],
+  "overall": "PASS"
+}

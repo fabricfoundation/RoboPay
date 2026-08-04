@@ -1,0 +1,186 @@
+<?xml version="1.0" ?>
+<!--
+  Deep Robotics X30 Pro - MuJoCo scene (Tier 1 RoboPay obstacle-nav)
+  Architecture mirrors M20 Pro: planar base (slide-x, slide-y, hinge-yaw)
+  driven by velocity actuators; legs are position-actuated with a live
+  trot gait computed by the runner (not a canned trajectory). Collisions
+  are detected via MuJoCo's own contact detection against base_geom.
+
+  Physical specs (mass, joint limits, link offsets) sourced from the
+  official URDF: legubiao/quadruped_ros2_control
+  (descriptions/deep_robotics/x30_description/xacro/body.xacro)
+  Joint convention: FL/FR/HL/HR x {HipX, HipY, Knee} = 12 DOF (legs)
+  + 3 planar base DOF = 15 DOF total.
+-->
+<mujoco model="x30_pro">
+  <compiler angle="radian" autolimits="true"/>
+
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="RK4"/>
+
+  <default>
+    <joint damping="0.5" armature="0.01" frictionloss="0.1"/>
+    <geom friction="1.0 0.5 0.5" contype="1" conaffinity="1" condim="3"/>
+  </default>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.6 0.7 0.9" rgb2="0.2 0.3 0.5" width="256" height="256"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.2 0.2 0.2" rgb2="0.3 0.3 0.3" width="512" height="512"/>
+    <material name="grid" texture="grid" texrepeat="8 8" reflectance="0.1"/>
+    <material name="torso_mat" rgba="0.75 0.75 0.75 1"/>
+    <material name="leg_mat" rgba="0.15 0.15 0.15 1"/>
+    <material name="obstacle_mat" rgba="0.85 0.2 0.2 1"/>
+    <material name="goal_mat" rgba="0.1 0.8 0.2 0.6"/>
+  </asset>
+
+  <worldbody>
+    <light directional="true" diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2" pos="0 0 5" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="20 20 0.1" material="grid"/>
+
+    <!-- ============ X30 PRO BASE (planar mount, matches M20 Pro pattern) ============ -->
+    <body name="x30_pro_base" pos="0 0 0.55">
+      <joint name="base_slide_x" type="slide" axis="1 0 0" damping="5"/>
+      <joint name="base_slide_y" type="slide" axis="0 1 0" damping="5"/>
+      <joint name="base_hinge_yaw" type="hinge" axis="0 0 1" damping="5"/>
+      <inertial pos="-0.0029257 0.0000075 0.020095" mass="30.7"
+                fullinertia="0.364306 0.597627 0.757267 0.00018421 0.00027469 0.00026784"/>
+      <geom name="base_geom" type="box" size="0.22 0.13 0.075" material="torso_mat"/>
+      <site name="torso_site" pos="0 0 0" size="0.01"/>
+      <site name="imu_site" pos="0 0 0" size="0.005"/>
+
+      <!-- ============ FRONT LEFT (FL) ============ -->
+      <body name="FL_HIP" pos="0.291 0.08 0">
+        <joint name="FL_HipX" type="hinge" axis="-1 0 0" range="-0.323 0.323" damping="0.8"/>
+        <inertial pos="-0.0018591 -0.011377 0.00027039" mass="1.43"
+                  fullinertia="0.0014068 0.0026782 0.0015918 -0.000018545 0.0000027664 0.0000021221"/>
+        <geom name="FL_hip_geom" type="cylinder" size="0.045 0.05" rgba="0.15 0.15 0.15 1"/>
+        <body name="FL_THIGH" pos="0 0.11675 0">
+          <joint name="FL_HipY" type="hinge" axis="0 -1 0" range="-2.967 0.262" damping="0.8"/>
+          <inertial pos="-0.0087581 -0.023554 -0.055162" mass="4.0809"
+                    fullinertia="0.012604 0.0164 0.0061084 0.00020291 -0.00030875 0.00036593"/>
+          <geom name="FL_thigh_geom" type="cylinder" size="0.04 0.125" pos="-0.02 0 -0.13" material="leg_mat"/>
+          <body name="FL_SHANK" pos="0 0 -0.30">
+            <joint name="FL_Knee" type="hinge" axis="0 -1 0" range="0.349 2.531" damping="0.5"/>
+            <inertial pos="0.014851 0.000021 -0.12283" mass="0.71386"
+                      fullinertia="0.0093039 0.0096272 0.00041542 0.00000017693 0.00034843 -0.0000037717"/>
+            <geom name="FL_shank_geom" type="cylinder" size="0.02 0.14" pos="0 0 -0.12" material="leg_mat"/>
+            <geom name="FL_foot_geom" type="sphere" size="0.03" pos="0 0 -0.30" friction="1.2 0.5 0.5"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- ============ FRONT RIGHT (FR) ============ -->
+      <body name="FR_HIP" pos="0.291 -0.08 0">
+        <joint name="FR_HipX" type="hinge" axis="-1 0 0" range="-0.323 0.323" damping="0.8"/>
+        <inertial pos="-0.0018591 0.011377 0.00027039" mass="1.43"
+                  fullinertia="0.0014068 0.0026782 0.0015918 0.000018545 0.0000027664 -0.0000021221"/>
+        <geom name="FR_hip_geom" type="cylinder" size="0.045 0.05" rgba="0.15 0.15 0.15 1"/>
+        <body name="FR_THIGH" pos="0 -0.11675 0">
+          <joint name="FR_HipY" type="hinge" axis="0 -1 0" range="-2.967 0.262" damping="0.8"/>
+          <inertial pos="-0.0087581 0.023554 -0.055162" mass="4.0809"
+                    fullinertia="0.012604 0.0164 0.0061084 -0.00020291 -0.00030875 -0.00036593"/>
+          <geom name="FR_thigh_geom" type="cylinder" size="0.04 0.125" pos="-0.02 0 -0.13" material="leg_mat"/>
+          <body name="FR_SHANK" pos="0 0 -0.30">
+            <joint name="FR_Knee" type="hinge" axis="0 -1 0" range="0.349 2.531" damping="0.5"/>
+            <inertial pos="0.014851 -0.000021 -0.12283" mass="0.71386"
+                      fullinertia="0.0093039 0.0096272 0.00041542 -0.00000017693 0.00034843 0.0000037717"/>
+            <geom name="FR_shank_geom" type="cylinder" size="0.02 0.14" pos="0 0 -0.12" material="leg_mat"/>
+            <geom name="FR_foot_geom" type="sphere" size="0.03" pos="0 0 -0.30" friction="1.2 0.5 0.5"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- ============ HIND LEFT (HL) ============ -->
+      <body name="HL_HIP" pos="-0.291 0.08 0">
+        <joint name="HL_HipX" type="hinge" axis="-1 0 0" range="-0.323 0.323" damping="0.8"/>
+        <inertial pos="0.0018591 -0.011377 0.00027039" mass="1.43"
+                  fullinertia="0.0014068 0.0026782 0.0015918 0.000018545 -0.0000027664 0.0000021221"/>
+        <geom name="HL_hip_geom" type="cylinder" size="0.045 0.05" rgba="0.15 0.15 0.15 1"/>
+        <body name="HL_THIGH" pos="0 0.11675 0">
+          <joint name="HL_HipY" type="hinge" axis="0 -1 0" range="-2.967 0.262" damping="0.8"/>
+          <inertial pos="-0.0087581 -0.023554 -0.055162" mass="4.0809"
+                    fullinertia="0.012604 0.0164 0.0061084 0.00020291 -0.00030875 0.00036593"/>
+          <geom name="HL_thigh_geom" type="cylinder" size="0.04 0.125" pos="-0.02 0 -0.13" material="leg_mat"/>
+          <body name="HL_SHANK" pos="0 0 -0.30">
+            <joint name="HL_Knee" type="hinge" axis="0 -1 0" range="0.349 2.531" damping="0.5"/>
+            <inertial pos="0.014851 0.000021 -0.12283" mass="0.71386"
+                      fullinertia="0.0093039 0.0096272 0.00041542 0.00000017693 0.00034843 -0.0000037717"/>
+            <geom name="HL_shank_geom" type="cylinder" size="0.02 0.14" pos="0 0 -0.12" material="leg_mat"/>
+            <geom name="HL_foot_geom" type="sphere" size="0.03" pos="0 0 -0.30" friction="1.2 0.5 0.5"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- ============ HIND RIGHT (HR) ============ -->
+      <body name="HR_HIP" pos="-0.291 -0.08 0">
+        <joint name="HR_HipX" type="hinge" axis="-1 0 0" range="-0.323 0.323" damping="0.8"/>
+        <inertial pos="0.0018591 0.011377 0.00027039" mass="1.43"
+                  fullinertia="0.0014068 0.0026782 0.0015918 -0.000018545 -0.0000027664 -0.0000021221"/>
+        <geom name="HR_hip_geom" type="cylinder" size="0.045 0.05" rgba="0.15 0.15 0.15 1"/>
+        <body name="HR_THIGH" pos="0 -0.11675 0">
+          <joint name="HR_HipY" type="hinge" axis="0 -1 0" range="-2.967 0.262" damping="0.8"/>
+          <inertial pos="-0.0087581 0.023554 -0.055162" mass="4.0809"
+                    fullinertia="0.012604 0.0164 0.0061084 -0.00020291 -0.00030875 -0.00036593"/>
+          <geom name="HR_thigh_geom" type="cylinder" size="0.04 0.125" pos="-0.02 0 -0.13" material="leg_mat"/>
+          <body name="HR_SHANK" pos="0 0 -0.30">
+            <joint name="HR_Knee" type="hinge" axis="0 -1 0" range="0.349 2.531" damping="0.5"/>
+            <inertial pos="0.014851 -0.000021 -0.12283" mass="0.71386"
+                      fullinertia="0.0093039 0.0096272 0.00041542 -0.00000017693 0.00034843 0.0000037717"/>
+            <geom name="HR_shank_geom" type="cylinder" size="0.02 0.14" pos="0 0 -0.12" material="leg_mat"/>
+            <geom name="HR_foot_geom" type="sphere" size="0.03" pos="0 0 -0.30" friction="1.2 0.5 0.5"/>
+          </body>
+        </body>
+      </body>
+
+    </body>
+
+    <!-- ============ OBSTACLE COURSE (for obstacle-nav skill) ============ -->
+    <body name="obstacle_1" pos="2.0 0.6 0.2">
+      <geom name="obstacle_1_geom" type="box" size="0.15 0.15 0.2" material="obstacle_mat"/>
+    </body>
+    <body name="obstacle_2" pos="3.5 -0.7 0.2">
+      <geom name="obstacle_2_geom" type="box" size="0.15 0.15 0.2" material="obstacle_mat"/>
+    </body>
+    <body name="obstacle_3" pos="5.0 0.5 0.25">
+      <geom name="obstacle_3_geom" type="cylinder" size="0.15 0.25" material="obstacle_mat"/>
+    </body>
+
+    <!-- Goal marker: obstacle-nav success requires reaching this pose -->
+    <body name="goal_marker" pos="7.0 0.0 0.05">
+      <geom name="goal_geom" type="cylinder" size="0.25 0.02" material="goal_mat" contype="0" conaffinity="0"/>
+      <site name="goal_site" pos="0 0 0" size="0.02"/>
+    </body>
+
+  </worldbody>
+
+  <!-- ============ ACTUATORS ============ -->
+  <!-- Base: velocity actuators driving the planar mount (matches M20 Pro pattern) -->
+  <actuator>
+    <velocity name="base_vx" joint="base_slide_x" ctrlrange="0 1.5" kv="50"/>
+    <velocity name="base_vy" joint="base_slide_y" ctrlrange="-0.5 0.5" kv="50"/>
+    <velocity name="base_wz" joint="base_hinge_yaw" ctrlrange="-1.0 1.0" kv="20"/>
+
+    <!-- Legs: position actuators, one per joint, limits match URDF effort/range -->
+    <position name="FL_hip_act" joint="FL_HipX" kp="60" ctrlrange="-0.323 0.323"/>
+    <position name="FL_thigh_act" joint="FL_HipY" kp="60" ctrlrange="-2.967 0.262"/>
+    <position name="FL_calf_act" joint="FL_Knee" kp="80" ctrlrange="0.349 2.531"/>
+
+    <position name="FR_hip_act" joint="FR_HipX" kp="60" ctrlrange="-0.323 0.323"/>
+    <position name="FR_thigh_act" joint="FR_HipY" kp="60" ctrlrange="-2.967 0.262"/>
+    <position name="FR_calf_act" joint="FR_Knee" kp="80" ctrlrange="0.349 2.531"/>
+
+    <position name="HL_hip_act" joint="HL_HipX" kp="60" ctrlrange="-0.323 0.323"/>
+    <position name="HL_thigh_act" joint="HL_HipY" kp="60" ctrlrange="-2.967 0.262"/>
+    <position name="HL_calf_act" joint="HL_Knee" kp="80" ctrlrange="0.349 2.531"/>
+
+    <position name="HR_hip_act" joint="HR_HipX" kp="60" ctrlrange="-0.323 0.323"/>
+    <position name="HR_thigh_act" joint="HR_HipY" kp="60" ctrlrange="-2.967 0.262"/>
+    <position name="HR_calf_act" joint="HR_Knee" kp="80" ctrlrange="0.349 2.531"/>
+  </actuator>
+
+  <sensor>
+    <framepos name="torso_pos" objtype="site" objname="torso_site"/>
+    <framequat name="torso_quat" objtype="site" objname="torso_site"/>
+    <framepos name="goal_pos" objtype="site" objname="goal_site"/>
+  </sensor>
+
+</mujoco>
