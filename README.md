@@ -62,7 +62,9 @@ Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, and `isaac_sim_
 
 The tunnel (`tunnel/`) keeps an outbound WebSocket to the Fabric proxy, verifies x402 micropayments, and publishes accepted actions to the same Zenoh topic the bridge listens on.
 
-Set the payee address (and any overrides) in `tunnel/config.json`:
+`tunnel/config.json` is deliberately an inert checked-in example. Set the
+stable robot identity and payee in an untracked `tunnel/.env` (or a deployment
+secret manager) before starting the tunnel:
 
 ```json
 {
@@ -75,8 +77,8 @@ Set the payee address (and any overrides) in `tunnel/config.json`:
 
 | Field                    | Required      | Default         | Description                                                |
 |--------------------------|---------------|-----------------|------------------------------------------------------------|
-| `robot_id`               | No            | random UUID     | Unique robot identifier                                     |
-| `evm_payee_address`      | **Yes**       | —               | EVM address to receive x402 payments                        |
+| `robot_id`               | **Yes**       | —               | Stable robot identifier; generated IDs are rejected         |
+| `evm_payee_address`      | **Yes**       | —               | Non-zero EVM address to receive x402 payments               |
 | `price`                  | No            | `0.001`         | Price per action, in whole token units                      |
 | `network`                | No            | `eip155:8453`   | CAIP-2 network ID (e.g. `eip155:84532`)                     |
 | `token_address`          | No            | network default | ERC-20 the price is charged in                              |
@@ -130,6 +132,31 @@ Common environment overrides:
 | `PROXY_WS_URL`    | `wss://api.fabric.foundation/api/core/ws/robot`  | WebSocket URL of the tunnel proxy |
 | `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
 | `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
+
+### Fail-closed paid action contract
+
+Every deployment supplies a robot-scoped skill catalog and an explicit
+allowlist. The tunnel refuses all action requests until both are configured:
+
+```bash
+ROBOT_ID=my-robot
+ROBO_PAYEE_ADDRESS=0xYourAddress
+SKILL_CATALOG_PATH=../registry/vendors/<vendor>/<model>/<profile>/skill-catalog.json
+ALLOWED_ACTIONS=registered_skill,stop
+```
+
+`POST /action` accepts only a registered skill whose parameters satisfy that
+catalog. It returns `202 Accepted` with an `action_id` and `status_url`; poll
+`GET /action/<action_id>/status` for the terminal result. The request is
+durably idempotent (including across restart), and x402 settlement is deferred
+until a simulator result matches the exact `action_id`, `robot_id`, `skill_id`,
+parameter hash, and idempotency key. Simulator failure, timeout, or a
+correlation mismatch never settles a payment.
+
+Robot WebSocket authentication and the binding between tunnel identity and the
+payee are supplied by the shared Fabric Tunnel/proxy protocol. Robot profiles
+must not invent a local EIP-signature handshake; they document this upstream
+dependency and only receive Tunnel-verified action events.
 
 ## 4. Register the robot on BitAgent (Unibase AIP) — optional
 
