@@ -1,0 +1,9 @@
+# Pinned to the exact versions exercised by .github/workflows/reachy-tier1.yml.
+# reachy-mini is installed from the tagged release used in CI:
+#   pip install git+https://github.com/pollen-robotics/reachy_mini.git@v1.8.4
+mujoco==3.10.0
+numpy==2.2.6
+eclipse-zenoh==1.9.0
+x402[requests,evm]==2.16.0
+eth-account==0.13.7
+requests==2.32.3

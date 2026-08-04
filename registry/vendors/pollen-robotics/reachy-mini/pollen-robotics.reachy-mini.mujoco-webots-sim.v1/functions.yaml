@@ -1,0 +1,49 @@
+schemaVersion: agent-functions.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+functions:
+  - name: request_robot_action
+    method: POST
+    url: /action
+    body:
+      action: string          # skillId, e.g. "look_at_apple"
+      robot_id: string        # must match the tunnel's configured RobotID
+      params: object          # e.g. { "target_object": "apple" }
+      action_id: string       # correlation ID returned by the immediate 202 response
+      idempotency_key: string # durable replay key (use the action_id for a single request)
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+  - name: submit_paid_robot_action
+    method: POST
+    url: /action
+    headers:
+      PAYMENT-SIGNATURE: string   # x402 signed USDC authorization (Base Sepolia)
+    body: same as request_robot_action
+    returns:
+      "202": accepted/pending — immediate response after payment verify; body
+        carries action_id, robot_id, skill_id, settlement "pending-execution-gated"
+        and status_url; the terminal result is served by get_robot_action_status
+      "400": MISSING_ACTION / INVALID_PARAMS / DURATION_LIMIT (fail closed, no default action)
+      "402": payment required (unpaid/invalid)
+      "403": SKILL_NOT_ALLOWED / WRONG_ROBOT
+      "409": REPLAY_DETECTED / PAYMENT_REPLAY_DETECTED (durable payment-bound
+        idempotency store, 24h retention; survives failure, timeout and restart)
+      "429": RATE_LIMITED
+      "503": ALLOWLIST_NOT_CONFIGURED / IDEMPOTENCY_STORE_UNAVAILABLE (fail closed)
+    settlement: >-
+      Execution-gated and deferred: the x402 payment is verified synchronously
+      before the 202, but /settle is called only after the simulator publishes
+      a correlated success result. Failure and timeout terminal states never
+      settle (proven by bridge/reachy_mini/test_x402_no_settlement.py with a
+      recording facilitator: zero /settle calls).
+  - name: get_robot_action_status
+    method: GET
+    url: /action/{action_id}/status
+    returns:
+      "200": >-
+        { action_id, state: pending|succeeded|failed|timeout|settlement_failed,
+          settled: bool, error_code?, settlement?: {transaction, network,
+          payer, payment_response}, updated_at } — the terminal result carries
+        the same action_id issued by the 202 response; state and receipt are
+        durable across tunnel restarts
+      "404": UNKNOWN_ACTION

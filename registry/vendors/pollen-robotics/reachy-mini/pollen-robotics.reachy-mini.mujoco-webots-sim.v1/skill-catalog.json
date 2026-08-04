@@ -1,0 +1,51 @@
+[
+  {
+    "skill_id": "look_at_apple",
+    "description": "Track one explicitly selected table object with the Reachy head.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "target_object": {
+        "type": "string",
+        "required": true,
+        "values": ["apple", "croissant", "duck"]
+      },
+      "duration": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 30
+      }
+    }
+  },
+  {
+    "skill_id": "inspect_table",
+    "description": "Inspect one to three explicitly selected table objects in sequence.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "targets": {
+        "type": "array",
+        "required": true,
+        "items": {
+          "type": "string",
+          "values": ["apple", "croissant", "duck"]
+        },
+        "min_items": 1,
+        "max_items": 3,
+        "unique_items": true
+      },
+      "per_target_duration": {
+        "type": "number",
+        "minimum": 2,
+        "maximum": 8
+      }
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Zero Reachy actuator controls without starting a tracking task.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]

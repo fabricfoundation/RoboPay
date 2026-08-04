@@ -1,0 +1,127 @@
+schemaVersion: skill-contract-test.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+robotId: reachy-mini-kauker
+
+# These cases mirror executable tests already in the repo. The Go handler tests
+# run in CI via `make test` (go test -v ./...); the payment/E2E cases run against
+# a live tunnel + Base Sepolia.
+runners:
+  - id: go-handlers
+    kind: go-test
+    path: tunnel/internal/handlers/handlers_test.go
+    command: go test -v ./tunnel/internal/handlers/...
+  - id: payment-gate
+    kind: pytest
+    path: bridge/reachy_mini/test_payment_gate.py
+  - id: no-settlement
+    kind: pytest
+    path: bridge/reachy_mini/test_x402_no_settlement.py
+  - id: base-sepolia-e2e
+    kind: pytest
+    path: bridge/reachy_mini/test_base_sepolia_tunnel_e2e.py
+
+settlementInvariant: >-
+  POST /action verifies the x402 payment and answers 202 accepted/pending
+  immediately with the actionId. The facilitator /settle is called only after
+  the simulator publishes a correlated result with status "success"; the
+  terminal state (succeeded/failed/timeout/settlement_failed) plus the
+  settlement receipt are served by GET /action/<actionId>/status. Failure and
+  timeout never settle (observed: zero /settle calls on the recording
+  facilitator).
+
+cases:
+  - name: paid_valid_action_settles
+    runner: base-sepolia-e2e
+    request: {action: look_at_apple, robot_id: reachy-mini-kauker, params: {target_object: apple}}
+    payment: PAYMENT-SIGNATURE
+    expect: {status: 202, state: pending, then: {statusEndpoint: succeeded, settled: true}}
+
+  - name: settlement_only_after_success
+    runner: go-handlers
+    reference: TestPostAction_SettlesOnlyAfterSimulatorSuccess
+    expect: {settleCalls: 1, onlyAfterResult: success}
+
+  - name: accepted_pending_immediate_contract
+    runner: go-handlers
+    reference: TestPostAction_ImmediateAcceptedPendingContract
+    expect: {status: 202, state: pending, statusUrlCarriesActionId: true}
+
+  - name: unpaid_action_rejected
+    runner: payment-gate
+    request: {action: look_at_apple, robot_id: reachy-mini-kauker, params: {target_object: apple}}
+    payment: none
+    expect: {status: 402, settled: false, header: PAYMENT-REQUIRED}
+
+  - name: missing_action_fails_closed
+    runner: go-handlers
+    reference: TestPostAction_RejectsPayloadWithoutAction
+    expect: {status: 400, errorCode: MISSING_ACTION, settled: false}
+
+  - name: allowlist_absent_fails_closed
+    runner: go-handlers
+    reference: TestPostAction_FailsClosedWithoutAllowlist
+    expect: {status: 503, errorCode: ALLOWLIST_NOT_CONFIGURED, settled: false}
+
+  - name: unknown_skill_rejected
+    runner: go-handlers
+    reference: TestPostAction_RejectsUnknownSkill
+    expect: {status: 403, errorCode: SKILL_NOT_ALLOWED, settled: false}
+
+  - name: replay_duplicate_key
+    runner: go-handlers
+    reference: TestPostAction_RejectsReplay
+    expect: {status: 409, errorCode: REPLAY_DETECTED, settled: false}
+
+  - name: replay_survives_restart
+    runner: go-handlers
+    reference: TestPostAction_ReplayRejectedAfterRestart
+    expect: {status: 409, errorCode: REPLAY_DETECTED, settled: false, actuations: 1}
+
+  - name: payment_replay_fresh_key
+    runner: go-handlers
+    reference: TestPostAction_RejectsPaymentReplayWithFreshKey
+    expect: {status: 409, errorCode: PAYMENT_REPLAY_DETECTED, settled: false}
+
+  - name: disallowed_skill
+    runner: go-handlers
+    reference: TestPostAction_RejectsSkillOutsideAllowlist
+    expect: {status: 403, errorCode: SKILL_NOT_ALLOWED, settled: false}
+
+  - name: wrong_robot_id
+    runner: go-handlers
+    reference: TestPostAction_WrongRobot
+    expect: {status: 403, errorCode: WRONG_ROBOT, settled: false}
+
+  - name: invalid_params
+    runner: go-handlers
+    reference: TestPostAction_InvalidParamsContract
+    expect: {status: 400, errorCode: INVALID_PARAMS, settled: false}
+
+  - name: duration_over_limit
+    runner: go-handlers
+    reference: TestPostAction_RejectsDurationAboveLimit
+    expect: {status: 400, errorCode: DURATION_LIMIT, settled: false}
+
+  - name: simulator_execution_failure_no_settle
+    runner: go-handlers
+    reference: TestPostAction_DoesNotSettleOnSimulatorFailure
+    expect: {statusEndpoint: failed, errorCode: SIMULATOR_EXECUTION_FAILED, settled: false, settleCalls: 0}
+
+  - name: simulator_result_timeout_no_settle
+    runner: go-handlers
+    reference: TestPostAction_TimesOutWithoutSettlementAndKeepsReservation
+    expect: {statusEndpoint: timeout, errorCode: SIMULATOR_RESULT_TIMEOUT, settled: false, settleCalls: 0}
+
+  - name: settlement_failure_surfaced
+    runner: go-handlers
+    reference: TestPostAction_SettlementFailureIsSurfaced
+    expect: {statusEndpoint: settlement_failed, settled: false}
+
+  # Real-binary integration proof: launches the actual tunnel with the x402
+  # verify path and a recording facilitator, injects simulator failure/timeout,
+  # replays payments, and restarts the tunnel process. Asserts 202 + terminal
+  # failed/timeout status, 409 replays, and zero /settle calls overall.
+  - name: x402_no_settlement_integration
+    runner: no-settlement
+    reference: test_x402_no_settlement.py
+    expect: {settleCalls: 0, actuations: 2}
