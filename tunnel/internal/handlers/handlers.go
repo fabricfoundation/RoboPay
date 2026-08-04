@@ -242,19 +242,36 @@ func (result executionResult) matches(metadata actionMetadata) bool {
 		result.IdempotencyKey == metadata.IdempotencyKey
 }
 
-// OpenZenohSession opens the session used by both the action publisher and
-// the tunnel's configuration subscriber. Tests and local deployments can
-// provide a complete Zenoh JSON5 config through ZENOH_CONFIG; production
-// deployments continue to use Zenoh's default configuration.
-func OpenZenohSession() (zenoh.Session, error) {
+// zenohConfigFromEnvironment builds the session configuration used by both the
+// action publisher and the tunnel's configuration subscriber. ZENOH_CONFIG is
+// a complete JSON5 configuration and therefore takes precedence. For the
+// common local-router case, ZENOH_ENDPOINT is a concise equivalent of setting
+// connect/endpoints in that configuration.
+func zenohConfigFromEnvironment() (zenoh.Config, error) {
 	if path := os.Getenv("ZENOH_CONFIG"); path != "" {
-		config, err := zenoh.NewConfigFromFile(path)
-		if err != nil {
-			return zenoh.Session{}, err
-		}
-		return zenoh.Open(config, nil)
+		return zenoh.NewConfigFromFile(path)
 	}
-	return zenoh.Open(zenoh.NewConfigDefault(), nil)
+
+	config := zenoh.NewConfigDefault()
+	if endpoint := strings.TrimSpace(os.Getenv("ZENOH_ENDPOINT")); endpoint != "" {
+		endpoints, err := json.Marshal([]string{endpoint})
+		if err != nil {
+			return zenoh.Config{}, fmt.Errorf("marshal ZENOH_ENDPOINT: %w", err)
+		}
+		if err := config.InsertJson5(zenoh.ConfigConnectKey, string(endpoints)); err != nil {
+			return zenoh.Config{}, fmt.Errorf("configure ZENOH_ENDPOINT: %w", err)
+		}
+	}
+	return config, nil
+}
+
+// OpenZenohSession opens the configured Zenoh session.
+func OpenZenohSession() (zenoh.Session, error) {
+	config, err := zenohConfigFromEnvironment()
+	if err != nil {
+		return zenoh.Session{}, err
+	}
+	return zenoh.Open(config, nil)
 }
 
 type zenohPublisher interface {

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-zenoh/zenoh-go/zenoh"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -49,6 +50,27 @@ func TestConfiguredZenohTopics(t *testing.T) {
 	}
 	if len(publisher.topics) != 1 || publisher.topics[0] != "robots/test/actions" {
 		t.Fatalf("expected configured action topic, got %v", publisher.topics)
+	}
+}
+
+func TestZenohConfigUsesEndpointWhenNoConfigFileIsSet(t *testing.T) {
+	t.Setenv("ZENOH_CONFIG", "")
+	t.Setenv("ZENOH_ENDPOINT", "tcp/127.0.0.1:7447")
+
+	config, err := zenohConfigFromEnvironment()
+	if err != nil {
+		t.Fatalf("build Zenoh configuration: %v", err)
+	}
+	rawEndpoints, err := config.Get(zenoh.ConfigConnectKey)
+	if err != nil {
+		t.Fatalf("read configured endpoints: %v", err)
+	}
+	var endpoints []string
+	if err := json.Unmarshal([]byte(rawEndpoints), &endpoints); err != nil {
+		t.Fatalf("decode configured endpoints %q: %v", rawEndpoints, err)
+	}
+	if len(endpoints) != 1 || endpoints[0] != "tcp/127.0.0.1:7447" {
+		t.Fatalf("unexpected configured endpoints: %v", endpoints)
 	}
 }
 
