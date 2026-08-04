@@ -3,10 +3,13 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -297,6 +300,31 @@ func TestPostAction_FailsClosedWithoutAllowlist(t *testing.T) {
 	}
 }
 
+// A damaged idempotency file must never be interpreted as an empty store:
+// otherwise a restart after corruption would replay a paid action.
+func TestPostAction_FailsClosedWithCorruptReplayStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	storePath := filepath.Join(t.TempDir(), "replay.json")
+	if err := os.WriteFile(storePath, []byte(`{"unfinished":`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("IDEMPOTENCY_STORE_PATH", storePath)
+	publisher := &recordingPublisher{}
+	h := NewHandlersForRobot(zap.NewNop(), "test-robot")
+	h.Publisher = publisher
+	h.AllowedSkills = testRegisteredSkills()
+	h.SkillCatalog = testSkillCatalog()
+	router := buildRouter(h, nil)
+
+	res := postAction(router, `{"action":"navigate_obstacle_course","idempotency_key":"corrupt-store","params":{"target_object":"apple"}}`, nil)
+	if res.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected corrupt replay store to fail closed with 503, got %d: %s", res.Code, res.Body.String())
+	}
+	if len(publisher.payloads) != 0 {
+		t.Fatal("corrupt replay state must not publish an action")
+	}
+}
+
 func TestPostAction_RejectsUnknownSkill(t *testing.T) {
 	_, publisher, router := newTestHandlers(t, "")
 
@@ -342,6 +370,14 @@ func TestPostAction_ImmediateAcceptedPendingContract(t *testing.T) {
 	}
 	if event["params_hash"] == "" {
 		t.Fatal("expected params_hash")
+	}
+	canonical, ok := event["params_canonical"].(string)
+	if !ok || canonical == "" {
+		t.Fatalf("expected exact params_canonical string, got %T %v", event["params_canonical"], event["params_canonical"])
+	}
+	hash := sha256.Sum256([]byte(canonical))
+	if event["params_hash"] != fmt.Sprintf("sha256:%x", hash[:]) {
+		t.Fatalf("params_hash does not bind params_canonical: %v", event["params_hash"])
 	}
 	var response map[string]interface{}
 	if err := json.Unmarshal(res.Body.Bytes(), &response); err != nil {
@@ -521,6 +557,49 @@ func TestPostAction_RejectsPaymentReplayWithFreshKey(t *testing.T) {
 	}
 	if len(publisher.payloads) != 1 {
 		t.Fatalf("expected exactly one actuation, got %d", len(publisher.payloads))
+	}
+}
+
+// The replay key must be derived from the parsed/verified payment, not the
+// base64 header bytes. Two serializations of the same authorization must
+// still produce one publication.
+func TestPostAction_RejectsSemanticallyEquivalentVerifiedPaymentReplay(t *testing.T) {
+	h, publisher, _ := newTestHandlers(t, "")
+	verifiedPayment := map[string]interface{}{
+		"x402Version": float64(2),
+		"payload": map[string]interface{}{
+			"signature": "0xsame-signature",
+			"authorization": map[string]interface{}{
+				"from":  "0x1111111111111111111111111111111111111111",
+				"nonce": "0xsame-nonce",
+			},
+		},
+	}
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("x402_payload", verifiedPayment)
+		c.Next()
+	})
+	router.POST("/action", h.PostAction)
+
+	first := postAction(router,
+		`{"action":"navigate_obstacle_course","action_id":"semantic-1","idempotency_key":"semantic-1","params":{}}`,
+		map[string]string{"PAYMENT-SIGNATURE": "eyJwYXlsb2FkIjp7ImEiOjF9fQ=="},
+	)
+	second := postAction(router,
+		`{"action":"navigate_obstacle_course","action_id":"semantic-2","idempotency_key":"semantic-2","params":{}}`,
+		// Same JSON authorization can legitimately be transported with a
+		// different base64 padding/layout; the verified object above is equal.
+		map[string]string{"PAYMENT-SIGNATURE": "eyJwYXlsb2FkIjp7ICJhIiA6IDEgfX0"},
+	)
+	if first.Code != http.StatusAccepted {
+		t.Fatalf("expected first request 202, got %d: %s", first.Code, first.Body.String())
+	}
+	if second.Code != http.StatusConflict || errorCode(t, second) != "PAYMENT_REPLAY_DETECTED" {
+		t.Fatalf("expected semantic payment replay 409, got %d: %s", second.Code, second.Body.String())
+	}
+	if len(publisher.payloads) != 1 {
+		t.Fatalf("semantically identical verified payment must actuate once, got %d", len(publisher.payloads))
 	}
 }
 

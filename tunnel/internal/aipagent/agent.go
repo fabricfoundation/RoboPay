@@ -48,20 +48,21 @@ func Build(cfg *config.Config, publish PublishFunc, logger *zap.Logger) *server.
 		zap.String("endpoint_url", endpointURL),
 	)
 
-	// The job offering is what makes the robot purchasable on the BitAgent
-	// marketplace: without it the agent is discoverable but no job can be
-	// created against it. Jobs arrive through the gateway job queue
-	// (ViaGateway) and land in the handler above.
+	// AIP registration remains useful for discovery, but direct AIP job input
+	// is not a Tunnel-verified x402 ActionEvent.  Keep this offering inactive
+	// until the shared gateway supplies that verified envelope; otherwise a
+	// marketplace job could bypass the paid-action contract and publish to
+	// Zenoh without allowlist, correlation, or durable replay protection.
 	price := cfg.PriceAmount()
 	jobOfferings := []types.AgentJobOffering{{
 		ID:          "robot_action",
 		Name:        "robot_action",
-		Description: "Execute a single action on the robot (e.g. a motion command). The command is forwarded through the Fabric RoboPay tunnel to the robot's onboard controller; the robot-side safety layer always has the final say.",
+		Description: "Reserved for Tunnel-verified paid actions. Direct AIP action execution is disabled until the shared gateway forwards the verified action envelope.",
 		Type:        "JOB",
 		Price:       price,
 		PriceV2:     map[string]any{"type": "fixed", "amount": price, "currency": "USDC"},
-		JobInput:    `JSON action command, e.g. {"action":"move","direction":"forward","distance_m":1.0}`,
-		JobOutput:   `{"status":"accepted"} once the action is on the robot's command bus`,
+		JobInput:    `A Tunnel-verified paid action envelope (not currently accepted directly by AIP).`,
+		JobOutput:   `{"status":"error","error":"use paid Tunnel action endpoint"}`,
 		Requirement: map[string]any{
 			"type":     "object",
 			"required": []string{"action"},
@@ -77,7 +78,7 @@ func Build(cfg *config.Config, publish PublishFunc, logger *zap.Logger) *server.
 			},
 		},
 		SLAMinutes: 1,
-		Active:     true,
+		Active:     false,
 	}}
 
 	return wrappers.ExposeAsA2A(wrappers.ExposeOptions{
@@ -95,7 +96,7 @@ func Build(cfg *config.Config, publish PublishFunc, logger *zap.Logger) *server.
 		Skills: []types.AgentSkillCard{{
 			ID:          cfg.RobotID + "_robot_action",
 			Name:        "robot_action",
-			Description: "Execute motion commands on the physical robot",
+			Description: "Robot discovery; execution is available only through the paid Tunnel action endpoint",
 			InputModes:  []string{"text/plain", "application/json"},
 			OutputModes: []string{"application/json"},
 		}},
