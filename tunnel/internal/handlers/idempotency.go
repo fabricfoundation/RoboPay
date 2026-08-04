@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -68,16 +69,34 @@ type ReplayStore struct {
 	mu      sync.Mutex
 	path    string
 	records map[string]replayRecord
+	// loadErr is sticky: accepting an action after an unreadable or corrupt
+	// durable store would turn a restart into a replay bypass.  Reserve and
+	// all state mutations reject while it is set, so payment safety fails
+	// closed until an operator restores the store deliberately.
+	loadErr error
 }
 
 // NewReplayStore loads (or lazily creates) the store backing file at path.
 func NewReplayStore(path string) *ReplayStore {
 	store := &ReplayStore{path: path, records: make(map[string]replayRecord)}
-	if raw, err := os.ReadFile(path); err == nil {
+	raw, err := os.ReadFile(path)
+	switch {
+	case err == nil:
 		var loaded map[string]replayRecord
-		if json.Unmarshal(raw, &loaded) == nil && loaded != nil {
-			store.records = loaded
+		if err := json.Unmarshal(raw, &loaded); err != nil || loaded == nil {
+			if err == nil {
+				err = errors.New("idempotency store must contain a JSON object")
+			}
+			store.loadErr = fmt.Errorf("load idempotency store: %w", err)
+			return store
 		}
+		store.records = loaded
+	case errors.Is(err, os.ErrNotExist):
+		// A first deployment has no state yet.  It becomes durable before the
+		// first publication in Reserve.
+	default:
+		store.loadErr = fmt.Errorf("read idempotency store: %w", err)
+		return store
 	}
 	store.pruneLocked(time.Now())
 	return store
@@ -107,6 +126,9 @@ func (s *ReplayStore) pruneLocked(now time.Time) {
 func (s *ReplayStore) Reserve(key, paymentHash, actionID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.loadErr != nil {
+		return s.loadErr
+	}
 	now := time.Now()
 	s.pruneLocked(now)
 
@@ -165,6 +187,9 @@ func (s *ReplayStore) MarkOutcomeWithResult(key, status, errorCode string, settl
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.loadErr != nil {
+		return s.loadErr
+	}
 	record, exists := s.records[key]
 	if !exists {
 		return nil
@@ -190,6 +215,9 @@ func (s *ReplayStore) BindActionMetadata(key string, metadata actionMetadata) er
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.loadErr != nil {
+		return s.loadErr
+	}
 	record, exists := s.records[key]
 	if !exists {
 		return errors.New("idempotency reservation not found")
@@ -212,6 +240,9 @@ func (s *ReplayStore) StatusByActionID(actionID string) (ActionStatus, bool) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.loadErr != nil {
+		return ActionStatus{}, false
+	}
 	for _, record := range s.records {
 		if record.ActionID == actionID {
 			return ActionStatus{
