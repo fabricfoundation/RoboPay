@@ -170,7 +170,14 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	aipSrv := aipagent.Build(cfg, handlers.PublishRobotAction, logger)
+	// AIP job input does not carry the Tunnel-verified x402 context, complete
+	// correlation tuple, or durable replay reservation.  It must therefore
+	// never publish directly to Zenoh.  Keep discovery/registration available
+	// but fail direct job execution closed until the shared gateway can forward
+	// a verified paid ActionEvent through the same PostAction contract.
+	aipSrv := aipagent.Build(cfg, func(_ []byte) error {
+		return fmt.Errorf("direct AIP action execution is disabled; use the paid Tunnel action endpoint")
+	}, logger)
 	if aipSrv != nil {
 		go func() {
 			if err := aipSrv.Run(ctx); err != nil {

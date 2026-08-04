@@ -70,7 +70,7 @@ secret manager) before starting the tunnel:
 {
   "robot_id": "my-robot",
   "evm_payee_address": "0xYourAddress",
-  "price": "0.002",
+  "price": "0.001",
   "network": "eip155:84532"
 }
 ```
@@ -80,7 +80,7 @@ secret manager) before starting the tunnel:
 | `robot_id`               | **Yes**       | —               | Stable robot identifier; generated IDs are rejected         |
 | `evm_payee_address`      | **Yes**       | —               | Non-zero EVM address to receive x402 payments               |
 | `price`                  | No            | `0.001`         | Price per action, in whole token units                      |
-| `network`                | No            | `eip155:8453`   | CAIP-2 network ID (e.g. `eip155:84532`)                     |
+| `network`                | No            | `eip155:84532`  | CAIP-2 network ID (Base Sepolia in the checked-in example)  |
 | `token_address`          | No            | network default | ERC-20 the price is charged in                              |
 | `token_name`             | For `eip3009` | —               | Token's `name()`, forms the EIP-712 domain the payer signs  |
 | `token_version`          | No            | `1`             | Token version used in the EIP-712 domain                    |
@@ -97,8 +97,10 @@ is optional and carries no meaning; it only reads as dollars when the token is a
 For well-known chains x402 already knows which stablecoin to use (USDC on Base, and so on), so
 `token_address` can be omitted. On any other chain there is no default and requests fail with
 `no default stablecoin configured for network <network>` — set `token_address` to register the
-token as that network's default asset at startup. See
-[`tunnel/config.example.json`](tunnel/config.example.json).
+token as that network's default asset at startup. The checked-in Base Sepolia
+template in [`tunnel/config.example.json`](tunnel/config.example.json) is
+intentionally inert (zero payee); copy it to an untracked deployment config
+and replace the robot ID and payee before starting the Tunnel.
 
 `token_transfer_method` decides how the facilitator moves the tokens:
 
@@ -153,16 +155,16 @@ until a simulator result matches the exact `action_id`, `robot_id`, `skill_id`,
 parameter hash, and idempotency key. Simulator failure, timeout, or a
 correlation mismatch never settles a payment.
 
-Robot WebSocket authentication and the binding between tunnel identity and the
-payee are supplied by the shared Fabric Tunnel/proxy protocol. Robot profiles
-must not invent a local EIP-signature handshake; they document this upstream
-dependency and only receive Tunnel-verified action events.
+The current shared Fabric Tunnel/proxy protocol identifies a robot by its
+configured ID but does **not yet** supply a signed robot-to-payee handshake.
+That binding is an upstream protocol dependency. Robot profiles must not
+invent a local EIP-signature handshake; they document the limitation and only
+receive Tunnel-verified action events.
 
 ## 4. Register the robot on BitAgent (Unibase AIP) — optional
 
 With `AIP_ENABLED=true`, the tunnel additionally registers the robot as an
-A2A-compatible agent on the BitAgent network (Unibase AIP), so any AIP client
-or agent can discover and call it. The integration is built on the
+A2A-compatible discovery agent on the BitAgent network (Unibase AIP). The integration is built on the
 [Unibase AIP Go SDK](https://github.com/unibaseio/aip-go-sdk) — see
 `tunnel/internal/aipagent/agent.go`, which wraps the robot in a single
 `wrappers.ExposeAsA2A(...)` call.
@@ -171,7 +173,7 @@ How AIP traffic flows:
 
 ```
 AIP client → AIP gateway (/robots/<robot_id>/…) → Fabric proxy (ws) → tunnel
-           → AIP handler → Zenoh topic robot/tunnel/action → bridge → /cmd_vel
+           → discovery metadata / rejected direct action
 ```
 
 The tunnel serves the A2A contract endpoints (`/.well-known/agent-card.json`,
@@ -189,7 +191,7 @@ cp tunnel/.env.example tunnel/.env
 
 | Variable             | Required | Description                                              |
 |----------------------|----------|----------------------------------------------------------|
-| `AIP_ENABLED`        | yes      | Set `true` to enable BitAgent/AIP registration           |
+| `AIP_ENABLED`        | no       | Set `true` to enable BitAgent/AIP discovery registration |
 | `CHAIN`              | no       | Chain preset: `bsc-testnet`, `bsc-mainnet`, `base-sepolia` or `base-mainnet` — sets both the x402 payment network and the AIP registration chain |
 | `UNIBASE_PROXY_AUTH` | no*      | Bearer token — your account is resolved from it (falls back to `PRIVY_TOKEN`) |
 | `AIP_USER_ID`        | no*      | Token-less fallback: wallet address to register under    |
@@ -221,6 +223,9 @@ registering robot as AIP agent  robot_id=<id>  endpoint_url=…/robots/<id>
 ws connected to proxy           robot_id=<id>
 ```
 
-Actions received via AIP are published to the same Zenoh topic
-(`robot/tunnel/action`) as paid x402 actions, so the bridge and robot-side
-safety logic are identical for both paths.
+Direct actions received through AIP are intentionally rejected and never
+published to Zenoh: an AIP job input does not currently carry the
+Tunnel-verified x402 payment context, exact correlation tuple, or durable
+replay reservation. Use the paid Tunnel action endpoint for execution. AIP
+execution can be enabled only when the shared gateway supplies that verified
+envelope through the same contract.

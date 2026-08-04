@@ -203,11 +203,15 @@ func (e validationError) Error() string {
 }
 
 type actionMetadata struct {
-	ActionID       string
-	RobotID        string
-	SkillID        string
-	ParamsHash     string
-	IdempotencyKey string
+	ActionID   string
+	RobotID    string
+	SkillID    string
+	ParamsHash string
+	// ParamsCanonical is the exact JSON byte sequence that was hashed by Go.
+	// It travels with the event so bridges can verify the hash without making
+	// cross-language float-formatting assumptions.
+	ParamsCanonical string
+	IdempotencyKey  string
 }
 
 // executionResult is the terminal event emitted by a bridge. Every member of
@@ -290,14 +294,6 @@ func getZenohPublisher() (zenohPublisher, error) {
 	}
 
 	return zenohPub, nil
-}
-
-func PublishRobotAction(payload []byte) error {
-	pub, err := getZenohPublisher()
-	if err != nil {
-		return err
-	}
-	return pub.Publish(configuredActionTopic(), payload)
 }
 
 type Handlers struct {
@@ -564,6 +560,7 @@ func validatePayload(payload interface{}, expectedRobotID string) (actionMetadat
 	}
 	hash := sha256.Sum256(canonicalParams)
 	metadata.ParamsHash = fmt.Sprintf("sha256:%x", hash[:])
+	metadata.ParamsCanonical = string(canonicalParams)
 	return metadata, nil
 }
 
@@ -691,6 +688,32 @@ func validateParameterValue(name string, schema ParamSchema, value interface{}) 
 	return nil
 }
 
+// paymentFingerprint binds replay protection to the verified x402 payload,
+// not its transport encoding.  PAYMENT-SIGNATURE is base64 JSON, so hashing
+// its raw header bytes would allow the same authorization to be replayed with
+// different whitespace, key order, or padding. The payment middleware stores
+// the parsed/verified payload in the Gin context; encoding/json then gives us
+// a deterministic semantic representation (including sorted map keys).
+//
+// The header fallback exists only for handler-unit callers that deliberately
+// omit the payment middleware. Every production paid request reaches this
+// handler with x402_payload set by deferredSettlementGate.
+func paymentFingerprint(c *gin.Context) (string, error) {
+	if payload, verified := c.Get("x402_payload"); verified {
+		canonical, err := json.Marshal(payload)
+		if err != nil {
+			return "", fmt.Errorf("canonicalize verified payment payload: %w", err)
+		}
+		sum := sha256.Sum256(canonical)
+		return fmt.Sprintf("sha256:%x", sum[:]), nil
+	}
+	if signature := c.GetHeader("PAYMENT-SIGNATURE"); signature != "" {
+		sum := sha256.Sum256([]byte(signature))
+		return fmt.Sprintf("sha256:%x", sum[:]), nil
+	}
+	return "", nil
+}
+
 func (h *Handlers) PostAction(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -731,10 +754,11 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	}
 	// Bind the reservation to the exact x402 payment payload so a replayed
 	// payment can never actuate twice, even with a fresh idempotency key.
-	paymentHash := ""
-	if signature := c.GetHeader("PAYMENT-SIGNATURE"); signature != "" {
-		sum := sha256.Sum256([]byte(signature))
-		paymentHash = fmt.Sprintf("sha256:%x", sum[:])
+	paymentHash, err := paymentFingerprint(c)
+	if err != nil {
+		h.Logger.Warn("failed to fingerprint verified payment", zap.Error(err))
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "payment fingerprint unavailable", "error_code": "PAYMENT_FINGERPRINT_UNAVAILABLE"})
+		return
 	}
 	if err := h.Replay.Reserve(metadata.IdempotencyKey, paymentHash, metadata.ActionID); err != nil {
 		switch {
@@ -781,12 +805,13 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	}
 
 	event := gin.H{
-		"payload":         payload,
-		"action_id":       metadata.ActionID,
-		"robot_id":        metadata.RobotID,
-		"skill_id":        metadata.SkillID,
-		"params_hash":     metadata.ParamsHash,
-		"idempotency_key": metadata.IdempotencyKey,
+		"payload":          payload,
+		"action_id":        metadata.ActionID,
+		"robot_id":         metadata.RobotID,
+		"skill_id":         metadata.SkillID,
+		"params_hash":      metadata.ParamsHash,
+		"params_canonical": metadata.ParamsCanonical,
+		"idempotency_key":  metadata.IdempotencyKey,
 		"transaction_details": gin.H{
 			"payment_payload":      paymentPayload,
 			"payment_requirements": paymentRequirements,
