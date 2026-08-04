@@ -1,0 +1,4 @@
+=== Deliberate failure: max_episode_steps too small to reach goal ===
+{"actionId": "demo-failure-001", "idempotencyKey": "demo-failure-idem-001", "metrics": {"avoidance_events": 1, "collisions": 0, "displacement_m": 0.4058, "path_length_m": 0.4317, "sim_seconds": 1.0, "sim_steps": 500, "status": "timeout", "target_distance_remaining_m": 6.5942}, "paramsHash": "bfc33cf703249c4b7d8f2d3554fbac00359f10a5f1f3ba3954b452431566135b", "reason": "episode_status:timeout", "robotId": "deep-robotics-x30-pro-sim-01", "settlementEligible": false, "skillId": "x30_pro_obstacle_navigation", "status": "error"}
+
+PASS: timeout episode correctly produced no settlement.

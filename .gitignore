@@ -35,3 +35,4 @@ log/
 .colcon_settings.yaml
 
 PROJECT_MEMORY.md
+*.wbproj

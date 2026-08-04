@@ -1,0 +1,11 @@
+{
+  "engine": "webots",
+  "status": "goal_reached",
+  "displacement_m": 6.6547,
+  "path_length_m": 6.6551,
+  "collisions": 0,
+  "target_distance_remaining_m": 0.3466,
+  "sim_steps": 405,
+  "sim_seconds": 6.48,
+  "avoidance_events": 212
+}
