@@ -1,0 +1,56 @@
+{
+  "unpaid_rejected": {
+    "actionId": "demo-action-001",
+    "idempotencyKey": "demo-idem-001",
+    "metrics": {},
+    "paramsHash": "c51712243ea46bc618653d3bf7657f6d40a2b218e432bfe4c8962328f1513a2d",
+    "reason": "payment_unverified",
+    "robotId": "deep-robotics-m20-pro-sim-01",
+    "settlementEligible": false,
+    "skillId": "m20_pro_obstacle_navigation",
+    "status": "rejected"
+  },
+  "paid_success": {
+    "actionId": "demo-action-002",
+    "idempotencyKey": "demo-idem-002",
+    "metrics": {
+      "avoidance_events": 1,
+      "collisions": 0,
+      "displacement_m": 7.6507,
+      "path_length_m": 7.6511,
+      "sim_seconds": 5.868,
+      "sim_steps": 2935,
+      "status": "goal_reached",
+      "target_distance_remaining_m": 0.3493
+    },
+    "paramsHash": "c51712243ea46bc618653d3bf7657f6d40a2b218e432bfe4c8962328f1513a2d",
+    "reason": null,
+    "robotId": "deep-robotics-m20-pro-sim-01",
+    "settlementEligible": true,
+    "skillId": "m20_pro_obstacle_navigation",
+    "status": "success"
+  },
+  "replay_rejected": {
+    "actionId": "demo-action-002",
+    "idempotencyKey": "demo-idem-002",
+    "metrics": {},
+    "paramsHash": "c51712243ea46bc618653d3bf7657f6d40a2b218e432bfe4c8962328f1513a2d",
+    "reason": "duplicate_action",
+    "robotId": "deep-robotics-m20-pro-sim-01",
+    "settlementEligible": false,
+    "skillId": "m20_pro_obstacle_navigation",
+    "status": "rejected"
+  },
+  "stop": {
+    "actionId": "demo-action-003",
+    "idempotencyKey": "demo-action-003",
+    "metrics": {},
+    "paramsHash": "",
+    "reason": "stopped",
+    "robotId": "deep-robotics-m20-pro-sim-01",
+    "settlementEligible": false,
+    "skillId": "m20_pro_obstacle_navigation",
+    "status": "success"
+  },
+  "wall_clock_episode_seconds": 0.061
+}

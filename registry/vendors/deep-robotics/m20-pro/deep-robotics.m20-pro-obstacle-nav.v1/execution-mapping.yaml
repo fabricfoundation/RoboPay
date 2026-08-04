@@ -1,0 +1,66 @@
+schemaVersion: execution-mapping.v1
+profileId: deep-robotics.m20-pro-obstacle-nav.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  actionSchema: robopay-action.v1
+  resultSchema: robot-action-result.v1
+
+validation:
+  requiredActionFields:
+    - actionId
+    - robotId
+    - skillId
+    - params
+    - paramsHash
+    - idempotencyKey
+    - payment
+  paramsHash: sha256 of UTF-8 canonical JSON with sorted keys and compact separators
+  replayStore: SQLite path from ROBOPAY_STATE_DB
+  paymentTimeWindow:
+    defaultMaxAuthorizationTtlSec: 300
+    defaultFutureClockSkewSec: 30
+    configurableHardCaps:
+      maxAuthorizationTtlSec: 3600
+      futureClockSkewSec: 300
+  rejectBeforeActuation:
+    - malformed envelope
+    - wrong robotId
+    - unknown skillId
+    - invalid params or paramsHash
+    - unverified, mismatched, expired, overlong, or future-dated payment
+    - duplicate actionId, idempotencyKey, or payment authorizationId
+
+mappings:
+  m20_pro_obstacle_navigation:
+    output: mujoco_actuators
+    scene: simulation/scenes/m20_pro.xml
+    request:
+      vx: "$params.vx"       # clamped to [-1.5, 1.5] per direction
+      wz: "$params.wz"       # clamped to [-1.0, 1.0]
+      target: "$params.target_xy"
+    completion:
+      success: episode.status == "goal_reached" and episode.collisions == 0
+      pending: episode.status == "running"
+      error: episode.status in ["collision", "timeout", "invalid_scene"]
+      retryPolicy: never resubmit automatically after an ambiguous simulator timeout
+
+result:
+  correlationFields:
+    - actionId
+    - robotId
+    - skillId
+    - idempotencyKey
+    - paramsHash
+  reportedMetrics:
+    - displacementM
+    - pathLengthM
+    - collisionCount
+    - targetDistanceRemainingM
+    - simSteps
+  settlementEligibleOnlyWhen:
+    - status == success
+    - simulator state is explicit goal_reached
+    - execution is not a dry run

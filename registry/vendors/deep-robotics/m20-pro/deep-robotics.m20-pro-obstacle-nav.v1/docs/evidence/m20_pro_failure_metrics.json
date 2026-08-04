@@ -1,0 +1,20 @@
+{
+  "actionId": "demo-failure-001",
+  "idempotencyKey": "demo-failure-idem-001",
+  "metrics": {
+    "avoidance_events": 1,
+    "collisions": 0,
+    "displacement_m": 0.0273,
+    "path_length_m": 0.0278,
+    "sim_seconds": 0.1,
+    "sim_steps": 50,
+    "status": "timeout",
+    "target_distance_remaining_m": 7.9727
+  },
+  "paramsHash": "d7572e240d8115db01ea9a450caf5349d6e18fe8444e3373eab3ce264e8798c8",
+  "reason": "episode_status:timeout",
+  "robotId": "deep-robotics-m20-pro-sim-01",
+  "settlementEligible": false,
+  "skillId": "m20_pro_obstacle_navigation",
+  "status": "error"
+}

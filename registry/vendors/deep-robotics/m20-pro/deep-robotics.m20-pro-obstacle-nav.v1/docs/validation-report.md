@@ -1,0 +1,104 @@
+# Deep Robotics M20 Pro — Tier 1 Validation Report
+
+## Summary
+
+This is a simulator-only Tier 1 submission for the M20 Pro obstacle-avoidance
+navigation skill. All evidence below was produced by running the included
+demo scripts against the real MuJoCo scene at
+`simulation/scenes/m20_pro.xml` — no artifacts are reused from another
+robot's profile.
+
+## Test suite
+$ python -m pytest tests/test_bridge.py -v
+11 passed
+Covers: successful settlement, unpaid rejection, invalid params-hash
+rejection, expired-payment rejection, malformed envelope rejection, replay
+rejection (no second motion), collision → no settlement, timeout → no
+settlement, stop with no payment required, wrong robotId rejection, unknown
+skillId rejection.
+
+## Success run (`demo/run_demo.py`)
+
+One `actionId` traced end-to-end: unpaid rejected (no simulator call) →
+paid request runs the real M20 Pro MuJoCo episode → replay of the same
+`actionId` rejected with no second motion → stop action succeeds with no
+payment required.
+
+Real simulator metrics from the paid run:
+
+| Metric | Value |
+|--------|-------|
+| status | goal_reached |
+| displacement_m | 7.6507 |
+| path_length_m | 7.6511 |
+| collisions (real MuJoCo contacts) | 0 |
+| avoidance_events | 1 |
+| sim_steps | 2935 |
+| sim_seconds | 5.868 |
+| target_distance_remaining_m | 0.3493 |
+| settlementEligible | true |
+
+Terminal log: `docs/evidence/terminal_log.txt`
+Raw metrics: `docs/evidence/m20_pro_metrics.json`
+
+## Deliberate failure run (`demo/run_failure_demo.py`)
+
+Same action contract, `max_episode_steps` deliberately set too low to reach
+the goal, proving timeout produces no settlement:
+
+| Metric | Value |
+|--------|-------|
+| status | error (episode_status:timeout) |
+| sim_steps | 50 |
+| target_distance_remaining_m | 7.9727 |
+| settlementEligible | **false** |
+
+Terminal log: `docs/evidence/failure_terminal_log.txt`
+Raw metrics: `docs/evidence/m20_pro_failure_metrics.json`
+
+## Reviewer verification checklist
+
+Before accepting this Tier 1 simulation submission, reviewers should confirm:
+
+- the action targets the published `m20_pro_obstacle_navigation` skill at
+  its listed `0.002 USDC` price;
+- the envelope preserves `actionId`, `robotId`, `skillId`,
+  `idempotencyKey`, `paramsHash`, and payment evidence;
+- unpaid, invalid, expired, and replayed requests produce no simulator
+  actuation (see `test_unpaid_action_is_rejected_before_actuation`,
+  `test_invalid_params_hash_is_rejected`,
+  `test_expired_payment_is_rejected`,
+  `test_replay_of_same_action_id_causes_no_second_motion`);
+- the bridge subscribes to `robot/tunnel/action` and publishes to
+  `robot/tunnel/result` (not `robot/action`), preserving `actionId`
+  end-to-end;
+- the M20 Pro MuJoCo scene (`simulation/scenes/m20_pro.xml`) defines
+  actuators specific to this robot's kinematics (12 leg joints + 3 base
+  DOF), and `simulation/runners/m20_pro_runner.py` reads actuator names
+  dynamically rather than hardcoding `ctrl` indices;
+  metrics, video, and logs are all produced by running this M20 Pro scene,
+  not reused from another robot's profile;
+- the terminal `robot/tunnel/result` uses the same `actionId` as the
+  originating action (see `docs/evidence/m20_pro_metrics.json`);
+- failure or timeout in the simulator produces `settlementEligible: false`
+  (see the deliberate failure run above);
+- successful execution produces `settlementEligible: true` only after an
+  explicit `goal_reached` terminal state with zero real (contact-detected)
+  collisions — not on a mid-episode/running state;
+- replaying the same `actionId` causes no second simulator episode (see
+  `test_replay_of_same_action_id_causes_no_second_motion` and Step 3 of
+  `demo/run_demo.py`'s terminal log);
+- the gait applied to the legs each step is computed live from simulation
+  time (`_apply_leg_gait`), not a pre-recorded/replayed trajectory;
+- public evidence contains no wallet secrets or complete payment payloads.
+
+## Known simplification (disclosed)
+
+The M20 Pro base is mounted on a planar (x, y, yaw) joint rather than a
+full 6-DOF free body balanced purely through leg-ground contact. This
+avoids an unconstrained whole-body balance control problem that is out of
+scope for a Tier 1 navigation skill, while preserving real per-step
+physics integration, real actuation of all 12 leg joints via a live gait,
+and real MuJoCo collision detection for the obstacle-avoidance objective.
+Full standing/dynamic balance control could be added in a follow-up Tier 3
+"custom skills" submission.

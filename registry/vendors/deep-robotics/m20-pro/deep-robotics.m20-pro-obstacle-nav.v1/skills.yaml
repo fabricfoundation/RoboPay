@@ -1,0 +1,26 @@
+schemaVersion: robot-skills.v1
+profileId: deep-robotics.m20-pro-obstacle-nav.v1
+
+skills:
+  - skillId: m20_pro_obstacle_navigation
+    name: M20 Pro obstacle-avoidance navigation
+    description: >-
+      Policy-driven navigation to a target point while avoiding obstacles in a
+      MuJoCo simulation of the Deep Robotics M20 Pro quadruped. Tier 1,
+      simulator-only submission.
+    params:
+      target_xy:
+        type: array
+        required: true
+        description: Target [x, y] coordinate in the scene frame.
+      max_episode_steps:
+        type: integer
+        required: false
+        default: 50000
+    paymentRequired: true
+    limits:
+      timeoutSec: 120
+      concurrency: 1
+    safety:
+      scope: simulator-only
+      emergencyStop: stop/cancel action, no payment required, zeroes velocities immediately
