@@ -137,8 +137,14 @@ func main() {
 		}()
 	}
 
+	h := handlers.NewHandlers(logger)
+	if err := h.InitZenoh(); err != nil {
+		logger.Fatal("failed to initialize Zenoh result subscription", zap.Error(err))
+	}
+	defer h.Close()
+
 	for {
-		router := setupRouter(cfg, aipSrv, logger)
+		router := setupRouter(cfg, aipSrv, logger, h)
 		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)
@@ -162,7 +168,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger) *gin.Engine {
+func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger, h *handlers.Handlers) *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
@@ -212,7 +218,6 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		Timeout: 30 * time.Second,
 	}))
 
-	h := handlers.NewHandlers(logger)
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)
@@ -227,4 +232,5 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 // RegisterAllRoutes registers all real handlers on the router.
 func RegisterAllRoutes(router *gin.Engine, h *handlers.Handlers) {
 	router.POST("/action", h.PostAction)
+	router.GET("/settlement/:actionId", h.GetSettlementStatus)
 }

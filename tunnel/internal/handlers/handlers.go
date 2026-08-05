@@ -9,11 +9,15 @@ import (
 
 	"github.com/eclipse-zenoh/zenoh-go/zenoh"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/fabricfoundation/tunnel/internal/settlement"
 )
 
 const (
 	RobotActionTopic = "robot/tunnel/action"
+	RobotResultTopic = "robot/tunnel/result"
 )
 
 type zenohPublisher interface {
@@ -64,12 +68,63 @@ func PublishRobotAction(payload []byte) error {
 }
 
 type Handlers struct {
-	Logger *zap.Logger
+	Logger         *zap.Logger
+	SettlementMgr  *settlement.SettlementManager
+	Publisher      zenohPublisher
+	zenohSession   zenoh.Session
+	resultSub      zenoh.Subscriber
 }
 
 func NewHandlers(logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Logger: logger,
+		Logger:        logger,
+		SettlementMgr: settlement.NewSettlementManager(),
+	}
+}
+
+// InitZenoh initializes the Zenoh session and subscribes to robot/tunnel/result.
+// Must be called after creation, before handling requests.
+func (h *Handlers) InitZenoh() error {
+	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
+	if err != nil {
+		return err
+	}
+	h.zenohSession = session
+
+	// Subscribe to terminal results from the robot
+	ke, err := zenoh.NewKeyExpr(RobotResultTopic)
+	if err != nil {
+		return err
+	}
+
+	h.resultSub, err = session.DeclareSubscriber(ke, zenoh.Closure[zenoh.Sample]{
+		Call: func(sample zenoh.Sample) {
+			var result settlement.ResultEnvelope
+			if err := json.Unmarshal(sample.Payload().Bytes(), &result); err != nil {
+				h.Logger.Warn("failed to unmarshal result", zap.Error(err))
+				return
+			}
+			h.Logger.Info("received terminal result",
+				zap.String("actionId", result.ActionID),
+				zap.String("status", result.Status))
+			h.SettlementMgr.ProcessResult(result)
+		},
+	}, nil)
+
+	if err != nil {
+		return err
+	}
+
+	h.Logger.Info("subscribed to robot results", zap.String("topic", RobotResultTopic))
+	return nil
+}
+
+func (h *Handlers) Close() {
+	if h.resultSub != nil {
+		h.resultSub.Undeclare()
+	}
+	if h.zenohSession != nil {
+		h.zenohSession.Close(nil)
 	}
 }
 
@@ -85,10 +140,10 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		return
 	}
 
-	var payload interface{}
+	var payload map[string]interface{}
 	if len(body) > 0 {
 		if err := json.Unmarshal(body, &payload); err != nil {
-			payload = string(body)
+			payload = map[string]interface{}{"raw": string(body)}
 		}
 	}
 
@@ -102,8 +157,15 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		paymentRequirements = value
 	}
 
+	// Extract or generate actionId for correlated settlement.
+	actionID := h.correlationID(payload, paymentPayload)
+	if actionID == "" {
+		actionID = uuid.NewString()
+	}
+
 	event := gin.H{
-		"payload": payload,
+		"actionId": actionID,
+		"payload":  payload,
 		"transaction_details": gin.H{
 			"payment_payload":      paymentPayload,
 			"payment_requirements": paymentRequirements,
@@ -123,8 +185,77 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	if actionID != "" {
+		h.SettlementMgr.MarkPending(actionID)
+	}
+
+	response := gin.H{
 		"status":    "accepted",
 		"timestamp": time.Now().Format(time.RFC3339),
-	})
+	}
+	if actionID != "" {
+		response["actionId"] = actionID
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handlers) correlationID(payload map[string]interface{}, paymentPayload interface{}) string {
+	if payload != nil {
+		if actionID, ok := payload["actionId"].(string); ok && actionID != "" {
+			return actionID
+		}
+		if inner, ok := payload["payload"].(map[string]interface{}); ok {
+			if actionID, ok := inner["actionId"].(string); ok && actionID != "" {
+				return actionID
+			}
+		}
+
+		if txDetails, ok := payload["transaction_details"].(map[string]interface{}); ok {
+			if txActionID, ok := txDetails["actionId"].(string); ok && txActionID != "" {
+				return txActionID
+			}
+			if payment, ok := txDetails["payment_payload"].(map[string]interface{}); ok {
+				if txHash, ok := payment["txHash"].(string); ok && txHash != "" {
+					return txHash
+				}
+				if internalActionID, ok := payment["actionId"].(string); ok && internalActionID != "" {
+					return internalActionID
+				}
+			}
+		}
+	}
+
+	if paymentMap, ok := paymentPayload.(map[string]interface{}); ok {
+		if txHash, ok := paymentMap["txHash"].(string); ok && txHash != "" {
+			return txHash
+		}
+		if actionID, ok := paymentMap["actionId"].(string); ok && actionID != "" {
+			return actionID
+		}
+	}
+
+	return ""
+}
+
+// GetSettlementStatus returns the settlement status for an actionId.
+func (h *Handlers) GetSettlementStatus(c *gin.Context) {
+	actionID := c.Param("actionId")
+	if actionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "actionId is required"})
+		return
+	}
+
+	settled := h.SettlementMgr.IsSettled(actionID)
+	result, hasResult := h.SettlementMgr.GetResult(actionID)
+
+	response := gin.H{
+		"actionId": actionID,
+		"settled":  settled,
+	}
+	if hasResult {
+		response["result"] = result
+	}
+
+	c.JSON(http.StatusOK, response)
 }

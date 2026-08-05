@@ -1,6 +1,6 @@
 module github.com/fabricfoundation/tunnel
 
-go 1.25.0
+go 1.25
 
 require (
 	github.com/eclipse-zenoh/zenoh-go v1.9.0
