@@ -1,0 +1,17 @@
+{
+  "actionId": "example-non-production-actionid-0001",
+  "robotId": "limx-tron1-sim-01",
+  "skillId": "tron1_obstacle_navigation",
+  "params": {
+    "target_xy": [8.0, 0.0],
+    "max_episode_steps": 50000
+  },
+  "paramsHash": "<sha256-of-canonical-params-json>",
+  "idempotencyKey": "example-idem-0001",
+  "payment": {
+    "provider": "x402",
+    "status": "verified",
+    "amount": "2000",
+    "asset": "USDC"
+  }
+}

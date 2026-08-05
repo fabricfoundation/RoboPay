@@ -1,0 +1,70 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+
+WorldInfo {
+  basicTimeStep 16
+}
+Viewpoint {
+  orientation -0.3 0.3 0.9 1.1
+  position -3 -6 6
+}
+TexturedBackground {
+}
+DirectionalLight {
+  direction 0.3 -0.5 -1
+}
+RectangleArena {
+  floorSize 20 10
+}
+
+DEF TRON1_PROXY Robot {
+  translation 0 0 0.3
+  name "tron1_proxy"
+  controller "tron1_navigation"
+  supervisor TRUE
+  physics Physics {
+    density -1
+    mass 14.0
+  }
+  boundingObject Box {
+    size 0.28 0.36 0.20
+  }
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.2 0.2 0.2 }
+      geometry Box { size 0.28 0.36 0.20 }
+    }
+  ]
+}
+
+DEF OBSTACLE_1 Solid {
+  translation 3.0 0.9 0.3
+  name "obstacle_1"
+  children [ Shape { appearance PBRAppearance { baseColor 0.8 0.2 0.2 } geometry Box { size 0.4 0.4 0.6 } } ]
+  boundingObject Box { size 0.4 0.4 0.6 }
+  physics Physics { }
+}
+
+DEF OBSTACLE_2 Solid {
+  translation 5.0 -1.0 0.3
+  name "obstacle_2"
+  children [ Shape { appearance PBRAppearance { baseColor 0.8 0.2 0.2 } geometry Cylinder { radius 0.25 height 0.6 } } ]
+  boundingObject Cylinder { radius 0.25 height 0.6 }
+  physics Physics { }
+}
+
+DEF OBSTACLE_3 Solid {
+  translation 6.5 0.9 0.3
+  name "obstacle_3"
+  children [ Shape { appearance PBRAppearance { baseColor 0.8 0.2 0.2 } geometry Box { size 0.4 0.6 0.6 } } ]
+  boundingObject Box { size 0.4 0.6 0.6 }
+  physics Physics { }
+}
+
+DEF GOAL_MARKER Solid {
+  translation 8.0 0.0 0.02
+  name "goal_marker"
+  children [ Shape { appearance PBRAppearance { baseColor 0.1 0.8 0.2 transparency 0.4 } geometry Cylinder { radius 0.15 height 0.02 } } ]
+}
