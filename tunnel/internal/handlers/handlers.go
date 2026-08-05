@@ -114,12 +114,18 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		h.Logger.Warn("failed to marshal action event", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encode action event"})
+		return
 	} else {
 		pub, err := getZenohPublisher()
 		if err != nil {
 			h.Logger.Warn("failed to initialize zenoh publisher", zap.Error(err))
+			c.JSON(http.StatusBadGateway, gin.H{"error": "action delivery unavailable"})
+			return
 		} else if err := pub.Publish(RobotActionTopic, eventBytes); err != nil {
 			h.Logger.Warn("failed to publish action event", zap.Error(err))
+			c.JSON(http.StatusBadGateway, gin.H{"error": "action delivery failed"})
+			return
 		}
 	}
 
