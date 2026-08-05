@@ -1,5 +1,20 @@
 # AGIBot X2 MuJoCo bridge
 
+The package now fails closed unless a MuJoCo model is loaded. `models/x2.xml` is
+checked in; its mesh files are Git-LFS assets from the upstream
+`ioai-tech/robot_description` repository. Install Git LFS and run:
+
+```bash
+git clone https://github.com/ioai-tech/robot_description.git
+git -C robot_description lfs pull
+ros2 launch mujoco_bridge_agibot_x2 bridge.launch.py \
+  model_path:=/absolute/path/to/robot_description/mjcf/agibot/x2.xml
+```
+
+The terminal result is published only after MuJoCo advances the policy and
+reports a finite, measurable `state_delta`; missing models and failed policies
+produce `FAILED` and never actuate `/cmd_vel`.
+
 This package is the AGIBot X2 Tier‑1 integration for RoboPay. The RoboPay tunnel
 performs x402 verification and settlement before publishing an accepted event
 on `robot/tunnel/action`. This bridge parses that event, maps safe X2 commands,

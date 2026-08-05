@@ -31,9 +31,14 @@ class MuJoCoX2BridgeNode(Node):
             self._publish_result(result(action_id, self._robot_id, key, "FAILED", {}, "missing payment or correlation fields")); return
         if not self._replays.claim(key):
             self._publish_result(result(action_id, self._robot_id, key, "REPLAY_REJECTED", {}, "duplicate idempotency key")); return
-        event = parse_action_event(json.dumps(raw).encode())
         try:
-            self._pub.publish(self._mapper.map(event)); metrics = self._sim.execute(event.action, float(event.params.get("duration", 1))) if self._sim else {"mode": "cmd_vel"}
+            if self._sim is None:
+                raise RuntimeError("MuJoCo model is not configured; refusing actuation")
+            event = parse_action_event(json.dumps(raw).encode())
+            if event is None:
+                raise ValueError("invalid action event")
+            metrics = self._sim.execute(event.action, float(event.params.get("duration", 1)), event.params)
+            self._pub.publish(self._mapper.map(event))
             self._publish_result(result(action_id, self._robot_id, key, "SUCCESS", metrics))
         except Exception as exc:
             self._replays.discard(key); self._publish_result(result(action_id, self._robot_id, key, "FAILED", {}, str(exc)))
