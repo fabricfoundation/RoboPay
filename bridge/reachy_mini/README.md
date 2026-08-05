@@ -163,5 +163,5 @@ python3 bridge/reachy_mini/test_payment_gate.py
 
 Pinned in `mujoco_sim_bridge/requirements.txt` (same versions as CI):
 Python 3.10, `mujoco==3.10.0`, `numpy==2.2.6`, `eclipse-zenoh==1.9.0`,
-`x402[requests,evm]==2.16.0`, `eth-account==0.13.7`, `requests==2.32.3`,
+`x402[requests,evm]==2.16.0`, `eth-account==0.13.7`, `requests==2.33.0`,
 `reachy_mini` from git tag `v1.8.4`, Webots R2025a (for sim2sim).

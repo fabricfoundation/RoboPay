@@ -45,6 +45,14 @@ jobs:
           python -m unittest \
             bridge/reachy_mini/mujoco_sim_bridge/tests/test_action_contract.py \
             bridge/reachy_mini/mujoco_sim_bridge/tests/test_bridge_safety_config.py
+      - name: Prove facilitator-rejected payments fail closed before action dispatch
+        env:
+          TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
+        working-directory: bridge/reachy_mini
+        run: |
+          python test_payment_gate.py
+          python -m unittest test_e2e_paid_action.TestWebSocketMessageReader
       - name: Prove simulator failure, timeout, replay, and restart never settle
         env:
           TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel

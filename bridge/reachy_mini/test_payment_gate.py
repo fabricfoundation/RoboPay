@@ -3,21 +3,31 @@
 Launches the real Go tunnel server (built via 'make build' or 'go build -o tunnel_bin ./cmd'),
 sends HTTP POST /action requests, and verifies x402 payment verification against the real tunnel.
 
-No mock HTTP servers. Uses 100% real Go tunnel server binary and real Zenoh telemetry.
+Uses the real Go Tunnel binary and real Zenoh telemetry.  The local Fabric
+proxy and recording facilitator are protocol doubles only; they make payment
+verification outcomes observable without mocking the Tunnel or simulator.
 """
 import json
 import os
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import unittest
 import urllib.request
 import urllib.error
+import uuid
 import zenoh
 
-from test_e2e_paid_action import LocalFabricProxy, _start_facilitator, _http_post
+from test_e2e_paid_action import (
+    LocalFabricProxy,
+    _FacilitatorHandler,
+    _http_post,
+    _payment_signature_from_402,
+    _start_facilitator,
+)
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.normpath(os.path.join(_HERE, "..", ".."))
@@ -33,6 +43,7 @@ SKILL_CATALOG_PATH = os.path.join(
 
 ACTION_TOPIC = "robot/tunnel/action"
 METRICS_TOPIC = "robot/reachy_mini/metrics"
+RESULT_TOPIC = "robot/tunnel/result"
 
 # Locate real Go tunnel binary
 candidates = [os.environ["TUNNEL_BIN"]] if os.environ.get("TUNNEL_BIN") else []
@@ -56,6 +67,7 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
 
     _tunnel_proc = None
     _bridge_proc = None
+    _zenoh_peer = None
 
     @classmethod
     def setUpClass(cls):
@@ -65,6 +77,30 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
                 "Real Go Tunnel binary not found. Build it with 'make build' in repo root "
                 "or 'go build -o tunnel_bin ./cmd' inside tunnel/ folder."
             )
+
+        # Own the Zenoh transport used by every process in this test.  The
+        # peer is a real Zenoh listener, not a simulator double: using an
+        # explicit connect-only config ensures subscribers observe exactly the
+        # same action/result path as the Tunnel and bridge.
+        cls._zenoh_endpoint = "tcp/127.0.0.1:7447"
+        cls._zenoh_peer = zenoh.open(
+            zenoh.Config.from_json5(
+                '{"mode":"peer","scouting":{"multicast":{"enabled":false}},'
+                '"listen":{"endpoints":["tcp/127.0.0.1:7447"]}}'
+            )
+        )
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json5", prefix="reachy_payment_gate_zenoh_", delete=False
+        ) as zenoh_file:
+            json.dump(
+                {
+                    "mode": "peer",
+                    "scouting": {"multicast": {"enabled": False}},
+                    "connect": {"endpoints": [cls._zenoh_endpoint]},
+                },
+                zenoh_file,
+            )
+            cls._zenoh_cfg_path = zenoh_file.name
 
         # The production Tunnel is reached through the Fabric WebSocket proxy;
         # it does not expose a local HTTP listener. Reuse the protocol-accurate
@@ -95,7 +131,7 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
         env["PROXY_WS_URL"] = f"ws://127.0.0.1:{cls._proxy.port}/ws"
         env["FACILITATOR_URL"] = f"http://127.0.0.1:{cls._facilitator.server_address[1]}"
         env["AIP_ENABLED"] = "false"
-        env["ZENOH_CONFIG"] = ""
+        env["ZENOH_CONFIG"] = cls._zenoh_cfg_path
         env["SKILL_CATALOG_PATH"] = SKILL_CATALOG_PATH
         env["ALLOWED_ACTIONS"] = "look_at_apple,inspect_table,stop"
         if "LD_LIBRARY_PATH" in env:
@@ -141,19 +177,23 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
             cls._tunnel_proc.wait(timeout=5)
         if hasattr(cls, "_cfg_path") and os.path.exists(cls._cfg_path):
             os.unlink(cls._cfg_path)
+        if hasattr(cls, "_zenoh_cfg_path") and os.path.exists(cls._zenoh_cfg_path):
+            os.unlink(cls._zenoh_cfg_path)
         if hasattr(cls, "_proxy"):
             cls._proxy.close()
         if hasattr(cls, "_facilitator"):
             cls._facilitator.shutdown()
             cls._facilitator.server_close()
             cls._facilitator_thread.join(timeout=5)
+        if cls._zenoh_peer:
+            cls._zenoh_peer.close()
 
     def test_1_unpaid_request_returns_http_402_payment_required(self):
         """Unpaid POST /action through real Tunnel must return HTTP 402 Payment Required."""
         action_events = []
         z_config = zenoh.Config.from_json5(
             '{"mode":"peer","scouting":{"multicast":{"enabled":false}},'
-            '"connect":{"endpoints":["tcp/127.0.0.1:7447"]}}'
+            f'"connect":{{"endpoints":["{self._zenoh_endpoint}"]}}}}'
         )
         z_session = zenoh.open(z_config)
         action_sub = z_session.declare_subscriber(
@@ -208,6 +248,106 @@ class TestPaymentGateAgainstRealTunnel(unittest.TestCase):
 
         self.assertEqual(status, 402, f"Expected payment gate to reject request, got {status}")
         print("[Real Tunnel Test] Malformed unpaid request correctly rejected with HTTP 402.")
+
+    def test_3_facilitator_rejected_payment_never_crosses_action_boundary(self):
+        """A paid-shaped signature rejected by /verify must fail closed at HTTP 402.
+
+        This is intentionally a real Go Tunnel + x402 middleware integration
+        test.  The local facilitator records every call and returns a valid
+        HTTP response with ``isValid: false`` to model a tampered payment
+        signature.  The assertions cover all authorization boundaries: no
+        Tunnel ActionEvent, no correlated simulator output, and no settlement.
+        """
+        _FacilitatorHandler.calls = []
+        _FacilitatorHandler.verify_response = {
+            "isValid": False,
+            "invalidReason": "test-tampered-payment",
+        }
+        action_events = []
+        metrics = []
+        results = []
+        z_config = zenoh.Config.from_json5(
+            '{"mode":"peer","scouting":{"multicast":{"enabled":false}},'
+            f'"connect":{{"endpoints":["{self._zenoh_endpoint}"]}}}}'
+        )
+        z_session = zenoh.open(z_config)
+        action_sub = z_session.declare_subscriber(
+            ACTION_TOPIC,
+            lambda sample: action_events.append(json.loads(bytes(sample.payload.to_bytes()))),
+        )
+        metrics_sub = z_session.declare_subscriber(
+            METRICS_TOPIC,
+            lambda sample: metrics.append(json.loads(bytes(sample.payload.to_bytes()))),
+        )
+        result_sub = z_session.declare_subscriber(
+            RESULT_TOPIC,
+            lambda sample: results.append(json.loads(bytes(sample.payload.to_bytes()))),
+        )
+        request_id = f"reachy-invalid-payment-{uuid.uuid4().hex}"
+
+        try:
+            public_url = f"http://127.0.0.1:{self._proxy.port}/robots/reachy_mini/action"
+            unpaid_status, unpaid_headers, _ = _http_post(
+                public_url, {"action": "look_at_apple"}
+            )
+            self.assertEqual(unpaid_status, 402)
+
+            paid_status, _, paid_body = _http_post(
+                public_url,
+                {
+                    "action": "look_at_apple",
+                    "robot_id": "reachy_mini",
+                    "action_id": request_id,
+                    "idempotency_key": request_id,
+                    "params": {"target_object": "apple", "duration": 2.0},
+                },
+                {"PAYMENT-SIGNATURE": _payment_signature_from_402(unpaid_headers)},
+            )
+            self.assertEqual(
+                paid_status,
+                402,
+                f"facilitator-rejected payment must return HTTP 402, got {paid_status}: "
+                f"{paid_body.decode('utf-8', errors='replace')}",
+            )
+
+            # Give the real Tunnel/Zenoh path a short observation window.  The
+            # bridge can drive MuJoCo only from robot/tunnel/action, so zero
+            # ActionEvents plus zero correlated bridge output is the observable
+            # no-state-change proof without substituting a simulator mock.
+            # A rejected verification must never reach PostAction.
+            time.sleep(2.0)
+            self.assertEqual(action_events, [], "invalid payment published an ActionEvent")
+            self.assertEqual(
+                [event for event in metrics if event.get("correlation_id") == request_id],
+                [],
+                "invalid payment changed simulator state / emitted metrics",
+            )
+            self.assertEqual(
+                [event for event in results if event.get("action_id") == request_id],
+                [],
+                "invalid payment emitted a terminal simulator result",
+            )
+
+            verify_calls = [
+                payload for path, payload in _FacilitatorHandler.calls if path == "/verify"
+            ]
+            settle_calls = [
+                payload for path, payload in _FacilitatorHandler.calls if path == "/settle"
+            ]
+            self.assertEqual(len(verify_calls), 1, "payment must be verified exactly once")
+            self.assertEqual(settle_calls, [], "invalid payment must never settle")
+            print(
+                "[Real Tunnel Test] Facilitator-rejected payment: HTTP 402, "
+                "0 ActionEvents, 0 simulator outputs, 0 settlements."
+            )
+        finally:
+            action_sub.undeclare()
+            metrics_sub.undeclare()
+            result_sub.undeclare()
+            z_session.close()
+            # Keep other integration tests independent when this module is
+            # run as part of a larger unittest invocation.
+            _FacilitatorHandler.verify_response = None
 
 
 if __name__ == "__main__":

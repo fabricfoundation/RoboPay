@@ -79,7 +79,15 @@ def _read_exact(sock, size):
 
 
 def _read_ws_frame(sock):
+    """Read one RFC 6455 frame without discarding its FIN bit.
+
+    The local Fabric proxy is deliberately small, but it still has to accept
+    fragmentation from a real Tunnel.  Returning ``fin`` lets the message
+    reader below assemble text continuations instead of trying to decode a
+    partial JSON envelope.
+    """
     first, second = _read_exact(sock, 2)
+    fin = bool(first & 0x80)
     opcode = first & 0x0F
     masked = bool(second & 0x80)
     length = second & 0x7F
@@ -91,11 +99,57 @@ def _read_ws_frame(sock):
     payload = _read_exact(sock, length) if length else b""
     if mask:
         payload = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
-    return opcode, payload
+    return fin, opcode, payload
 
 
-def _write_ws_frame(sock, payload, opcode=1):
-    header = bytes([0x80 | opcode])
+def _read_ws_message(sock, on_ping=None):
+    """Return one complete WebSocket data message.
+
+    RFC 6455 permits a text message to be split into an initial text frame
+    followed by one or more continuation frames.  Control frames may appear
+    between those fragments, so service pings while continuing to collect the
+    data message.  The caller supplies ``on_ping`` to send the corresponding
+    pong on the same connection.
+    """
+    fragments = []
+    message_opcode = None
+
+    while True:
+        fin, opcode, payload = _read_ws_frame(sock)
+
+        if opcode == 9:  # ping
+            if not fin or len(payload) > 125:
+                raise ConnectionError("invalid fragmented or oversized WebSocket ping")
+            if on_ping is not None:
+                on_ping(payload)
+            continue
+        if opcode == 10:  # pong
+            continue
+        if opcode == 8:  # close
+            return opcode, payload
+
+        if opcode in (1, 2):
+            if message_opcode is not None:
+                raise ConnectionError("new WebSocket data frame before continuation completed")
+            if fin:
+                return opcode, payload
+            message_opcode = opcode
+            fragments = [payload]
+            continue
+
+        if opcode == 0:  # continuation
+            if message_opcode is None:
+                raise ConnectionError("unexpected WebSocket continuation frame")
+            fragments.append(payload)
+            if fin:
+                return message_opcode, b"".join(fragments)
+            continue
+
+        raise ConnectionError(f"unsupported WebSocket opcode {opcode}")
+
+
+def _write_ws_frame(sock, payload, opcode=1, fin=True):
+    header = bytes([(0x80 if fin else 0) | opcode])
     length = len(payload)
     if length < 126:
         header += bytes([length])
@@ -120,11 +174,11 @@ class _TunnelConnection:
         deadline = time.monotonic() + timeout
         while True:
             self.sock.settimeout(max(0.1, deadline - time.monotonic()))
-            opcode, raw = _read_ws_frame(self.sock)
-            if opcode == 9:  # ping
+            def respond_to_ping(ping_payload):
                 with self.write_lock:
-                    _write_ws_frame(self.sock, raw, opcode=10)
-                continue
+                    _write_ws_frame(self.sock, ping_payload, opcode=10)
+
+            opcode, raw = _read_ws_message(self.sock, on_ping=respond_to_ping)
             if opcode == 8:
                 raise ConnectionError("Tunnel WebSocket closed before responding")
             if opcode != 1:
@@ -132,6 +186,30 @@ class _TunnelConnection:
             response = json.loads(raw.decode("utf-8"))
             if response.get("id") == request_id:
                 return response
+
+
+class TestWebSocketMessageReader(unittest.TestCase):
+    """Regression coverage for continuation-frame assembly in the proxy."""
+
+    def test_assembles_fragmented_text_message_with_interleaved_ping(self):
+        import socket
+
+        reader, writer = socket.socketpair()
+        try:
+            # The first payload is intentionally valid JSON only once the
+            # continuation arrives.
+            _write_ws_frame(writer, b'{"id":"frag",', opcode=1, fin=False)
+            _write_ws_frame(writer, b"p", opcode=9)
+            _write_ws_frame(writer, b'"status":202}', opcode=0)
+
+            pings = []
+            opcode, payload = _read_ws_message(reader, on_ping=pings.append)
+            self.assertEqual(opcode, 1)
+            self.assertEqual(payload, b'{"id":"frag","status":202}')
+            self.assertEqual(pings, [b"p"])
+        finally:
+            reader.close()
+            writer.close()
 
 
 class _ProxyHandler(http.server.BaseHTTPRequestHandler):
@@ -280,6 +358,7 @@ class LocalFabricProxy:
 
 class _FacilitatorHandler(http.server.BaseHTTPRequestHandler):
     calls = []
+    verify_response = None
 
     def do_GET(self):
         if self.path != "/supported":
@@ -305,7 +384,7 @@ class _FacilitatorHandler(http.server.BaseHTTPRequestHandler):
         self.calls.append((self.path, json.loads(raw)))
 
         if self.path == "/verify":
-            response = {
+            response = self.verify_response or {
                 "isValid": True,
                 "payer": "0x1111111111111111111111111111111111111111",
             }
@@ -336,8 +415,9 @@ class _ThreadingFacilitator(socketserver.ThreadingMixIn, http.server.HTTPServer)
     allow_reuse_address = True
 
 
-def _start_facilitator():
+def _start_facilitator(verify_response=None):
     _FacilitatorHandler.calls = []
+    _FacilitatorHandler.verify_response = verify_response
     server = _ThreadingFacilitator(("127.0.0.1", 0), _FacilitatorHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -388,7 +468,11 @@ def _poll_action_status(status_url, terminal_states, timeout=90):
 
 
 def _payment_signature_from_402(headers):
-    encoded = headers.get("PAYMENT-REQUIRED") or headers.get("Payment-Required")
+    # urllib preserves the server's original spelling, while HTTP field names
+    # are case-insensitive.  Normalize once so this real x402 helper works
+    # against both the local proxy and a public facilitator/proxy response.
+    normalized_headers = {key.lower(): value for key, value in headers.items()}
+    encoded = normalized_headers.get("payment-required")
     if not encoded:
         raise AssertionError("real Tunnel 402 did not include PAYMENT-REQUIRED")
     required = json.loads(base64.b64decode(encoded))
@@ -505,6 +589,11 @@ class TestEndToEndPaidAction(unittest.TestCase):
             action_events = []
             metrics = []
             results = []
+            # The first accepted action must be the paid action below.  The
+            # preceding 402 negotiation is deliberately non-actuating and is
+            # not a warm-up action.
+            request_id = f"reachy-e2e-{uuid.uuid4().hex}"
+            unpaid_probe_id = f"reachy-e2e-unpaid-{uuid.uuid4().hex}"
             action_received = threading.Event()
             metrics_received = threading.Event()
             result_received = threading.Event()
@@ -512,17 +601,20 @@ class TestEndToEndPaidAction(unittest.TestCase):
             def on_action(sample):
                 event = json.loads(bytes(sample.payload.to_bytes()))
                 action_events.append(event)
-                action_received.set()
+                if event.get("action_id") == request_id:
+                    action_received.set()
 
             def on_metrics(sample):
                 result = json.loads(bytes(sample.payload.to_bytes()))
                 metrics.append(result)
-                metrics_received.set()
+                if result.get("correlation_id") == request_id:
+                    metrics_received.set()
 
             def on_result(sample):
                 result = json.loads(bytes(sample.payload.to_bytes()))
                 results.append(result)
-                result_received.set()
+                if result.get("action_id") == request_id:
+                    result_received.set()
 
             action_sub = z_session.declare_subscriber(ACTION_TOPIC, on_action)
             metrics_sub = z_session.declare_subscriber(METRICS_TOPIC, on_metrics)
@@ -531,12 +623,24 @@ class TestEndToEndPaidAction(unittest.TestCase):
 
             public_url = f"http://127.0.0.1:{proxy.port}/robots/{ROBOT_ID}/action"
             unpaid_status, unpaid_headers, _ = _http_post(
-                public_url, {"action": "look_at_apple"}
+                public_url,
+                {
+                    "action": "look_at_apple",
+                    "robot_id": ROBOT_ID,
+                    "action_id": unpaid_probe_id,
+                    "idempotency_key": unpaid_probe_id,
+                    "params": {"duration": 4.0, "target_object": "apple"},
+                },
             )
             self.assertEqual(unpaid_status, 402)
             payment_signature = _payment_signature_from_402(unpaid_headers)
+            time.sleep(0.5)
+            self.assertEqual(
+                [event for event in action_events if event.get("action_id") == unpaid_probe_id],
+                [],
+                "unpaid payment negotiation must not act as a simulator warm-up action",
+            )
 
-            request_id = f"reachy-e2e-{uuid.uuid4().hex}"
             inspect_table = os.environ.get("REACHY_INSPECT_TABLE") == "1"
             paid_payload = {
                 "action": "inspect_table" if inspect_table else "look_at_apple",
@@ -570,6 +674,10 @@ class TestEndToEndPaidAction(unittest.TestCase):
             self.assertEqual(
                 response_body.get("status_url"), f"/action/{request_id}/status"
             )
+            self.assertTrue(
+                action_received.wait(10),
+                "the first paid action did not reach robot/tunnel/action after a clean start",
+            )
             self.assertTrue(metrics_received.wait(60), "simulator metrics not received")
             self.assertTrue(result_received.wait(10), "correlated robot/tunnel/result not received")
 
@@ -596,17 +704,17 @@ class TestEndToEndPaidAction(unittest.TestCase):
             self.assertEqual(result_event["status"], "success")
             self.assertEqual(result_event["execution_status"], "SUCCESS")
             self.assertEqual(result_event["result"]["correlation_id"], request_id)
-            # The correlated result is the authoritative action-path proof:
-            # the bridge can only produce it after consuming robot/tunnel/action.
-            # Direct observation is best-effort because Zenoh discovery can race
-            # with a very fast local publisher.
+            # The correlated result is the authoritative terminal proof.  The
+            # action subscriber was established before the unpaid probe, so
+            # this also proves that this was the first paid action after a
+            # clean start, not a warmed-up retry.
             matching_actions = [
                 event for event in action_events
                 if event.get("action_id") == request_id
             ]
-            if matching_actions:
-                expected_action = "inspect_table" if inspect_table else "look_at_apple"
-                self.assertEqual(matching_actions[0]["payload"]["action"], expected_action)
+            self.assertEqual(len(matching_actions), 1)
+            expected_action = "inspect_table" if inspect_table else "look_at_apple"
+            self.assertEqual(matching_actions[0]["payload"]["action"], expected_action)
             self.assertEqual(result["execution_status"], "SUCCESS")
             self.assertTrue(result["metrics"]["task_completed"])
             self.assertGreaterEqual(result["metrics"]["tracking_success_rate"], 0.9)
