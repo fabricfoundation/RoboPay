@@ -14,7 +14,7 @@ Boston Dynamics Spot integration.
 
 | Robot/skill discovery | **passed** | The real Tunnel exposes the configured robot ID plus `navigate_obstacle_course` and `stop`, enabled state, and 0.001 USDC price before payment; the robot-scoped profile supplies schemas and limits. |
 | Bridge parsing/routing | **passed** | Direct tests accept the profile's `skillId` envelope, preserve correlation/payment metadata, cover success/failure, reject invalid speed/route/duration, and prove safe-stop interruption. |
-| x402 payment gate | **passed** | The real Tunnel discovers robot/skills/price, then rejects unpaid and malformed requests with HTTP 402 before payment verification or simulator actuation. |
+| x402 payment gate | **passed** | The real Tunnel discovers robot/skills/price, then rejects unpaid, malformed, and facilitator-rejected (`isValid: false`) requests with HTTP 402 before an ActionEvent can cross the Zenoh boundary. |
 | x402 no-settlement | **passed** | Real Tunnel failure, timeout, payment replay, and post-restart replay scenarios produced zero /settle calls. |
 
 The profile workflow runs the MuJoCo, Webots Sim-to-Sim, payment-gate, and
@@ -42,7 +42,7 @@ need not be frame-for-frame identical.
 | Webots cross-engine episode | `artifacts/webots_result.json` written by the real R2025a controller with `success: true` |
 | Paired sim-to-sim identity | `artifacts/sim2sim_result.json` with `shared_policy_match: true` and both engine results successful |
 | Base Sepolia paid execution | `test_base_sepolia_tunnel_e2e.py` with a funded test key; it requires HTTP 202, a successful correlated Spot result, and a facilitator settlement transaction |
-| Payment gate | `tests/test_payment_gate.py` against the real Tunnel; unpaid and malformed requests return HTTP 402 |
+| Payment gate | `tests/test_payment_gate.py` against the real Tunnel; unpaid, malformed, and facilitator-rejected (`isValid: false`) requests return HTTP 402 before ActionEvent publication |
 | Robot and skill discovery | `GET /robot` and `GET /skills`, covered by Go handlers tests and the real-Tunnel payment-gate test |
 | Message parsing/action routing | `tests/test_bridge_contract.py`; covers profile `skillId`, correlation metadata, success, failure, invalid contracts, and safe stop |
 | Bounded speed | `speedScale` is 0.25..1.0; maximum gait frequency 1 Hz, hip stroke 0.10 rad, knee lift 0.20 rad, steering 0.30 rad |

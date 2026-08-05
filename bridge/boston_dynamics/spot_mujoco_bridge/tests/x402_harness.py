@@ -20,6 +20,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+import zenoh
+
 
 NETWORK = "eip155:84532"
 PAYEE = "0x0000000000000000000000000000000000000001"
@@ -50,8 +52,9 @@ def _read_exact(sock, size: int) -> bytes:
     return b"".join(chunks)
 
 
-def _read_ws_frame(sock) -> tuple[int, bytes]:
+def _read_ws_frame(sock) -> tuple[bool, int, bytes]:
     first, second = _read_exact(sock, 2)
+    final = bool(first & 0x80)
     opcode = first & 0x0F
     masked = bool(second & 0x80)
     length = second & 0x7F
@@ -63,7 +66,7 @@ def _read_ws_frame(sock) -> tuple[int, bytes]:
     payload = _read_exact(sock, length) if length else b""
     if mask:
         payload = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
-    return opcode, payload
+    return final, opcode, payload
 
 
 def _write_ws_frame(sock, payload: bytes, opcode: int = 1) -> None:
@@ -92,11 +95,7 @@ class _TunnelConnection:
         deadline = time.monotonic() + timeout
         while True:
             self.sock.settimeout(max(0.1, deadline - time.monotonic()))
-            opcode, raw = _read_ws_frame(self.sock)
-            if opcode == 9:
-                with self.write_lock:
-                    _write_ws_frame(self.sock, raw, opcode=10)
-                continue
+            opcode, raw = self._read_message()
             if opcode == 8:
                 raise ConnectionError("Tunnel WebSocket closed before responding")
             if opcode != 1:
@@ -104,6 +103,36 @@ class _TunnelConnection:
             response = json.loads(raw.decode("utf-8"))
             if response.get("id") == request_id:
                 return response
+
+    def _read_message(self) -> tuple[int, bytes]:
+        """Read one complete WebSocket message, including continuation frames."""
+        message_opcode: int | None = None
+        chunks: list[bytes] = []
+        while True:
+            final, opcode, raw = _read_ws_frame(self.sock)
+            if opcode == 9:
+                with self.write_lock:
+                    _write_ws_frame(self.sock, raw, opcode=10)
+                continue
+            if opcode == 8:
+                return opcode, raw
+            if opcode in {1, 2}:
+                if message_opcode is not None:
+                    raise ConnectionError(
+                        "received a new WebSocket message before continuation completed"
+                    )
+                message_opcode = opcode
+            elif opcode == 0:
+                if message_opcode is None:
+                    raise ConnectionError(
+                        "received a WebSocket continuation without an opening frame"
+                    )
+            else:
+                continue
+
+            chunks.append(raw)
+            if final:
+                return message_opcode, b"".join(chunks)
 
 
 class _ProxyHandler(http.server.BaseHTTPRequestHandler):
@@ -249,9 +278,13 @@ class LocalFabricProxy:
 
 
 class FacilitatorHandler(http.server.BaseHTTPRequestHandler):
-    """Recording local facilitator that accepts verification and settlement."""
+    """Recording local facilitator with a configurable verification outcome."""
 
     calls: list[tuple[str, dict]] = []
+    verify_response: dict = {
+        "isValid": True,
+        "payer": "0x1111111111111111111111111111111111111111",
+    }
 
     def do_GET(self) -> None:
         if self.path != "/supported":
@@ -270,7 +303,7 @@ class FacilitatorHandler(http.server.BaseHTTPRequestHandler):
         raw = self.rfile.read(length) if length else b"{}"
         self.calls.append((self.path, json.loads(raw)))
         if self.path == "/verify":
-            self._write_json({"isValid": True, "payer": "0x1111111111111111111111111111111111111111"})
+            self._write_json(self.verify_response)
         elif self.path == "/settle":
             self._write_json(
                 {
@@ -300,12 +333,49 @@ class _ThreadingFacilitator(socketserver.ThreadingMixIn, http.server.HTTPServer)
     allow_reuse_address = True
 
 
-def start_facilitator():
+def start_facilitator(verify_response: dict | None = None):
     FacilitatorHandler.calls = []
+    FacilitatorHandler.verify_response = verify_response or {
+        "isValid": True,
+        "payer": "0x1111111111111111111111111111111111111111",
+    }
     server = _ThreadingFacilitator(("127.0.0.1", 0), FacilitatorHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     return server, thread
+
+
+class ActionBoundaryObserver:
+    """Records ActionEvents at the real Zenoh boundary without simulating a robot."""
+
+    def __init__(self, action_topic: str = "robot/tunnel/action", port: int = 7447):
+        config = zenoh.Config.from_json5(
+            '{"mode":"peer","scouting":{"multicast":{"enabled":false}},'
+            f'"listen":{{"endpoints":["tcp/127.0.0.1:{port}"]}}}}'
+        )
+        self.session = zenoh.open(config)
+        self._lock = threading.Lock()
+        self.actions: list[dict] = []
+        self.executable_commands = 0
+        self.action_received = threading.Event()
+        self.subscriber = self.session.declare_subscriber(action_topic, self._on_action)
+
+    def _on_action(self, sample) -> None:
+        event = json.loads(bytes(sample.payload.to_bytes()))
+        with self._lock:
+            self.actions.append(event)
+            # Any published ActionEvent is an executable command crossing the
+            # Tunnel-to-simulator boundary.
+            self.executable_commands += 1
+            self.action_received.set()
+
+    def snapshot(self) -> tuple[int, int]:
+        with self._lock:
+            return len(self.actions), self.executable_commands
+
+    def close(self) -> None:
+        self.subscriber.undeclare()
+        self.session.close()
 
 
 def http_post(url: str, payload: dict, headers: dict | None = None):

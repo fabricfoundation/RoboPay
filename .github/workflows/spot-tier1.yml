@@ -46,12 +46,14 @@ jobs:
         run: |
           python -m unittest bridge/boston_dynamics/spot_mujoco_bridge/tests/test_bridge_contract.py
           python scripts/registry/validate_profiles.py --registry-root registry/vendors/boston-dynamics
-      - name: Prove simulator failure, timeout, replay, and restart never settle
+      - name: Prove invalid payment cannot reach Zenoh or settle
         env:
           PYTHONPATH: ${{ github.workspace }}/bridge/boston_dynamics/spot_mujoco_bridge
           TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
           LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
-        run: python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_x402_no_settlement.py
+        run: |
+          python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_payment_gate.py
+          python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_x402_no_settlement.py
 
   spot-mujoco:
     name: Spot MuJoCo policy and payment-gate proof
@@ -71,7 +73,7 @@ jobs:
           python -m pip install -r bridge/boston_dynamics/spot_mujoco_bridge/requirements.txt
           python bridge/boston_dynamics/spot_mujoco_bridge/download_spot_model.py
           make build
-      - name: Run native policy, discovery, and payment-gate tests
+      - name: Run native policy and discovery contracts
         env:
           PYTHONPATH: ${{ github.workspace }}/bridge/boston_dynamics/spot_mujoco_bridge
           TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
@@ -79,7 +81,6 @@ jobs:
         run: |
           python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_policy.py
           python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_bridge_contract.py
-          python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_payment_gate.py
           python bridge/boston_dynamics/spot_mujoco_bridge/run_obstacle_course.py \
             --json-output bridge/boston_dynamics/spot_mujoco_bridge/artifacts/mujoco_result.json
       - name: Upload MuJoCo policy evidence

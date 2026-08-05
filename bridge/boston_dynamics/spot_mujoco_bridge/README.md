@@ -62,7 +62,8 @@ make build
 export TUNNEL_BIN="$PWD/bin/tunnel"
 export LD_LIBRARY_PATH="$PWD/.zenoh-c/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-# Unpaid and malformed requests must receive 402 before any action is published.
+# Unpaid, malformed, and facilitator-rejected (`isValid: false`) requests must
+# receive 402 before an ActionEvent is published.
 python bridge/boston_dynamics/spot_mujoco_bridge/tests/test_payment_gate.py
 
 # Direct parsing, routing, success/failure, limits, and safe-stop proof.
