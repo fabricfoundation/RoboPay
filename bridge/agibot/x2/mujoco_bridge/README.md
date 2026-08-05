@@ -1,8 +1,10 @@
 # AGIBot X2 MuJoCo bridge
 
-The package now fails closed unless a MuJoCo model is loaded. `models/x2.xml` is
-checked in; its mesh files are Git-LFS assets from the upstream
-`ioai-tech/robot_description` repository. Install Git LFS and run:
+The package fails closed unless a MuJoCo model is loaded. The default
+`models/x2_headless.xml` is a self-contained, primitive-geometry X2 model for
+clean-checkout CI and reviewer evidence. `models/x2.xml` retains the vendor
+visual model, whose optional meshes are Git-LFS assets in the upstream
+`ioai-tech/robot_description` repository.
 
 ```bash
 git clone https://github.com/ioai-tech/robot_description.git

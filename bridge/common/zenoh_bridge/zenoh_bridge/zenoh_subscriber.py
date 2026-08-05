@@ -18,6 +18,14 @@ class ZenohSubscriberHelper:
         sub = self._session.declare_subscriber(topic, callback)
         self._subs.append(sub)
 
+    def put(self, topic: str, payload: str) -> None:
+        """Publish on the same session used for subscriptions."""
+        self._session.put(topic, payload)
+
+    def declare_publisher(self, topic: str):
+        """Create a reusable publisher on the listening session."""
+        return self._session.declare_publisher(topic)
+
     def close(self) -> None:
         for s in self._subs:
             s.undeclare()

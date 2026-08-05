@@ -14,4 +14,4 @@ jobs:
       - run: python -m pip install --upgrade pip mujoco pytest
       - run: python -m compileall bridge/agibot/x2/mujoco_bridge
       # Event parsing is dependency-free; mapper tests run in the ROS 2 job below.
-      - run: pytest -q bridge/agibot/x2/mujoco_bridge/test/test_event.py bridge/agibot/x2/mujoco_bridge/test/test_runtime.py
+      - run: pytest -q bridge/agibot/x2/mujoco_bridge/test/test_event.py bridge/agibot/x2/mujoco_bridge/test/test_runtime.py bridge/agibot/x2/mujoco_bridge/test/test_simulator.py

@@ -1,5 +1,5 @@
 """Correlated terminal results and replay protection for the X2 bridge."""
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from threading import Lock
 from typing import Any
 import json, time
@@ -13,7 +13,16 @@ class ExecutionResult:
     metrics: dict[str, Any]
     error: str | None = None
     timestamp: float = 0.0
-    def to_json(self) -> str: return json.dumps(asdict(self), separators=(",", ":"))
+    def to_json(self) -> str:
+        return json.dumps({
+            "actionId": self.action_id,
+            "robotId": self.robot_id,
+            "idempotencyKey": self.idempotency_key,
+            "status": self.status,
+            "metrics": self.metrics,
+            "error": self.error,
+            "timestamp": self.timestamp,
+        }, separators=(",", ":"))
 
 class ReplayGuard:
     """Process each idempotency key once for the lifetime of this bridge."""
