@@ -68,10 +68,52 @@ Set the payee address (and any overrides) in `tunnel/config.json`:
 {
   "robot_id": "my-robot",
   "evm_payee_address": "0xYourAddress",
-  "price": "$0.002",
+  "price": "0.002",
   "network": "eip155:84532"
 }
 ```
+
+| Field                    | Required      | Default         | Description                                                |
+|--------------------------|---------------|-----------------|------------------------------------------------------------|
+| `robot_id`               | No            | random UUID     | Unique robot identifier                                     |
+| `evm_payee_address`      | **Yes**       | —               | EVM address to receive x402 payments                        |
+| `price`                  | No            | `0.001`         | Price per action, in whole token units                      |
+| `network`                | No            | `eip155:8453`   | CAIP-2 network ID (e.g. `eip155:84532`)                     |
+| `token_address`          | No            | network default | ERC-20 the price is charged in                              |
+| `token_name`             | For `eip3009` | —               | Token's `name()`, forms the EIP-712 domain the payer signs  |
+| `token_version`          | No            | `1`             | Token version used in the EIP-712 domain                    |
+| `token_decimals`         | No            | `6`             | Token decimals, used to convert `price` to atomic units     |
+| `token_transfer_method`  | No            | `eip3009`       | `eip3009` or `permit2` — how the payment settles            |
+| `token_supports_eip2612` | No            | `false`         | `permit2` only: payer signs a permit instead of approving   |
+
+`price` is a decimal amount in whole units of the payment token, converted to atomic units using
+`token_decimals` — with `token_decimals: 18`, `"1"` charges `1000000000000000000`. A leading `$`
+is optional and carries no meaning; it only reads as dollars when the token is a stablecoin.
+
+### Custom payment token
+
+For well-known chains x402 already knows which stablecoin to use (USDC on Base, and so on), so
+`token_address` can be omitted. On any other chain there is no default and requests fail with
+`no default stablecoin configured for network <network>` — set `token_address` to register the
+token as that network's default asset at startup. See
+[`tunnel/config.example.json`](tunnel/config.example.json).
+
+`token_transfer_method` decides how the facilitator moves the tokens:
+
+- **`eip3009`** (default) — the payer signs a `TransferWithAuthorization` message and the
+  facilitator calls `transferWithAuthorization` on the token. **Only works if the token actually
+  implements EIP-3009** (USDC and friends). Against a plain ERC-20 the signature is produced
+  happily and settlement then reverts. `token_name`/`token_version` must match the token's own
+  EIP-712 domain (its `name()`, not its symbol) or the signature will not verify.
+- **`permit2`** — the payer signs a Permit2 witness and the facilitator settles through the x402
+  exact Permit2 proxy. Works with **any** plain ERC-20, at the cost of a one-time
+  `approve(0x000000000022D473030F116dDEE9F6B43aC78BA3, …)` from each payer. The signed domain is
+  Permit2's own, so `token_name`/`token_version` are neither required nor advertised. Set
+  `token_supports_eip2612: true` only if the token has `permit()`, which lets the payer skip the
+  approval transaction.
+
+The facilitator has to support the chosen method too — it is the one that submits the settlement
+transaction.
 
 Build and run from the repo root (the `Makefile` operates inside `tunnel/`):
 
