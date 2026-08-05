@@ -1,0 +1,20 @@
+{
+  "actionId": "demo-failure-001",
+  "idempotencyKey": "demo-failure-idem-001",
+  "metrics": {
+    "avoidance_events": 1,
+    "collisions": 0,
+    "displacement_m": 0.555,
+    "path_length_m": 0.5598,
+    "sim_seconds": 1.0,
+    "sim_steps": 500,
+    "status": "timeout",
+    "target_distance_remaining_m": 7.445
+  },
+  "paramsHash": "f62cac300cc63a9eb1e3741533e1c63b6808a712c25a9ed40a28798b57b21cb6",
+  "reason": "episode_status:timeout",
+  "robotId": "limx-tron1-sim-01",
+  "settlementEligible": false,
+  "skillId": "tron1_obstacle_navigation",
+  "status": "error"
+}

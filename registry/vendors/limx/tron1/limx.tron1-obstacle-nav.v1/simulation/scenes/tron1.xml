@@ -1,0 +1,92 @@
+<mujoco model="limx_tron1_obstacle_nav">
+  <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <default>
+    <joint damping="2.0" armature="0.02"/>
+    <geom contype="1" conaffinity="1" friction="1.0 0.2 0.1" rgba="0.7 0.7 0.7 1"/>
+    <position kp="60" ctrllimited="true"/>
+  </default>
+
+  <worldbody>
+    <light diffuse=".6 .6 .6" pos="0 0 5" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="12 12 0.1" rgba="0.9 0.9 0.9 1"/>
+
+    <!-- LimX TRON1 wheeled-biped base: 2 legs (hip-knee-wheel), ~14kg,
+         ~0.55m nominal standing height. Base moves on a planar
+         (slide-x, slide-y, hinge-yaw) mount driven by velocity actuators
+         from the navigation policy; wheel joints are independently
+         velocity-actuated for real wheel rolling each step (not a canned
+         trajectory). Obstacle collisions are judged against base_geom
+         using MuJoCo's own contact detection. -->
+    <body name="tron1_slider_x" pos="0 0 0">
+      <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
+      <joint name="base_x" type="slide" axis="1 0 0" damping="5"/>
+      <body name="tron1_slider_y">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
+        <joint name="base_y" type="slide" axis="0 1 0" damping="5"/>
+        <body name="tron1_base" pos="0 0 0.55">
+          <joint name="base_yaw" type="hinge" axis="0 0 1" damping="5"/>
+          <inertial pos="0 0 0" mass="14.0" diaginertia="0.20 0.35 0.30"/>
+          <geom name="base_geom" type="box" size="0.14 0.18 0.10" rgba="0.2 0.2 0.2 1"/>
+
+          <!-- Left leg: hip -> knee -> wheel -->
+          <body name="l_hip" pos="0 0.14 -0.05">
+            <joint name="l_hip_joint" type="hinge" axis="0 1 0" range="-45 45"/>
+            <geom type="cylinder" size="0.03 0.04" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+            <body name="l_knee" pos="0 0 -0.25">
+              <joint name="l_knee_joint" type="hinge" axis="0 1 0" range="-90 10"/>
+              <geom type="capsule" fromto="0 0 0 0 0 -0.25" size="0.025" contype="0" conaffinity="0"/>
+              <body name="l_wheel" pos="0 0 -0.25">
+                <joint name="l_wheel_joint" type="hinge" axis="0 1 0"/>
+                <geom type="cylinder" size="0.08 0.03" rgba="0.1 0.1 0.1 1" euler="90 0 0"/>
+              </body>
+            </body>
+          </body>
+
+          <!-- Right leg: hip -> knee -> wheel -->
+          <body name="r_hip" pos="0 -0.14 -0.05">
+            <joint name="r_hip_joint" type="hinge" axis="0 1 0" range="-45 45"/>
+            <geom type="cylinder" size="0.03 0.04" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+            <body name="r_knee" pos="0 0 -0.25">
+              <joint name="r_knee_joint" type="hinge" axis="0 1 0" range="-90 10"/>
+              <geom type="capsule" fromto="0 0 0 0 0 -0.25" size="0.025" contype="0" conaffinity="0"/>
+              <body name="r_wheel" pos="0 0 -0.25">
+                <joint name="r_wheel_joint" type="hinge" axis="0 1 0"/>
+                <geom type="cylinder" size="0.08 0.03" rgba="0.1 0.1 0.1 1" euler="90 0 0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Obstacles for obstacle-avoidance navigation -->
+    <body name="obstacle_1" pos="3.0 0.9 0.3">
+      <geom type="box" size="0.2 0.2 0.3" rgba="0.8 0.2 0.2 1"/>
+    </body>
+    <body name="obstacle_2" pos="5.0 -1.0 0.3">
+      <geom type="cylinder" size="0.25 0.3" rgba="0.8 0.2 0.2 1"/>
+    </body>
+    <body name="obstacle_3" pos="6.5 0.9 0.3">
+      <geom type="box" size="0.2 0.3 0.3" rgba="0.8 0.2 0.2 1"/>
+    </body>
+
+    <!-- Goal marker -->
+    <body name="goal_marker" pos="8.0 0.0 0.05">
+      <geom type="cylinder" size="0.15 0.02" rgba="0.1 0.8 0.1 0.6" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <velocity name="base_vx"  joint="base_x"   kv="200" ctrlrange="-1.5 1.5"/>
+    <velocity name="base_vy"  joint="base_y"   kv="200" ctrlrange="-1.5 1.5"/>
+    <velocity name="base_wz"  joint="base_yaw" kv="80"  ctrlrange="-1.0 1.0"/>
+    <position name="l_hip"    joint="l_hip_joint"    ctrlrange="-45 45"/>
+    <position name="l_knee"   joint="l_knee_joint"   ctrlrange="-90 10"/>
+    <velocity name="l_wheel"  joint="l_wheel_joint"  kv="50" ctrlrange="-10 10"/>
+    <position name="r_hip"    joint="r_hip_joint"    ctrlrange="-45 45"/>
+    <position name="r_knee"   joint="r_knee_joint"   ctrlrange="-90 10"/>
+    <velocity name="r_wheel"  joint="r_wheel_joint"  kv="50" ctrlrange="-10 10"/>
+  </actuator>
+</mujoco>

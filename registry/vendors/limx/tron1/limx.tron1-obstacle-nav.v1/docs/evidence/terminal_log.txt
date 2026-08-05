@@ -1,0 +1,14 @@
+=== Step 1: unpaid request ===
+{"actionId": "demo-action-001", "idempotencyKey": "demo-idem-001", "metrics": {}, "paramsHash": "dcfae99996b3fbe8f399127059871164036d3affbb261aefc01593e1503dc082", "reason": "payment_unverified", "robotId": "limx-tron1-sim-01", "settlementEligible": false, "skillId": "tron1_obstacle_navigation", "status": "rejected"}
+
+=== Step 2: paid request -> real MuJoCo TRON1 episode ===
+{"actionId": "demo-action-002", "idempotencyKey": "demo-idem-002", "metrics": {"avoidance_events": 1, "collisions": 0, "displacement_m": 7.6502, "path_length_m": 7.655, "sim_seconds": 10.454, "sim_steps": 5228, "status": "goal_reached", "target_distance_remaining_m": 0.3498}, "paramsHash": "dcfae99996b3fbe8f399127059871164036d3affbb261aefc01593e1503dc082", "reason": null, "robotId": "limx-tron1-sim-01", "settlementEligible": true, "skillId": "tron1_obstacle_navigation", "status": "success"}
+[wall clock] episode took 0.10s
+
+=== Step 3: replay same actionId -> must reject, no second motion ===
+{"actionId": "demo-action-002", "idempotencyKey": "demo-idem-002", "metrics": {}, "paramsHash": "dcfae99996b3fbe8f399127059871164036d3affbb261aefc01593e1503dc082", "reason": "duplicate_action", "robotId": "limx-tron1-sim-01", "settlementEligible": false, "skillId": "tron1_obstacle_navigation", "status": "rejected"}
+
+=== Step 4: stop action -> no payment required ===
+{"actionId": "demo-action-003", "idempotencyKey": "demo-action-003", "metrics": {}, "paramsHash": "", "reason": "stopped", "robotId": "limx-tron1-sim-01", "settlementEligible": false, "skillId": "tron1_obstacle_navigation", "status": "success"}
+
+Metrics written to /home/yunaiko/bounty-deeprobotics-robopay/RoboPay/registry/vendors/limx/tron1/limx.tron1-obstacle-nav.v1/demo/../docs/evidence/tron1_metrics.json

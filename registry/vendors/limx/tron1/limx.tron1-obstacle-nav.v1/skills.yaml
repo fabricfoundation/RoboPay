@@ -1,0 +1,26 @@
+schemaVersion: robot-skills.v1
+profileId: limx.tron1-obstacle-nav.v1
+
+skills:
+  - skillId: tron1_obstacle_navigation
+    name: TRON1 obstacle-avoidance navigation
+    description: >-
+      Policy-driven navigation to a target point while avoiding obstacles in a
+      MuJoCo simulation of the LimX TRON1 wheeled-biped robot. Tier 1,
+      simulator-only submission.
+    params:
+      target_xy:
+        type: array
+        required: true
+        description: Target [x, y] coordinate in the scene frame.
+      max_episode_steps:
+        type: integer
+        required: false
+        default: 50000
+    paymentRequired: true
+    limits:
+      timeoutSec: 120
+      concurrency: 1
+    safety:
+      scope: simulator-only
+      emergencyStop: stop/cancel action, no payment required, zeroes velocities immediately
