@@ -1,0 +1,1 @@
+# Reachy Mini bridge package

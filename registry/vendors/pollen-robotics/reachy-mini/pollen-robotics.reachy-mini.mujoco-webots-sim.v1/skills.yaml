@@ -1,0 +1,60 @@
+schemaVersion: robot-skills.v1
+profileId: pollen-robotics.reachy-mini.mujoco-webots-sim.v1
+skills:
+  - skillId: look_at_apple
+    aliases: []
+    description: >-
+      Track a requested object with the head using torso yaw + the 6-DOF Stewart
+      neck (antennae add expressive motion). The ReachyTaskPolicy FSM
+      (SCANNING -> TRACKING -> EXPRESSIVE) reads live simulator state every 5 ms
+      and computes commands with P-control and slew-rate limiting. No recorded
+      trajectory or predefined animation is replayed. Fails, and must not settle,
+      if the simulator reports execution failure or the result times out.
+    params:
+      target_object:
+        type: enum
+        values: [apple, croissant, duck]
+      duration:
+        type: number
+        unit: seconds
+        min: 0.1
+        max: 30
+        optional: true
+    paymentRequired: true
+    priceUSDC: "0.001"
+  - skillId: inspect_table
+    aliases: []
+    description: >-
+      Multi-object inspection: sequentially orient the head toward each object on
+      the table, driven by the same policy stack. Same failure/no-settle
+      semantics as look_at_apple.
+    params:
+      targets:
+        type: array
+        itemType: enum
+        values: [apple, croissant, duck]
+        minItems: 1
+        maxItems: 3
+        uniqueItems: true
+      per_target_duration:
+        type: number
+        unit: seconds
+        min: 2
+        max: 8
+        optional: true
+    paymentRequired: true
+    priceUSDC: "0.001"
+  - skillId: stop
+    aliases: []
+    description: >-
+      Safety stop: command zero control on every actuator and advance one
+      bounded simulator step to apply it. Never starts tracking or any behavior. Unknown or
+      unregistered actions are rejected before Zenoh publication (fail closed);
+      only this skill maps to the safe_stop task in the bridge.
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.001"
+limits:
+  maxActionDurationSec: 30    # tunnel default; override via MAX_ACTION_DURATION_SECONDS; over-limit -> 400 DURATION_LIMIT
+  controlStepMs: 5            # policy reads state and recomputes every 5 ms
+  degreesOfFreedom: 9         # 1 yaw_body + 6 Stewart + 2 antennae

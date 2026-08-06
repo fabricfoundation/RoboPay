@@ -1,0 +1,39 @@
+schemaVersion: payment-policy.v1
+provider: x402
+network: eip155:84532            # Base Sepolia
+asset:
+  symbol: USDC
+  address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  decimals: 6
+policies:
+  - skillId: look_at_apple
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: inspect_table
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+# payTo is deployment-configured (tunnel config.go: evm_payee_address, required).
+# The deployed instance reachy-mini-kauker settles to its configured payee on
+# Base Sepolia; on-chain settlement is REAL (verifiable tx hashes on BaseScan),
+# not simulated.
+payTo: "<evm_payee_address>"
+settlement:
+  facilitator: "https://x402.org/facilitator"
+  scheme: exact
+  settleOnStatus: success
+  rule: >-
+    POST /action verifies the payment synchronously and answers HTTP 202
+    accepted/pending immediately; the facilitator /settle call is deferred and
+    happens ONLY after the simulator publishes a correlated robot/tunnel/result
+    with status "success". On simulator failure the durable status endpoint
+    (GET /action/<actionId>/status) reports state "failed"
+    (SIMULATOR_EXECUTION_FAILED); on a result timeout it reports state "timeout"
+    (SIMULATOR_RESULT_TIMEOUT); in both cases zero /settle calls are made.
+    This closes the async-failure settlement gap: the payment is verified up
+    front but only captured after ground-truth simulator success.
