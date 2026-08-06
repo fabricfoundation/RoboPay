@@ -1,0 +1,28 @@
+schemaVersion: execution-mapping.v1
+profileId: deep-robotics.lynx-m20-pro.mujoco-webots-obstacle-nav.v1
+model:
+  source: https://github.com/DeepRoboticsLab/deep_robotics_model
+  commit: 9f8b97ca57e79f2e82771cf934c4fc975ee2887c
+  mjcf: M20/mjcf/M20.xml
+  urdf: M20/urdf/M20.urdf
+skills:
+  navigate_obstacle_course:
+    task: dynamic_obstacle_yield_and_resume
+    output: >-
+      MuJoCo M20 episode plus a Webots R2025a run of the converted vendor URDF,
+      each with the same profile-owned physical moving obstacle course.
+    policy: >-
+      m20-pro-dynamic-obstacle-yield-v1; the policy uses measured simulator
+      base pose and profile-owned physical-course geometry, matching the Spot
+      pose-feedback pattern. The robot applies bounded wheel torque/velocity,
+      zeroes wheel control to yield, and resumes only after that actor
+      laterally clears. Robot pose is measured every tick.
+    inputs: [goalDistanceM, wheelSpeedRadS, maxDurationSec]
+    metrics: [measured_forward_distance_m, min_base_height_m, max_tilt_rad, finite_state, obstacle_detected, yield_duration_seconds, collision_detected]
+    success: >-
+      obstacle detected, yield completed, course released, no collision, and
+      measured_forward_distance_m >= goalDistanceM with safe measured state
+  stop:
+    task: safe_stop
+    output: zero wheel command and correlated terminal result
+    success: stop request completes only after safe-stop confirmation

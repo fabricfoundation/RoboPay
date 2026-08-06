@@ -1,0 +1,7 @@
+models/deep_robotics_m20/
+artifacts/
+scenes/generated/
+scenes/*_config.json
+scenes/*_result.json
+__pycache__/
+*.pyc

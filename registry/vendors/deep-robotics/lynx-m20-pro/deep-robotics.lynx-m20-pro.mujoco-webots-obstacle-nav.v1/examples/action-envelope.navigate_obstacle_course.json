@@ -1,0 +1,11 @@
+{
+  "actionId": "act_m20_obstacle_course_001",
+  "robotId": "lynx-m20-pro-sim-01",
+  "skillId": "navigate_obstacle_course",
+  "params": {
+    "goalDistanceM": 1.35,
+    "wheelSpeedRadS": 4.0,
+    "maxDurationSec": 16.0
+  },
+  "idempotencyKey": "m20-obstacle-course-001"
+}
