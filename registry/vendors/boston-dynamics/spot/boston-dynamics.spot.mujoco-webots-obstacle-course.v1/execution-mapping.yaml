@@ -1,0 +1,25 @@
+schemaVersion: execution-mapping.v1
+profileId: boston-dynamics.spot.mujoco-webots-obstacle-course.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/boston_dynamics_spot/metrics
+paramsHashFormat: "sha256:<hex>"
+mappings:
+  navigate_obstacle_course:
+    task: obstacle_navigation
+    output: MuJoCo Spot episode; Webots R2025a cross-engine validation
+    policy: spot-obstacle-policy-v2-shared, recalculated from measured pose at each engine control tick (MuJoCo 2 ms; Webots 16 ms)
+    controller: shared diagonal gait; engine-specific actuator adapter converts the shared steering scalar to calibrated joint positions
+    inputs: [body_position, body_yaw, simulator_time, obstacle_geometry]
+    metrics: [final_goal_distance_m, path_length_m, minimum_clearance_m, obstacle_contact_count, waypoints_completed, policy_id]
+    limits:
+      speedScale: {min: 0.25, max: 1.0}
+      maxDurationSec: 60
+      maxGaitFrequencyHz: 1.0
+  stop:
+    task: safe_stop
+    output: neutral 12-actuator command plus zero MuJoCo qvel
+    result: correlated success for stop; active navigation returns failure with completion_reason safe_stopped
+    metrics: [safe_stop_applied, active_execution_interrupted]

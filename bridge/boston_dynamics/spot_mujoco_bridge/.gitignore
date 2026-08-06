@@ -1,0 +1,6 @@
+# The 57 MB upstream Spot model is downloaded locally by download_spot_model.py.
+# Keep the source checkout small while allowing an offline simulation after setup.
+models/boston_dynamics_spot/
+scenes/webots_obstacle_course_result.json
+artifacts/
+__pycache__/
