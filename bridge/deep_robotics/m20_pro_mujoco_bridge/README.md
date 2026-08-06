@@ -63,6 +63,14 @@ The scene has a floor, background, directional light, and camera. For CI use
 the same command without `--viewer`; Webots is launched headlessly but still
 executes its own Supervisor controller and returns measured state.
 
+## Versioned visual evidence
+
+[Paid x402/Base Sepolia -> Tunnel -> Zenoh -> MuJoCo recording](../../../registry/vendors/deep-robotics/lynx-m20-pro/deep-robotics.lynx-m20-pro.mujoco-webots-obstacle-nav.v1/docs/evidence/m20-pro-paid-base-sepolia-visual-e2e-2026-08-06.mp4)
+captures the operator-visible end-to-end path: the real Go Tunnel, a live Base
+Sepolia payment, correlated simulator completion, and execution-gated
+settlement. It is a versioned review asset; generated local receipts and logs
+remain ignored and CI independently uploads its own machine-readable artifact.
+
 ## Tunnel, Zenoh, and action contract
 
 The bridge is profile-scoped to `lynx-m20-pro-sim-01` and refuses an implicit

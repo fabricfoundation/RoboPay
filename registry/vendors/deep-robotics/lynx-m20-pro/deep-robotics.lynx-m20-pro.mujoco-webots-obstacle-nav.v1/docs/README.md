@@ -28,3 +28,6 @@ locked M20 model simulates steering or M20 Pro LiDAR hardware.
 - A trusted push/workflow-dispatch job uses Base Sepolia secrets and uploads a
   generated receipt/result artifact. Do not treat locally generated payment
   signatures or controlled facilitator results as public-chain evidence.
+- [Versioned paid Base Sepolia visual recording](evidence/m20-pro-paid-base-sepolia-visual-e2e-2026-08-06.mp4)
+  shows the real Tunnel, live payment, correlated simulator completion, and
+  execution-gated settlement path.
