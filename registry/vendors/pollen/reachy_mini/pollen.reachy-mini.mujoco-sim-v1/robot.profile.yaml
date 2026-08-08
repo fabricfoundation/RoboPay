@@ -1,0 +1,17 @@
+schemaVersion: robot-profile.v1
+vendor: pollen
+robotModel: reachy_mini
+robotType: reachy-mini
+profileId: pollen.reachy-mini.mujoco-sim-v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: mujoco-zenoh
+  simulator: mujoco
+  scenePath: simulation/mujoco/scenes/reachy_mini.xml
+  adapter: simulation/common/mujoco_cmdvel_adapter.py
+maintainers:
+  - github: JonthanaHanh
+status: experimental
