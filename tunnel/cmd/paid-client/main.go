@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -83,8 +84,13 @@ func main() {
 		fatalf("read response: %v", err)
 	}
 
-	fmt.Printf("payer=%s\nstatus=%d\npayment-response=%s\nbody=%s\n",
-		signer.Address(), resp.StatusCode, resp.Header.Get("PAYMENT-RESPONSE"), responseBody)
+	paymentResponse := resp.Header.Get("PAYMENT-RESPONSE")
+	fmt.Printf("payer=%s\nstatus=%d\npayment-response=%s\n",
+		signer.Address(), resp.StatusCode, paymentResponse)
+	if decoded, decodeErr := base64.StdEncoding.DecodeString(paymentResponse); paymentResponse != "" && decodeErr == nil {
+		fmt.Printf("settlement=%s\n", decoded)
+	}
+	fmt.Printf("body=%s\n", responseBody)
 	if resp.StatusCode != http.StatusOK {
 		os.Exit(1)
 	}
