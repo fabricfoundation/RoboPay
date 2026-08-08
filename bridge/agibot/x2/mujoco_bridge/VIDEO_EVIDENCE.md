@@ -15,7 +15,7 @@ export X402_PRIVATE_KEY
 clear
 ```
 
-Prepare three Ubuntu terminals. Use a new fixed key for this video, for example:
+Use a new fixed key for this video:
 
 ```bash
 export VIDEO_KEY="x2-video-$(date +%s)"
@@ -24,28 +24,19 @@ echo "$VIDEO_KEY"
 
 Do not recreate `config.local.json` on camera. It is intentionally ignored.
 
-## Terminal 1: bridge
+Start the verified bridge+tunnel stack with one command:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source ~/robopay-work/ros_ws/install/setup.bash
-ros2 launch mujoco_bridge_agibot_x2 bridge.launch.py \
-  zenoh_listen:=tcp/0.0.0.0:7447
+bash /mnt/c/Users/yezir/Documents/Codex/2026-07-22/ta/RoboPay/bridge/agibot/x2/mujoco_bridge/test/start_video_stack.sh
 ```
 
-## Terminal 2: tunnel
+Do not start recording unless it prints:
 
-```bash
-WSL_IP=$(hostname -I | awk '{print $1}')
-docker run --rm --name robopay-x2-video -p 3000:3000 \
-  -e LOCAL_HTTP_ADDR=:3000 \
-  -e ZENOH_CONNECT_ENDPOINT="tcp/${WSL_IP}:7447" \
-  -e FACILITATOR_URL=https://facilitator.xpay.sh \
-  -v /mnt/c/Users/yezir/Documents/Codex/2026-07-22/ta/RoboPay/tunnel/config.local.json:/app/config.local.json:ro \
-  robopay-tunnel:execution-gated -config /app/config.local.json
+```text
+READY: bridge PID ..., tunnel HTTP 402
 ```
 
-## Terminal 3: record the proof
+## Record the proof
 
 Start recording now. First show the branch and commit:
 
@@ -73,7 +64,11 @@ Show balances on BaseScan, then perform one paid execution:
 ```
 
 Point out HTTP `200`, `SUCCESS`, `state_delta`, `root_displacement`, and the
-transaction in `PAYMENT-RESPONSE`. Show Terminal 1's matching execution log.
+transaction in `PAYMENT-RESPONSE`. Show the matching bridge execution log:
+
+```bash
+tail -20 ~/robopay-work/evidence/video-bridge.log
+```
 
 Replay the same key:
 
@@ -94,7 +89,8 @@ the successful request transferred `0.002 USDC`.
 ```bash
 unset X402_PRIVATE_KEY VIDEO_KEY
 docker stop robopay-x2-video 2>/dev/null || true
+kill "$(cat ~/robopay-work/evidence/video-bridge.pid)" 2>/dev/null || true
 ```
 
-Stop the bridge with Ctrl+C. Review the recording before upload and verify that
-no secret, seed phrase, wallet popup, environment dump, or local config appears.
+Review the recording before upload and verify that no secret, seed phrase,
+wallet popup, environment dump, or local config appears.
