@@ -17,10 +17,10 @@ The terminal result is published only after MuJoCo advances the policy and
 reports a finite, measurable `state_delta`; missing models and failed policies
 produce `FAILED` and never actuate `/cmd_vel`.
 
-This package is the AGIBot X2 Tier‑1 integration for RoboPay. The RoboPay tunnel
-performs x402 verification and settlement before publishing an accepted event
-on `robot/tunnel/action`. This bridge parses that event, maps safe X2 commands,
-publishes `/cmd_vel`, and optionally steps the official X2 MuJoCo model.
+This package is the AGIBot X2 Tier-1 integration for RoboPay. The RoboPay tunnel
+verifies the x402 authorization, publishes the action, waits for this bridge's
+correlated terminal result, and permits settlement only after `SUCCESS`.
+Failure, timeout, and replay responses remain non-2xx and are not settled.
 
 ## Local ROS 2 run
 
@@ -40,5 +40,6 @@ controller is explicitly enabled.
 
 The package includes parser and mapper tests. CI runs Python compilation,
 MuJoCo installation, and these tests on Ubuntu 22.04. A bounty submission
-should additionally attach a recording of the x402 `402 → PAYMENT-SIGNATURE →
-200 accepted → Zenoh → MuJoCo motion` flow.
+should additionally attach a recording of the x402 `402 -> PAYMENT-SIGNATURE ->
+Zenoh -> MuJoCo result -> settlement -> 200` flow. See [EVIDENCE.md](EVIDENCE.md)
+for the verified Base Sepolia run.

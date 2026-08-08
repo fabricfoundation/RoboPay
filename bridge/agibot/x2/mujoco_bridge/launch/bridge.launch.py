@@ -9,8 +9,10 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("model_path", default_value=default_model),
         DeclareLaunchArgument("robot_id", default_value="agibot-x2-sim-001"),
+        DeclareLaunchArgument("zenoh_listen", default_value="tcp/127.0.0.1:7447"),
         Node(package="mujoco_bridge_agibot_x2", executable="agibot_x2_bridge", output="screen",
              parameters=[PathJoinSubstitution([share, "config", "params.yaml"]),
                          {"model_path": LaunchConfiguration("model_path"),
-                          "robot_id": LaunchConfiguration("robot_id")}])
+                          "robot_id": LaunchConfiguration("robot_id"),
+                          "zenoh_listen": LaunchConfiguration("zenoh_listen")}])
     ])

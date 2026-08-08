@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,6 +27,7 @@ import (
 	"github.com/fabricfoundation/tunnel/internal"
 	"github.com/fabricfoundation/tunnel/internal/aipagent"
 	"github.com/fabricfoundation/tunnel/internal/handlers"
+	"github.com/fabricfoundation/tunnel/internal/zenohconfig"
 )
 
 const (
@@ -65,7 +68,11 @@ func main() {
 		logger.Info("unibase authorization ready", zap.String("wallet", wallet))
 	}
 
-	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
+	zenohCfg, err := zenohconfig.FromEnvironment()
+	if err != nil {
+		logger.Fatal("failed to configure zenoh session", zap.Error(err))
+	}
+	session, err := zenoh.Open(zenohCfg, nil)
 	if err != nil {
 		logger.Fatal("failed to open zenoh session", zap.Error(err))
 	}
@@ -139,6 +146,32 @@ func main() {
 
 	for {
 		router := setupRouter(cfg, aipSrv, logger)
+		if cfg.LocalHTTPAddr != "" {
+			server := &http.Server{
+				Addr:              cfg.LocalHTTPAddr,
+				Handler:           router,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
+			logger.Info("local evidence HTTP listener started", zap.String("address", cfg.LocalHTTPAddr))
+			serverErr := make(chan error, 1)
+			go func() { serverErr <- server.ListenAndServe() }()
+			select {
+			case <-ctx.Done():
+			case <-restartCh:
+				logger.Info("restarting local listener to apply new config...")
+			case err := <-serverErr:
+				if !errors.Is(err, http.ErrServerClosed) {
+					logger.Fatal("local evidence HTTP listener failed", zap.Error(err))
+				}
+			}
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = server.Shutdown(shutdownCtx)
+			shutdownCancel()
+			if ctx.Err() != nil {
+				break
+			}
+			continue
+		}
 		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)

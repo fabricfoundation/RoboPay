@@ -26,6 +26,12 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux \
     CGO_CFLAGS="-I/opt/zenoh-c/include" \
     CGO_LDFLAGS="-L/opt/zenoh-c/lib -lzenohc" \
+    LD_LIBRARY_PATH="/opt/zenoh-c/lib" \
+    go test ./...
+
+RUN CGO_ENABLED=1 GOOS=linux \
+    CGO_CFLAGS="-I/opt/zenoh-c/include" \
+    CGO_LDFLAGS="-L/opt/zenoh-c/lib -lzenohc" \
     go build -a -o main cmd/main.go
 
 
@@ -38,6 +44,8 @@ WORKDIR /app
 ENV GIN_MODE=release
 ENV PROXY_WS_URL=wss://api.fabric.foundation/api/core/ws/robot
 ENV FACILITATOR_URL=https://x402.org/facilitator
+# Set LOCAL_HTTP_ADDR=:3000 only for direct local integration/evidence runs.
+# Set ZENOH_CONNECT_ENDPOINT=tcp/<host>:7447 when discovery crosses containers.
 
 COPY --from=builder /opt/zenoh-c/lib/libzenohc.so /usr/lib/
 COPY --from=builder /app/config.json ./config.json
