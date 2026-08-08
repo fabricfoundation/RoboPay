@@ -43,3 +43,6 @@ MuJoCo installation, and these tests on Ubuntu 22.04. A bounty submission
 should additionally attach a recording of the x402 `402 -> PAYMENT-SIGNATURE ->
 Zenoh -> MuJoCo result -> settlement -> 200` flow. See [EVIDENCE.md](EVIDENCE.md)
 for the verified Base Sepolia run.
+
+Use [VIDEO_EVIDENCE.md](VIDEO_EVIDENCE.md) for the safe reviewer recording
+sequence.
