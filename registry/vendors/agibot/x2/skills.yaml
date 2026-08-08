@@ -1,0 +1,10 @@
+skills:
+  - name: move_forward
+    price: "$0.002"
+    parameters: {speed: {type: number, minimum: 0, maximum: 0.5}, duration: {type: number, minimum: 0.1, maximum: 10}}
+  - name: standing_balance
+    price: "$0.002"
+    parameters: {duration: {type: number, minimum: 0.1, maximum: 10}}
+  - name: wave_arm
+    price: "$0.002"
+    parameters: {cycles: {type: integer, minimum: 1, maximum: 10}}

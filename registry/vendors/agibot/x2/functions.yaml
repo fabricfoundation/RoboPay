@@ -1,0 +1,4 @@
+functions:
+  - name: actuate
+    input: {action: string, params: object, actionId: string, idempotencyKey: string}
+    output: {status: string, metrics: object, actionId: string, robotId: string, idempotencyKey: string}

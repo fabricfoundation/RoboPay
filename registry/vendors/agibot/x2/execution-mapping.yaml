@@ -1,0 +1,6 @@
+actions:
+  move_forward: {controller: x2_mapper, command: linear_x, limit: 0.5}
+  standing_balance: {controller: x2_simulator, command: hold_posture}
+  wave_arm: {controller: x2_simulator, command: wave}
+unknown_action: reject
+stop: {payment_required: false, command: zero_all}

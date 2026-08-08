@@ -1,0 +1,12 @@
+robot_id: agibot-x2-sim-001
+vendor: agibot
+model: x2
+tier: 1
+simulator: mujoco
+transport:
+  action_topic: robot/tunnel/action
+  result_topic: robot/tunnel/result
+  listen: tcp/127.0.0.1:7447
+model:
+  source: https://github.com/ioai-tech/robot_description
+  path: mjcf/agibot/x2.xml

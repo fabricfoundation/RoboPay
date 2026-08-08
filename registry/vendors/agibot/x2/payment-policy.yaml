@@ -1,0 +1,7 @@
+scheme: exact
+currency: ROBO
+settlement: tunnel_only
+require_verified_payment: true
+settle_only_after: terminal_success
+failure_or_timeout: no_settlement
+replay: reject_duplicate_idempotency_key

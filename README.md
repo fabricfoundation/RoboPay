@@ -8,7 +8,11 @@ Fabric introduces a payment layer for machines. RoboPay is the execution compone
 
 A core design principle is that **payment, routing, and execution are separated**. The Fabric backend/proxy receives a paid action request and routes it to the correct robot tunnel by `robotId`. It does not directly verify x402 payment in the production tunnel flow.
 
-The robot-side `tunnel` receives the action request, runs x402 middleware, verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
+The robot-side `tunnel` receives the action request, runs x402 middleware,
+verifies or rejects the payment, publishes only verified actions, waits for a
+correlated terminal robot result, and settles only after `SUCCESS`. The robot
+controller still owns final safety - **a verified payment is not permission to
+move unconditionally**.
 
 ![RoboPay action flow](docs/images/flow.png)
 
@@ -88,6 +92,8 @@ Common environment overrides:
 | `PROXY_WS_URL`    | `wss://api.fabric.foundation/api/core/ws/robot`  | WebSocket URL of the tunnel proxy |
 | `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
 | `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
+| `LOCAL_HTTP_ADDR` | unset                                            | Opt-in direct listener for local evidence (for example `:3000`) |
+| `ZENOH_CONNECT_ENDPOINT` | unset                                     | Explicit Zenoh peer for deterministic cross-container routing |
 
 ## 4. Register the robot on BitAgent (Unibase AIP) — optional
 

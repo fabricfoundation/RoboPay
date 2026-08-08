@@ -35,6 +35,7 @@ type Config struct {
 	Network         string `json:"network"`
 	ProxyWSURL      string `json:"-"`
 	FacilitatorURL  string `json:"-"`
+	LocalHTTPAddr   string `json:"-"` // optional direct listener for local integration/evidence runs
 
 	// aIP
 	AIPEnabled       bool   `json:"-"`
@@ -96,6 +97,7 @@ func LoadConfig(path string) (*Config, error) {
 
 	cfg.ProxyWSURL = getEnvOrDefault("PROXY_WS_URL", DefaultProxyWSURL)
 	cfg.FacilitatorURL = getEnvOrDefault("FACILITATOR_URL", DefaultFacilitatorURL)
+	cfg.LocalHTTPAddr = os.Getenv("LOCAL_HTTP_ADDR")
 
 	if cfg.RobotID == "" {
 		cfg.RobotID = uuid.NewString()
