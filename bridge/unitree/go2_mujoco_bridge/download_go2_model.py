@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -54,10 +55,12 @@ def download() -> tuple[Path, Path]:
         )
         subprocess.run(
             [
-                "python", "-m", "urdf2webots.importer",
+                sys.executable, "-m", "urdf2webots.importer",
                 f"--input={webots_urdf}",
                 f"--output={proto}",
-                "--target=R2025a", "--link-to-def", "--joint-to-def",
+                # urdf2webots 2.0.0 supports schema targets through R2022b;
+                # that PROTO schema remains loadable by the pinned R2025a runtime.
+                "--target=R2022b", "--link-to-def", "--joint-to-def",
                 "--init-pos=[0,0.79,-1.58,0,0.79,-1.58,0,0.79,-1.58,0,0.79,-1.58]",
             ],
             check=True,
