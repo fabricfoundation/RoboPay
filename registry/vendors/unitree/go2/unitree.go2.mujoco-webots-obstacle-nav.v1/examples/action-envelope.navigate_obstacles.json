@@ -1,0 +1,17 @@
+{
+  "actionId": "act_go2_obstacle_nav_001",
+  "robotId": "go2-mujoco-sim-01",
+  "skillId": "navigate_obstacles",
+  "params": {
+    "maxDurationSec": 48,
+    "side": "left",
+    "speedScale": 1.0
+  },
+  "idempotencyKey": "go2-obstacle-nav-001",
+  "payment": {
+    "provider": "x402",
+    "amount": "1000",
+    "asset": "USDC",
+    "network": "eip155:84532"
+  }
+}

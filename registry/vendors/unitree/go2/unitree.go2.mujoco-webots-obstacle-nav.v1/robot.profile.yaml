@@ -1,0 +1,24 @@
+schemaVersion: robot-profile.v1
+vendor: unitree
+robotModel: go2
+robotType: quadruped
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/unitree_go2/metrics
+  bridge: bridge/unitree/go2_mujoco_bridge
+simulation:
+  scope: simulator-only
+  primaryEngine: MuJoCo
+  validationEngine: Webots R2025a
+  model:
+    source: https://github.com/unitreerobotics/unitree_mujoco
+    commit: ae6a8403e272733e9996ef59990880330496177f
+    directory: unitree_robots/go2
+    license: BSD-3-Clause
+maintainers:
+  - github: RobotDeveloper1
+status: experimental

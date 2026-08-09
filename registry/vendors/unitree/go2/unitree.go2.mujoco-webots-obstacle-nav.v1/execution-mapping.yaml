@@ -1,0 +1,25 @@
+schemaVersion: execution-mapping.v1
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/unitree_go2/metrics
+paramsHashFormat: "sha256:<hex>"
+mappings:
+  navigate_obstacles:
+    task: obstacle_navigation
+    output: MuJoCo Go2 episode; Webots R2025a cross-engine validation
+    policy: unitree-go2-online-footspace-trot-v1, recalculated from measured pose at each engine control tick (MuJoCo 2 ms; Webots 16 ms)
+    controller: shared online foot-space trot; MuJoCo applies PD torque and Webots applies measured joint-position commands without writing base pose
+    inputs: [body_position, body_yaw, simulator_time, obstacle_geometry]
+    metrics: [heading_change_rad, final_goal_distance_m, path_length_m, minimum_clearance_m, obstacle_contact_count, waypoints_completed, policy_id]
+    limits:
+      speedScale: {min: 0.5, max: 1.0}
+      maxDurationSec: 60
+      maxGaitFrequencyHz: 1.25
+  stop:
+    task: safe_stop
+    output: neutral 12-actuator command plus zero MuJoCo qvel
+    result: correlated success for stop; active navigation returns failure with completion_reason safe_stopped
+    metrics: [safe_stop_applied, active_execution_interrupted]
