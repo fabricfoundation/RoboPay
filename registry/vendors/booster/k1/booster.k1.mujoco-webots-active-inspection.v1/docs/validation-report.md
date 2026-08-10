@@ -58,10 +58,15 @@ The mandatory workflow covers:
   continuation-frame reassembly; 2 Linux Tunnel tests were skipped locally and
   remain mandatory in CI
 - [x] Registry schema: passed
-- [ ] Real Go Tunnel invalid-payment and non-settlement tests: required by CI;
-  the local Windows host cannot execute the Linux/zenoh-c Tunnel binary
-- [ ] Trusted Base Sepolia settlement artifact and paired simulator recording:
-  generated only when fork secrets are available
+- [x] Real Go Tunnel invalid-payment and non-settlement tests: passed in the
+  mandatory Linux CI gate, including `isValid: false`, missing verdict, zero
+  ActionEvents, zero simulator commands, and zero settlement calls
+- [x] Trusted Base Sepolia cold-start settlement: HTTP 402 challenge, first paid
+  action HTTP 202 without warm-up, correlated `succeeded`, and `settled: true`;
+  transaction [`0x8629549e...f440c`](https://sepolia.basescan.org/tx/0x8629549e3e7907ae61cd10480144220cc03b4e9d52c08044959aa1f6bc4f440c)
+- [x] CI evidence artifacts: MuJoCo, Sim-to-Sim, and Base Sepolia JSON uploaded
+  by [workflow run 31418321557](https://github.com/RobotDeveloper1/RoboPay/actions/runs/31418321557)
+- [ ] Paid-action simulator screen recording paired with the terminal evidence
 
 Commands and machine-readable outputs are documented in the bridge README.
 The workflow artifact is authoritative for the submitted commit; generated
