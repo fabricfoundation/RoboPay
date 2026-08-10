@@ -1,0 +1,150 @@
+name: Booster K1 Tier 1 contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "tunnel/**"
+      - "bridge/common/**"
+      - "bridge/booster/**"
+      - "registry/vendors/booster/**"
+      - "scripts/registry/**"
+      - ".github/workflows/booster-k1-tier1.yml"
+  push:
+    branches: [booster-k1-tier-1, codex/booster-k1-tier1-profile]
+    paths:
+      - "tunnel/**"
+      - "bridge/common/**"
+      - "bridge/booster/**"
+      - "registry/vendors/booster/**"
+      - "scripts/registry/**"
+      - ".github/workflows/booster-k1-tier1.yml"
+
+jobs:
+  tunnel-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version: "1.25"}
+      - name: Build and test the real Go Tunnel
+        run: |
+          make build
+          make test
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.10"}
+      - name: Install K1 contract dependencies
+        run: python -m pip install -r bridge/booster/k1_inspection_bridge/requirements.txt
+      - name: Download official K1 and run bridge contracts
+        env:
+          PYTHONPATH: ${{ github.workspace }}/bridge/booster/k1_inspection_bridge
+          TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
+        run: |
+          python bridge/booster/k1_inspection_bridge/download_k1_model.py
+          python -m unittest bridge/booster/k1_inspection_bridge/tests/test_policy.py
+          python -m unittest bridge/booster/k1_inspection_bridge/tests/test_bridge_contract.py
+          python scripts/registry/validate_profiles.py --registry-root registry/vendors/booster
+      - name: Prove invalid payment and non-success never settle
+        env:
+          PYTHONPATH: ${{ github.workspace }}/bridge/booster/k1_inspection_bridge
+          TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
+        run: |
+          python bridge/booster/k1_inspection_bridge/tests/test_payment_gate.py
+          python bridge/booster/k1_inspection_bridge/tests/test_x402_no_settlement.py
+
+  k1-mujoco:
+    runs-on: ubuntu-latest
+    needs: tunnel-and-contract
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.10"}
+      - name: Install and execute the official K1 MJCF
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r bridge/booster/k1_inspection_bridge/requirements.txt
+          python bridge/booster/k1_inspection_bridge/download_k1_model.py
+          PYTHONPATH=bridge/booster/k1_inspection_bridge python bridge/booster/k1_inspection_bridge/run_inspection.py \
+            --json-output bridge/booster/k1_inspection_bridge/artifacts/mujoco_result.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booster-k1-mujoco-evidence
+          path: bridge/booster/k1_inspection_bridge/artifacts/mujoco_result.json
+          retention-days: 90
+          if-no-files-found: error
+
+  k1-sim2sim:
+    runs-on: ubuntu-latest
+    needs: tunnel-and-contract
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.10"}
+      - name: Install Webots R2025a and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget xvfb libgl1 libglu1-mesa libglib2.0-0 libgomp1 libfontconfig1 \
+            libxkbcommon0 libdbus-1-3 libx11-6 libx11-xcb1 libxcb1 libxext6 libxrender1 libxtst6 libxi6 libxss1 \
+            libqt5core5a libqt5gui5 libqt5widgets5 libqt5network5 libqt5svg5 libqt5webengine5 libqt5webenginecore5 \
+            libqt5webenginewidgets5 libqt5multimedia5 libqt5printsupport5 libqt5concurrent5 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0
+          sudo apt-get install -y libsndio7.0 2>/dev/null || sudo apt-get install -y libsndio-dev 2>/dev/null || true
+          python -m pip install -r bridge/booster/k1_inspection_bridge/requirements.txt
+          python bridge/booster/k1_inspection_bridge/download_k1_model.py
+          python bridge/booster/k1_inspection_bridge/build_webots_model.py
+          wget -q https://github.com/cyberbotics/webots/releases/download/R2025a/webots-R2025a-x86-64.tar.bz2
+          sudo tar xjf webots-R2025a-x86-64.tar.bz2 -C /usr/local
+      - name: Require shared-policy Sim-to-Sim score 1.0
+        env:
+          PYTHONPATH: ${{ github.workspace }}/bridge/booster/k1_inspection_bridge
+          WEBOTS_EXE: /usr/local/webots/webots
+          QT_QPA_PLATFORM: offscreen
+        run: xvfb-run -a -s "-screen 0 1280x1024x24" python bridge/booster/k1_inspection_bridge/run_sim2sim_validation.py --timeout 180
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booster-k1-sim2sim-evidence
+          path: bridge/booster/k1_inspection_bridge/artifacts/
+          retention-days: 90
+          if-no-files-found: error
+
+  k1-base-sepolia-e2e:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    concurrency:
+      group: booster-k1-base-sepolia-${{ github.ref }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    needs: tunnel-and-contract
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version: "1.25"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.10"}
+      - name: Install dependencies, official model, and real Tunnel
+        run: |
+          python -m pip install -r bridge/booster/k1_inspection_bridge/requirements.txt
+          python bridge/booster/k1_inspection_bridge/download_k1_model.py
+          make build
+          wget -q https://github.com/eclipse-zenoh/zenoh/releases/download/1.9.0/zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+          unzip -q zenoh-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d .zenoh-router
+          .zenoh-router/zenohd > zenohd.log 2>&1 &
+          sleep 2
+      - name: Run cold-start paid action and publish settlement evidence
+        env:
+          PRIVATE_KEY: ${{ secrets.BASE_SEPOLIA_PRIVATE_KEY }}
+          ROBO_PAYEE_ADDRESS: ${{ secrets.ROBO_PAYEE_ADDRESS }}
+          TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
+          PROXY_WS_URL: wss://api.fabric.foundation/api/core/ws/robot
+        run: python bridge/booster/k1_inspection_bridge/test_base_sepolia_tunnel_e2e.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booster-k1-base-sepolia-evidence
+          path: bridge/booster/k1_inspection_bridge/artifacts/base_sepolia_result_*.json
+          retention-days: 90
+          if-no-files-found: error

@@ -1,0 +1,7 @@
+{
+  "action": "stop",
+  "robot_id": "booster-k1-sim-01",
+  "action_id": "k1-stop-example-001",
+  "idempotency_key": "k1-stop-example-001",
+  "params": {}
+}

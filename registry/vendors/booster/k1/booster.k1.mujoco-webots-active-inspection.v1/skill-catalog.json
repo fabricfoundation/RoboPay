@@ -1,0 +1,20 @@
+[
+  {
+    "skill_id": "inspect_target_sequence",
+    "description": "Inspect a bounded target sequence with the official supported Booster K1 model and measured joint feedback.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "maxDurationSec": {"type": "number", "minimum": 5, "maximum": 30},
+      "targets": {"type": "array", "minimum_items": 1, "maximum_items": 3, "values": ["left", "center", "right"]},
+      "speedScale": {"type": "number", "minimum": 0.5, "maximum": 1.0}
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Safely interrupt the active K1 inspection and command neutral controls.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]
