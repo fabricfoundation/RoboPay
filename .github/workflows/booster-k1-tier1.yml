@@ -11,7 +11,7 @@ on:
       - "scripts/registry/**"
       - ".github/workflows/booster-k1-tier1.yml"
   push:
-    branches: [booster-k1-tier-1, codex/booster-k1-tier1-profile]
+    branches: [booster-k1-tier-1]
     paths:
       - "tunnel/**"
       - "bridge/common/**"
