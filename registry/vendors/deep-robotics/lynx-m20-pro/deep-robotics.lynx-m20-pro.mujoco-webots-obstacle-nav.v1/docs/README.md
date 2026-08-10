@@ -20,9 +20,11 @@ locked M20 model simulates steering or M20 Pro LiDAR hardware.
 
 ## Evidence contract
 
-- CI runs the real Go Tunnel/x402 middleware, real Zenoh and real M20 MuJoCo
-  bridge for invalid-payment, first-paid-action, failure/timeout and replay
-  assertions.
+- All payment suites run the real Go Tunnel/x402 middleware and real Zenoh.
+  Invalid payment is checked at the real M20 bridge boundary with a
+  non-executing invocation counter; the first paid action runs the real bridge
+  and vendor-MJCF MuJoCo; failure, timeout and replay use a controlled terminal
+  result peer at the Zenoh boundary so unsuccessful outcomes are deterministic.
 - CI runs the vendor-MJCF MuJoCo episode plus Webots R2025a generated from the
   same locked vendor URDF.
 - A trusted push/workflow-dispatch job uses Base Sepolia secrets and uploads a
