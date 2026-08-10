@@ -18,6 +18,11 @@ REQUIRED_DOCUMENTS = (
     "execution-mapping.yaml",
 )
 SKILL_CATALOG = "skill-catalog.json"
+CATALOG_SCHEMA_FIELDS = {
+    "type", "required", "values", "minimum", "maximum", "items",
+    "min_items", "max_items", "unique_items",
+}
+CATALOG_TYPES = {"string", "number", "integer", "boolean", "array"}
 
 
 def _load_yaml(path: Path) -> dict:
@@ -39,6 +44,31 @@ def _ids(entries: list[dict], field: str, path: Path, errors: list[str]) -> set[
     if len(values) != len(set(values)):
         errors.append(f"{path}: duplicate {field} values")
     return set(values)
+
+
+def _validate_catalog_param(schema: object, label: str, errors: list[str]) -> None:
+    if not isinstance(schema, dict):
+        errors.append(f"{label}: parameter schema must be an object")
+        return
+    unknown = sorted(set(schema) - CATALOG_SCHEMA_FIELDS)
+    if unknown:
+        errors.append(f"{label}: unsupported Tunnel schema field(s): {', '.join(unknown)}")
+    schema_type = schema.get("type")
+    if schema_type not in CATALOG_TYPES:
+        errors.append(f"{label}: unsupported Tunnel parameter type {schema_type!r}")
+        return
+    if schema_type == "array":
+        if "items" not in schema:
+            errors.append(f"{label}: array schema requires items")
+        else:
+            _validate_catalog_param(schema["items"], f"{label}.items", errors)
+    for field in ("min_items", "max_items"):
+        value = schema.get(field)
+        if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value < 0):
+            errors.append(f"{label}: {field} must be a non-negative integer")
+    if isinstance(schema.get("min_items"), int) and isinstance(schema.get("max_items"), int):
+        if schema["min_items"] > schema["max_items"]:
+            errors.append(f"{label}: min_items exceeds max_items")
 
 
 def _validate_profile(profile_path: Path) -> list[str]:
@@ -93,6 +123,19 @@ def _validate_profile(profile_path: Path) -> list[str]:
                 f"{catalog_path}: catalog skills {sorted(catalog_ids)} must equal "
                 f"declared skills {sorted(skill_ids)}"
             )
+        for skill in catalog:
+            if not isinstance(skill, dict):
+                continue
+            params = skill.get("params")
+            if not isinstance(params, dict):
+                errors.append(f"{catalog_path}: {skill.get('skill_id')}.params must be an object")
+                continue
+            for param_name, schema in params.items():
+                _validate_catalog_param(
+                    schema,
+                    f"{catalog_path}: {skill.get('skill_id')}.{param_name}",
+                    errors,
+                )
 
     payment_path = root / "payment-policy.yaml"
     policies = documents["payment-policy.yaml"].get("policies")
