@@ -38,8 +38,8 @@ The mandatory workflow covers:
 - Zenoh: eclipse-zenoh 1.9.0; native Python transport (ROS2 not used)
 - MuJoCo: 3.10.0 in a clean validation virtual environment
 - Webots: R2025a
-- Model integrity: MJCF SHA-256 `245e2142...c9c627e`; URDF SHA-256
-  `9312ecc9...615e0a01`
+- Model integrity (canonical LF bytes): MJCF SHA-256
+  `51954b13...b50bf83`; URDF SHA-256 `03e82242...fe2174`
 
 ## Local validation results
 
@@ -52,7 +52,7 @@ The mandatory workflow covers:
   288 control steps, measured maximum motor velocity 2.9999 rad/s
 - [x] Sim-to-Sim: score 1.0 and exact shared-policy match
 - [x] MuJoCo safe stop: `safe_stop_applied: true`, inspection failure
-- [x] Local Python suite: 11 tests passed, covering message parsing,
+- [x] Local Python suite: 12 tests passed, covering message parsing,
   correlation, routing, invalid parameters, foreign robot, success/failure,
   stop, the minimum-speed contract, official-model execution, and WebSocket
   continuation-frame reassembly; 2 Linux Tunnel tests were skipped locally and

@@ -1,10 +1,21 @@
+import tempfile
 import unittest
+from pathlib import Path
 
+from download_k1_model import _canonical_sha256
 from k1_inspection_bridge.control_core import K1InspectionControlCore, TARGET_POSES
 from k1_inspection_bridge.runner import run_inspection
 
 
 class K1PolicyTests(unittest.TestCase):
+    def test_model_hash_is_line_ending_independent(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            lf_path = Path(temporary) / "lf.xml"
+            crlf_path = Path(temporary) / "crlf.xml"
+            lf_path.write_bytes(b"<model>\n  <joint/>\n</model>\n")
+            crlf_path.write_bytes(b"<model>\r\n  <joint/>\r\n</model>\r\n")
+            self.assertEqual(_canonical_sha256(lf_path), _canonical_sha256(crlf_path))
+
     def test_feedback_is_required_before_target_advances(self):
         policy = K1InspectionControlCore(("left",))
         policy.reset()

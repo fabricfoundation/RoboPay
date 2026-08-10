@@ -15,10 +15,18 @@ LOCK_PATH = HERE / "models" / "model.lock.json"
 DEFAULT_DESTINATION = HERE / "models" / "booster_k1"
 
 
+def _canonical_sha256(path: Path) -> str:
+    canonical = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _verify(directory: Path, lock: dict) -> None:
     for filename_key, hash_key in (("mjcf", "mjcfSha256"), ("urdf", "urdfSha256")):
         path = directory / lock[filename_key]
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        # Git may materialize text files with CRLF on Windows even when the
+        # pinned blob uses LF. Hash canonical LF bytes so the same official
+        # revision verifies identically on Windows and Linux CI.
+        actual = _canonical_sha256(path)
         if actual != lock[hash_key]:
             raise RuntimeError(f"Pinned Booster K1 hash mismatch for {path.name}: {actual}")
 

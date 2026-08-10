@@ -3,8 +3,8 @@
   "commit": "508cbee6ca9ae6fbc8c0b38dd58785a6f3fc61a2",
   "directory": "robots/K1",
   "mjcf": "K1_22dof.xml",
-  "mjcfSha256": "245e2142b38e14738f8b03b8b86cd9e20e382981891eb1a327411edabc9c627e",
+  "mjcfSha256": "51954b1317d1afd386da28a5b28ebe7a536d79b94ded8ab61358daa3ab50bf83",
   "urdf": "K1_22dof.urdf",
-  "urdfSha256": "9312ecc9dbd2424247d9d74c86eeb478e738dd994c787fd42116f4a4615e0a01",
+  "urdfSha256": "03e82242fed026d586828667381260d32fd75a38f5f9f133d96fb2b002fe2174",
   "license": "BSD-3-Clause"
 }
