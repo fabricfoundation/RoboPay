@@ -19,6 +19,7 @@ LOGGER = logging.getLogger("robopay.go2")
 ACTION_TOPIC = "robot/tunnel/action"
 RESULT_TOPIC = "robot/tunnel/result"
 METRICS_TOPIC = "robot/unitree_go2/metrics"
+READY_TOPIC = "robot/unitree_go2/ready"
 ROBOT_ID = "go2-mujoco-sim-01"
 # Keep this exactly aligned with the published registry profile.  The current
 # paired Webots/MuJoCo evidence validates only the left reference corridor.
@@ -77,6 +78,7 @@ class BridgeSettings:
     action_topic: str
     result_topic: str
     metrics_topic: str
+    ready_topic: str = READY_TOPIC
 
     @classmethod
     def from_env(cls) -> "BridgeSettings":
@@ -92,6 +94,7 @@ class BridgeSettings:
             action_topic=configured("ZENOH_ACTION_TOPIC", ACTION_TOPIC),
             result_topic=configured("ZENOH_RESULT_TOPIC", RESULT_TOPIC),
             metrics_topic=configured("ZENOH_METRICS_TOPIC", METRICS_TOPIC),
+            ready_topic=configured("ZENOH_READY_TOPIC", READY_TOPIC),
         )
 
 
@@ -167,6 +170,19 @@ class Go2ZenohBridge:
         self._worker_lock = threading.Lock()
         self._worker: threading.Thread | None = None
         self._subscriber = self._session.declare_subscriber(self.action_topic, self._on_action)
+        self._ready_publisher = self._session.declare_publisher(self.settings.ready_topic)
+        self._ready_publisher.put(
+            json.dumps(
+                {
+                    "status": "ready",
+                    "profile_id": PROFILE_ID,
+                    "robot_id": self.robot_id,
+                    "action_topic": self.action_topic,
+                    "result_topic": self.result_topic,
+                },
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
 
     def _publish(self, event, status: str, result: dict) -> None:
         envelope = {
@@ -293,6 +309,18 @@ class Go2ZenohBridge:
             )
             self._worker.start()
 
+    def close(self) -> None:
+        self._stop_event.set()
+        with self._worker_lock:
+            worker = self._worker
+        if worker is not None:
+            worker.join(timeout=5)
+        self._subscriber.undeclare()
+        self._ready_publisher.undeclare()
+        self._result_publisher.undeclare()
+        self._metrics_publisher.undeclare()
+        self._session.close()
+
     def spin(self) -> None:  # pragma: no cover - integration entry point
         LOGGER.info(
             "Go2 bridge %s listening on %s and publishing results on %s",
@@ -304,15 +332,7 @@ class Go2ZenohBridge:
             while True:
                 time.sleep(0.1)
         finally:
-            self._stop_event.set()
-            with self._worker_lock:
-                worker = self._worker
-            if worker is not None:
-                worker.join(timeout=5)
-            self._subscriber.undeclare()
-            self._result_publisher.undeclare()
-            self._metrics_publisher.undeclare()
-            self._session.close()
+            self.close()
 
 
 def main() -> None:  # pragma: no cover - integration entry point

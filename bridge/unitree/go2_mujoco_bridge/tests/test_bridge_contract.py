@@ -1,12 +1,23 @@
 import json
 import hashlib
 import os
+import socket
 import threading
 import time
 import unittest
 from unittest.mock import patch
 
-from go2_mujoco_bridge.bridge import Go2ZenohBridge, _load_event_parser
+import zenoh
+
+from go2_mujoco_bridge.bridge import (
+    ACTION_TOPIC,
+    METRICS_TOPIC,
+    READY_TOPIC,
+    RESULT_TOPIC,
+    BridgeSettings,
+    Go2ZenohBridge,
+    _load_event_parser,
+)
 
 
 class _Payload:
@@ -64,6 +75,46 @@ def _bridge() -> Go2ZenohBridge:
 
 
 class Go2BridgeContractTests(unittest.TestCase):
+    def test_bridge_announces_ready_after_action_subscription_exists(self):
+        """The cold-start E2E runner must not need a warm-up action or sleep."""
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        endpoint = f"tcp/127.0.0.1:{port}"
+        router = zenoh.open(
+            zenoh.Config.from_json5(
+                json.dumps(
+                    {
+                        "mode": "peer",
+                        "scouting": {"multicast": {"enabled": False}},
+                        "listen": {"endpoints": [endpoint]},
+                    }
+                )
+            )
+        )
+        ready = threading.Event()
+        subscriber = router.declare_subscriber(READY_TOPIC, lambda _sample: ready.set())
+        bridge = None
+        try:
+            bridge = Go2ZenohBridge(
+                settings=BridgeSettings(
+                    robot_id="go2-ready-contract",
+                    zenoh_endpoint=endpoint,
+                    zenoh_config_path=None,
+                    action_topic=ACTION_TOPIC,
+                    result_topic=RESULT_TOPIC,
+                    metrics_topic=METRICS_TOPIC,
+                    ready_topic=READY_TOPIC,
+                )
+            )
+            self.assertTrue(ready.wait(timeout=5), "bridge did not announce its action subscription")
+        finally:
+            if bridge is not None:
+                bridge.close()
+            subscriber.undeclare()
+            router.close()
+
     def test_parser_accepts_profile_skill_id_and_preserves_metadata(self):
         parser = _load_event_parser()
         parsed = parser(json.dumps(_event("navigate_obstacles")).encode("utf-8"))

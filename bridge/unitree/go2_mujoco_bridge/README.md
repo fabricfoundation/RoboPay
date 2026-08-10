@@ -57,9 +57,10 @@ only wall-clock playback/rendering, not the physics or controller.
 
 ## Zenoh and paid end-to-end run
 
-The default topics are `robot/tunnel/action`, `robot/tunnel/result`, and
-`robot/unitree_go2/metrics`. Start a local router, the bridge, and the Tunnel
-from separate terminals:
+The default topics are `robot/tunnel/action`, `robot/tunnel/result`,
+`robot/unitree_go2/metrics`, and the live-run readiness signal
+`robot/unitree_go2/ready`. Start a local router, the bridge, and the Tunnel from
+separate terminals:
 
 ```bash
 zenohd
@@ -78,10 +79,40 @@ PRIVATE_KEY=... ROBO_PAYEE_ADDRESS=0x... \
   python bridge/unitree/go2_mujoco_bridge/pay_go2_obstacle_nav.py
 ```
 
+The trusted live runner subscribes to `robot/unitree_go2/ready` before it
+starts the bridge and refuses to send payment until the bridge announces that
+its action subscription exists. The first paid action therefore needs no
+warm-up action or timing sleep.
+
+For an OBS-ready Windows recording with the native MuJoCo viewer and the real
+Linux Tunnel in WSL, first build the Tunnel and load the funded **testnet-only**
+credentials into the current PowerShell process. Then run:
+
+```powershell
+wsl.exe -d Ubuntu-22.04 -- make build
+$env:PRIVATE_KEY = '<Base Sepolia test wallet key from your secret manager>'
+$env:ROBO_PAYEE_ADDRESS = '<configured payee>'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
+```
+
+Use `-DryRun` to rehearse discovery and the unpaid `402` without signing or
+submitting a payment. `-ExecutionPolicy Bypass` applies only to that child
+PowerShell process and does not change the machine's permanent policy.
+Use `-PauseAfter` while recording to keep the concise settlement summary and
+transaction hash visible until Enter is pressed; credentials are removed from
+the child process environment before that pause.
+
+The launcher starts an isolated local Zenoh router, displays Tunnel logs and
+MuJoCo motion, briefly holds the terminal scene, writes the correlated evidence
+JSON under `artifacts/`, and opens the settlement transaction in BaseScan. The
+default five-second hold keeps execution and deferred settlement comfortably
+inside the x402 authorization window. It never prints or persists the private
+key.
+
 Never commit, print, or paste a production private key. Use a test-only Base
 Sepolia wallet and load `PRIVATE_KEY` and `ROBO_PAYEE_ADDRESS` from local
 environment variables or GitHub Secrets. `PROXY_WS_URL`, `ROBOT_ID`,
-`ZENOH_ENDPOINT`, `ZENOH_CONFIG`, all three Zenoh topic variables,
+`ZENOH_ENDPOINT`, `ZENOH_CONFIG`, all four Zenoh topic variables,
 `SKILL_CATALOG_PATH`, `ALLOWED_ACTIONS`, and `IDEMPOTENCY_STORE_PATH` are
 configuration, not source constants.
 
@@ -130,6 +161,7 @@ settlement decision are production code.
 
 ## Identity boundary
 
-The profile supplies a stable `robot_id` and payee wallet to the shared Tunnel.
+The profile supplies a stable `robot_id`; the deployment supplies the payee
+wallet to the shared Tunnel through its runtime configuration.
 The WebSocket identity-to-payee signing/binding protocol is owned by the shared
 Fabric Tunnel/Gateway and is not re-invented inside this robot profile.

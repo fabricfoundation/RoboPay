@@ -4,7 +4,14 @@ import unittest
 
 import yaml
 
-from go2_mujoco_bridge.bridge import ALLOWED_ACTIONS, PROFILE_ID
+from go2_mujoco_bridge.bridge import (
+    ACTION_TOPIC,
+    ALLOWED_ACTIONS,
+    METRICS_TOPIC,
+    PROFILE_ID,
+    READY_TOPIC,
+    RESULT_TOPIC,
+)
 from go2_mujoco_bridge.control_core import Go2ObstacleControlCore, POLICY_ID
 
 
@@ -30,6 +37,14 @@ class Go2RegistryContractTests(unittest.TestCase):
         self.assertEqual(profile["profileId"], PROFILE_ID)
         self.assertEqual(profile["vendor"], "unitree")
         self.assertEqual(profile["robotModel"], "go2")
+        self.assertEqual(profile["runtime"]["actionTopic"], ACTION_TOPIC)
+        self.assertEqual(profile["runtime"]["resultTopic"], RESULT_TOPIC)
+        self.assertEqual(profile["runtime"]["metricsTopic"], METRICS_TOPIC)
+        self.assertEqual(profile["runtime"]["readyTopic"], READY_TOPIC)
+        self.assertEqual(mapping["transport"]["actionTopic"], ACTION_TOPIC)
+        self.assertEqual(mapping["transport"]["resultTopic"], RESULT_TOPIC)
+        self.assertEqual(mapping["transport"]["metricsTopic"], METRICS_TOPIC)
+        self.assertEqual(mapping["transport"]["readyTopic"], READY_TOPIC)
         self.assertEqual(skill_ids, ALLOWED_ACTIONS)
         self.assertEqual({item["skill_id"] for item in catalog}, skill_ids)
         self.assertEqual({item["skillId"] for item in payment["policies"]}, skill_ids)
@@ -38,6 +53,12 @@ class Go2RegistryContractTests(unittest.TestCase):
         self.assertEqual({item["priceUSDC"] for item in payment["policies"]}, {"0.001"})
         self.assertEqual(profile["simulation"]["model"]["source"], lock["mujoco"]["source"])
         self.assertEqual(profile["simulation"]["model"]["commit"], lock["mujoco"]["commit"])
+        self.assertEqual(profile["simulation"]["model"]["directory"], lock["mujoco"]["directory"])
+        self.assertEqual(profile["simulation"]["model"]["license"], lock["mujoco"]["license"])
+        self.assertEqual(lock["urdf"]["source"], "https://github.com/unitreerobotics/unitree_ros")
+        self.assertRegex(lock["urdf"]["commit"], r"^[0-9a-f]{40}$")
+        self.assertEqual(lock["urdf"]["directory"], "robots/go2_description")
+        self.assertEqual(lock["urdf"]["license"], "BSD-3-Clause")
         self.assertIn(POLICY_ID, mapping["mappings"]["navigate_obstacles"]["policy"])
 
         nav_skill = next(item for item in skills["skills"] if item["skillId"] == "navigate_obstacles")

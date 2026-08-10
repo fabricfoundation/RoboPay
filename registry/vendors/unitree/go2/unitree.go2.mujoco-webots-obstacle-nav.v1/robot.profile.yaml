@@ -9,6 +9,7 @@ runtime:
   actionTopic: robot/tunnel/action
   resultTopic: robot/tunnel/result
   metricsTopic: robot/unitree_go2/metrics
+  readyTopic: robot/unitree_go2/ready
   bridge: bridge/unitree/go2_mujoco_bridge
 simulation:
   scope: simulator-only
