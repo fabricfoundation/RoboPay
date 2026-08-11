@@ -159,14 +159,26 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		paymentRequirements = value
 	}
 
+	// Persist the verified-but-not-yet-settled payment data against this
+	// actionId. ExecutionWatcher reads it back later and is the only place
+	// that ever calls ProcessSettlement -- settlement never happens here,
+	// at accept time.
+	if paymentPayload != nil && paymentRequirements != nil {
+		payloadBytes, errP := json.Marshal(paymentPayload)
+		reqBytes, errR := json.Marshal(paymentRequirements)
+		if errP == nil && errR == nil {
+			if err := h.Store.SetPaymentData(actionID, payloadBytes, reqBytes); err != nil {
+				h.Logger.Warn("failed to persist payment data for later settlement", zap.Error(err))
+			}
+		} else {
+			h.Logger.Warn("failed to marshal payment data for storage", zap.Error(errP), zap.Error(errR))
+		}
+	}
+
 	event := gin.H{
-		"actionId": actionID,
-		"action":   req.Action,
-		"params":   req.Params,
-		"transaction_details": gin.H{
-			"payment_payload":      paymentPayload,
-			"payment_requirements": paymentRequirements,
-		},
+		"actionId":  actionID,
+		"action":    req.Action,
+		"params":    req.Params,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 

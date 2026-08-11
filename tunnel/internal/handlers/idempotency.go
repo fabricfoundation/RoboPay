@@ -19,14 +19,21 @@ type ActionStatus struct {
 	ErrorCode string    `json:"error_code,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+
+	// PaymentPayload and PaymentRequirements are the verified x402 payment
+	// data captured at accept-time, stored raw (not settled yet). They are
+	// consumed exactly once by the execution watcher when a terminal
+	// success result arrives, and never used for settlement before that.
+	PaymentPayload      json.RawMessage `json:"payment_payload,omitempty"`
+	PaymentRequirements json.RawMessage `json:"payment_requirements,omitempty"`
 }
 
 const (
-	StatePending           = "pending"
-	StateSucceeded         = "succeeded"
-	StateFailed            = "failed"
-	StateTimeout           = "timeout"
-	StateSettlementFailed  = "settlement_failed"
+	StatePending          = "pending"
+	StateSucceeded        = "succeeded"
+	StateFailed           = "failed"
+	StateTimeout          = "timeout"
+	StateSettlementFailed = "settlement_failed"
 )
 
 // IdempotencyStore is a file-backed, mutex-guarded map of actionId ->
@@ -111,6 +118,23 @@ func (s *IdempotencyStore) UpdateResult(actionID, state, errorCode string, settl
 	status.State = state
 	status.ErrorCode = errorCode
 	status.Settled = settled
+	status.UpdatedAt = time.Now().UTC()
+	return s.persist()
+}
+
+// SetPaymentData attaches the verified payment payload/requirements to an
+// already-reserved action record, so the execution watcher can settle it
+// later without re-deriving anything from the original HTTP request.
+func (s *IdempotencyStore) SetPaymentData(actionID string, payload, requirements json.RawMessage) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	status, ok := s.data[actionID]
+	if !ok {
+		return fmt.Errorf("no reserved action %q to attach payment data to", actionID)
+	}
+	status.PaymentPayload = payload
+	status.PaymentRequirements = requirements
 	status.UpdatedAt = time.Now().UTC()
 	return s.persist()
 }
