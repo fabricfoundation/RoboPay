@@ -14,6 +14,10 @@ policies:
     required: true
     priceUSDC: "0.002"
     paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
   - skillId: bow
     required: true
     priceUSDC: "0.002"

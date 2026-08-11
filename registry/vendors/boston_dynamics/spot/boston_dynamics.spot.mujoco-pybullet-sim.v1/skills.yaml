@@ -22,6 +22,14 @@ skills:
     paymentRequired: true
     limits:
       timeoutSec: 8
+  - skillId: stop
+    description: >-
+      Safe stop: halt all motion and return to the home stance immediately.
+      Fail-safe skill that brings the robot back to its stable home pose.
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 6
   - skillId: bow
     description: Dip the front of the body into a play bow (front lowers while
       the hind stays up).

@@ -11,6 +11,7 @@ Simulators: MuJoCo (google-deepmind/mujoco_menagerie boston_dynamics_spot)
 - [x] wave
 - [x] sit
 - [x] stand
+- [x] stop (safe stop)
 - [x] bow
 - [x] nod
 - [x] turn_to_face
@@ -23,6 +24,7 @@ Simulators: MuJoCo (google-deepmind/mujoco_menagerie boston_dynamics_spot)
 | wave | pawLift 0.212 m, body stays at 0.432 m | pawLift > 0.15 | pass |
 | sit | sitDepth 0.133 m | > 0.10 | pass |
 | stand | standHeight 0.435 m | ~ HOME (0.434) | pass |
+| stop | returns to HOME stance, halted at 0.434 m | |bodyZ - 0.434| < 0.02 | pass |
 | bow | bowPitchDeg 16.9 deg | > 10 | pass |
 | nod | nodDepth 0.055 m | > 0.02 | pass |
 | turn_to_face | achievedYawDeg 10.7 deg toward heading 30 | > 4 | pass |
@@ -45,6 +47,8 @@ Every successful skill returns the body to the home stance height afterwards
 - [x] Robot bridge received action (robopay_link.py logs with actionId)
 - [x] Robot movement observed (MuJoCo/PyBullet episodes; simulation/docs/spot.gif)
 - [x] Structured result on robot/tunnel/result correlated by actionId
+- [x] Safe stop: `stop` halts motion and returns the robot to the stable home
+      stance (fail-safe skill; see simulation/spot/test_spot_control.py)
 - [x] Failure paths return {"status": "error"} and never settle
       (UNPAID / INVALID_PARAMS / UNKNOWN_SKILL / WRONG_ROBOT / DUPLICATE /
       tampered paramsHash — test_result_semantics.py + test_payment_gate.py)

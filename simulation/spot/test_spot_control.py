@@ -62,6 +62,13 @@ def main():
     checks["stand_returns_home"] = abs(
         r.metrics.get("standHeight", 0) - HOME_BODY_Z) < 0.02
 
+    # --- stop (safe stop) -----------------------------------------------
+    r = c.execute("stop", {})
+    checks["stop_success"] = r.status == "success"
+    checks["stop_returns_home"] = abs(
+        r.metrics.get("stopHeight", 0) - HOME_BODY_Z) < 0.02
+    checks["stop_stance_stable"] = abs(r.metrics["bodyZ"] - HOME_BODY_Z) < 0.02
+
     # --- bow ------------------------------------------------------------
     r = c.execute("bow", {})
     checks["bow_success"] = r.status == "success"

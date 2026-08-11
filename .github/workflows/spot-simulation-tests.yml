@@ -29,7 +29,7 @@ jobs:
         run: pip install mujoco numpy pybullet cryptography
       - name: Fetch Spot model assets
         run: cd simulation && bash setup.sh
-      - name: Skill acceptance (wave / sit / stand / bow / nod / turn / hold)
+      - name: Skill acceptance (wave / sit / stand / stop / bow / nod / turn / hold)
         run: cd simulation/spot && python3 test_spot_control.py
       - name: Payment gate (402 / 409 / settle-only-on-success)
         run: cd simulation/spot && python3 test_payment_gate.py

@@ -6,6 +6,7 @@ paid-action policy layer (``robopay_link``) and reports simulator state
 metrics after every action so a reviewer can verify what actually happened:
 
   * ``hold``          hold the current stance (no-op)
+  * ``stop``          safe stop: halt all motion and return to the home stance
   * ``wave``          raise the front-right paw in a greeting arc, then lower it
   * ``sit``           crouch the body toward the floor, then return to stance
   * ``stand``         return from a crouched pose to the home stance
@@ -48,7 +49,7 @@ HOME = {"fl_hx": 0.0, "fl_hy": 1.04, "fl_kn": -1.8,
 HOME_BODY_Z = 0.434
 
 SKILL_DURATIONS = {"wave": 2.8, "sit": 5.0, "stand": 2.4, "bow": 3.2,
-                   "nod": 2.4, "turn_to_face": 6.0, "hold": 1.0}
+                   "nod": 2.4, "turn_to_face": 6.0, "hold": 1.0, "stop": 1.2}
 
 # Verified stable pose targets (see docs/validation-report.md for the sweep).
 SIT_TARGET = {f"{leg}_kn": -2.2 for leg in LEGS} | {f"{leg}_hy": 0.7 for leg in LEGS}
@@ -259,6 +260,18 @@ class SpotController:
         self._hold_commands = dict(HOME)
         return self.data.qpos[2]
 
+    def run_stop(self, duration: float = 1.2):
+        """Safe stop: halt motion and return to the home stance quickly.
+
+        Drives the joints back to the statically-stable home pose on a short
+        timeline (``SKILL_DURATIONS["stop"]``), leaving the robot frozen in
+        the safe stance. Intended as the fail-safe skill: a payer can always
+        request ``stop`` to bring the robot back to its stable home pose.
+        """
+        self._to_pose(HOME, duration)
+        self._hold_commands = dict(HOME)
+        return self.data.qpos[2]
+
     def run_bow(self, duration: float = 3.2):
         """Dip the front of the body into a play-bow, then return."""
         start = dict(self._hold_commands)
@@ -327,6 +340,9 @@ class SpotController:
         elif skill == "stand":
             final_z = self.run_stand(duration=duration)
             extra = {"standHeight": round(final_z, 4)}
+        elif skill == "stop":
+            final_z = self.run_stop(duration=duration)
+            extra = {"stopHeight": round(final_z, 4)}
         elif skill == "bow":
             pitch = self.run_bow(duration=duration)
             extra = {"bowPitchDeg": round(pitch, 3)}

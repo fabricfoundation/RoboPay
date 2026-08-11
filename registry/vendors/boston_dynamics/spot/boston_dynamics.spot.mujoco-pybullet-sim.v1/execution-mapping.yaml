@@ -20,6 +20,11 @@ mappings:
     controller: joint-space recovery to the home stance
     goal: return to the home standing height
     metrics: [standHeight]
+  stop:
+    output: mujoco-or-pybullet episode (simulation/spot/robopay_link.py)
+    controller: joint-space safe-stop to the home stance (short timeline)
+    goal: halt motion and return to the stable home stance
+    metrics: [stopHeight, bodyZ]
   bow:
     output: mujoco-or-pybullet episode (simulation/spot/robopay_link.py)
     controller: joint-space play bow (front legs flex, hind stays up)

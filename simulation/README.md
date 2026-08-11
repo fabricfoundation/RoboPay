@@ -5,11 +5,12 @@ x402 payment gate and the wire contract are exercised end to end in peer-mode
 Zenoh, and the on-chain settlement step is simulated.
 
 A paid RoboPay action arriving on the tunnel's Zenoh topic starts a Spot
-skill episode on the official MuJoCo model (mujoco_menagerie). Seven skills
-are available — wave, sit, stand, bow, nod, turn_to_face, hold — each driven
-by a joint-space trajectory controller, not by any recorded motion. The same
-joint configurations are recomputed in PyBullet (from the rai-opensource
-`spot_simple` URDF) with a measured agreement between the two engines.
+skill episode on the official MuJoCo model (mujoco_menagerie). Eight skills
+are available — wave, sit, stand, stop, bow, nod, turn_to_face, hold — each
+driven by a joint-space trajectory controller, not by any recorded motion.
+The same joint configurations are recomputed in PyBullet (from the
+rai-opensource `spot_simple` URDF) with a measured agreement between the two
+engines.
 
 The chain, top to bottom:
 
@@ -25,6 +26,7 @@ The chain, top to bottom:
 | `wave` | front-right paw lifts in an arc and lowers back (body-weight compensation while airborne) | pawLift 0.212 m, body stays at 0.432 m |
 | `sit` | body crouches into a sit posture, then returns | sitDepth 0.133 m |
 | `stand` | returns to the home standing stance | standHeight 0.435 m |
+| `stop` | safe stop: halts all motion and returns to the stable home stance | halted at 0.434 m |
 | `bow` | front dips into a play bow | bowPitchDeg 16.9 deg |
 | `nod` | full-body greeting bob | nodDepth 0.055 m |
 | `turn_to_face` | yaws toward `headingDeg` (static-stability shuffle), reports achieved yaw and remaining error honestly | 10.7 deg toward heading 30 |
@@ -115,6 +117,25 @@ Configuration (env vars, defaults in parentheses):
   `tunnel/config.json`)
 - `SPOT_MODEL_PATH` (default `models/mujoco_menagerie/boston_dynamics_spot/scene.xml`
   relative to `simulation/`)
+
+### Robot identity, wallet binding and safety
+
+- **Robot identity** — `ROBOPAY_ROBOT_ID` binds the robot to the payee
+  wallet through the tunnel's `config.json` (`robot_id` +
+  `evm_payee_address`). Every envelope is checked against `robotId`; a
+  mismatch returns `WRONG_ROBOT` and never actuates the robot.
+- **Safe stop** — the `stop` skill is the fail-safe action: it halts motion
+  and returns the robot to the stable home stance on a short timeline. Any
+  payer can request it at any time.
+- **Testnet** — the profile's payment policy targets `eip155:84532` (Base
+  Sepolia testnet); configure `network` and `token_address` in
+  `tunnel/config.json` for the chain you settle on.
+- **Security warning** — private keys must only be supplied through
+  environment variables or a secret manager (e.g. the facilitator key file
+  used by the simulator gate). Never hardcode, commit, or log private keys;
+  the repo `.gitignore` excludes `.env`, `*.b64` and `keys/`. The simulator
+  writes its facilitator key next to `payment_gate.py` on first run for
+  local-only playback and should not be treated as a production secret.
 
 A machine-readable robot profile (skills, payment policy, execution mapping,
 example envelope, skill-contract tests, validation report) is in

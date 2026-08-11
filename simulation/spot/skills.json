@@ -25,19 +25,32 @@
    "maxJointRadPerSec": 3.0
   }
  },
- {
-  "skillId": "stand",
-  "name": "stand",
-  "description": "Return from a crouched pose to the home standing stance.",
-  "priceUSDC": "0.002",
-  "robotId": "test-robot",
-  "paymentRequired": true,
-  "paramsSchema": {},
-  "limits": {
-   "timeoutSec": 8,
-   "maxJointRadPerSec": 3.0
-  }
- },
+  {
+   "skillId": "stand",
+   "name": "stand",
+   "description": "Return from a crouched pose to the home standing stance.",
+   "priceUSDC": "0.002",
+   "robotId": "test-robot",
+   "paymentRequired": true,
+   "paramsSchema": {},
+   "limits": {
+    "timeoutSec": 8,
+    "maxJointRadPerSec": 3.0
+   }
+  },
+  {
+   "skillId": "stop",
+   "name": "stop",
+   "description": "Safe stop: halt all motion and return to the home stance immediately. Fail-safe skill that brings the robot back to its stable home pose.",
+   "priceUSDC": "0.002",
+   "robotId": "test-robot",
+   "paymentRequired": true,
+   "paramsSchema": {},
+   "limits": {
+    "timeoutSec": 6,
+    "maxJointRadPerSec": 3.0
+   }
+  },
  {
   "skillId": "bow",
   "name": "bow",
