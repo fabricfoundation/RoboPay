@@ -1,0 +1,38 @@
+schemaVersion: payment-policy.v1
+provider: x402
+network: eip155:84532
+policies:
+  - skillId: wave
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: sit
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stand
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: bow
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: nod
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: turn_to_face
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: hold
+    required: true
+    priceUSDC: "0.002"
+    paymentHeader: PAYMENT-SIGNATURE
+settlement:
+  settleOnStatus: success
+  rule: >-
+    The relay settles only on results with status "success". Every error
+    result (DUPLICATE, UNKNOWN_SKILL, INVALID_PARAMS, WRONG_ROBOT,
+    REJECTED_PAYMENT, UNPAID, ACTION_FAILED) must not settle.

@@ -1,0 +1,37 @@
+name: spot-simulation-tests
+
+on:
+  push:
+    paths:
+      - "simulation/spot/**"
+      - "simulation/pybullet/**"
+      - "simulation/setup.sh"
+      - "registry/vendors/boston_dynamics/**"
+      - ".github/workflows/spot-simulation-tests.yml"
+  pull_request:
+    paths:
+      - "simulation/spot/**"
+      - "simulation/pybullet/**"
+      - "simulation/setup.sh"
+      - "registry/vendors/boston_dynamics/**"
+      - ".github/workflows/spot-simulation-tests.yml"
+
+jobs:
+  mujoco-pybullet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install mujoco numpy pybullet cryptography
+      - name: Fetch Spot model assets
+        run: cd simulation && ./setup.sh
+      - name: Skill acceptance (wave / sit / stand / bow / nod / turn / hold)
+        run: cd simulation/spot && python3 test_spot_control.py
+      - name: Payment gate (402 / 409 / settle-only-on-success)
+        run: cd simulation/spot && python3 test_payment_gate.py
+      - name: Sim-to-sim (MuJoCo poses vs PyBullet URDF)
+        run: cd simulation/pybullet && python3 test_sim2sim.py
