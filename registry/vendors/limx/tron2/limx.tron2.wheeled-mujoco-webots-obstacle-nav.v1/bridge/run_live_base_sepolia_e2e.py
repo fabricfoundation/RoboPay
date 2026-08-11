@@ -105,14 +105,30 @@ def _wait_for_tunnel(proxy: LocalTunnelProxy, tunnel: subprocess.Popen[str]) -> 
     raise RuntimeError("Tunnel did not connect to the local visual proxy")
 
 
-def _wait_for_public_tunnel(tunnel: subprocess.Popen[str]) -> None:
-    """Give the native Tunnel time to establish the authenticated public WS."""
+def _wait_for_public_tunnel(
+    tunnel: subprocess.Popen[str],
+    discovery_url: str,
+    *,
+    timeout_seconds: float = 90.0,
+) -> None:
+    """Wait until Fabric has registered the Tunnel's public robot route."""
 
-    deadline = time.monotonic() + 12
+    deadline = time.monotonic() + timeout_seconds
+    last_observation = "no discovery response"
     while time.monotonic() < deadline:
         if tunnel.poll() is not None:
             raise RuntimeError(f"Tunnel exited before connecting to the Fabric proxy (exit={tunnel.returncode})")
-        time.sleep(0.5)
+        try:
+            response = requests.get(discovery_url, timeout=10)
+            if response.status_code == 200:
+                return
+            last_observation = f"HTTP {response.status_code}: {response.text[:300]}"
+        except requests.RequestException as error:
+            last_observation = f"transport error: {error}"
+        time.sleep(1)
+    raise RuntimeError(
+        f"Tunnel did not become publicly discoverable within {timeout_seconds:g}s: {last_observation}"
+    )
 
 
 def _wait_for_terminal(status_url: str, *, timeout_seconds: float = 120.0) -> dict[str, Any]:
@@ -323,11 +339,11 @@ def main(argv: list[str] | None = None) -> int:
             payee=payee,
             idempotency_path=temp / "idempotency.json",
         )
-        output_thread = _stream_output(tunnel, prefix="tunnel", enabled=args.visual)
+        output_thread = _stream_output(tunnel, prefix="tunnel", enabled=args.visual or args.ci)
         try:
             _wait_for_bridge_ready(ready, bridge)
             if proxy is None:
-                _wait_for_public_tunnel(tunnel)
+                _wait_for_public_tunnel(tunnel, base_url)
             else:
                 _wait_for_tunnel(proxy, tunnel)
             robot_discovery = requests.get(base_url, timeout=30)
