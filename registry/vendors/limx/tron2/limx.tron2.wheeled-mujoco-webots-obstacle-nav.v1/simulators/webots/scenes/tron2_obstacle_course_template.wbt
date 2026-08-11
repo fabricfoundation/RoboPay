@@ -1,0 +1,32 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+
+EXTERNPROTO "../generated/LimXTRON2.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+
+WorldInfo {
+  basicTimeStep 2
+}
+Viewpoint {
+  orientation -0.35 0.10 0.93 2.42
+  position 2.7 -5.3 2.7
+}
+TexturedBackground { }
+TexturedBackgroundLight { }
+DirectionalLight {
+  direction -0.35 -0.45 -1
+  intensity 2.6
+}
+Floor {
+  size 14 6
+}
+# BEGIN PROFILE_OBSTACLE_COURSE
+# END PROFILE_OBSTACLE_COURSE
+DEF LIMX_TRON2 LimXTRON2 {
+  translation 0 0 0.92
+  rotation 0 0 1 0
+  controller "limx_tron2_obstacle_controller"
+  supervisor TRUE
+}

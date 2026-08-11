@@ -1,0 +1,61 @@
+schemaVersion: execution-mapping.v1
+profileId: limx.tron2.wheeled-mujoco-webots-obstacle-nav.v1
+model:
+  source: https://github.com/limxdynamics/tron2-robot-description
+  commit: 682d513d03f7e3d2a59ae791d50adc5ccb84dd1a
+  upstreamRoot: tron2/WF_TRON2A
+  distribution: downloaded-at-setup-and-sha256-verified
+  urdf: vendor/limx-tron2/robot-description/WF_TRON2A/urdf/robot.urdf
+  mjcf: vendor/limx-tron2/robot-description/WF_TRON2A/xml/robot.xml
+  urdfSha256: 33e5137702f0c602a703c6a98800f31bc0635ea09c1341970cee64cc08fef997
+  mujoco: Loads the pinned vendor MJCF and pinned vendor ONNX policy directly.
+  webots: Converts the same pinned vendor URDF and STL meshes to Webots R2025a.
+control:
+  source: https://github.com/limxdynamics/tron2_rl_deploy_python
+  commit: 16db4e19eb28664a101fed7135d20d6c7f52bd38
+  distribution: downloaded-at-setup-and-sha256-verified
+  policy: vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/policy.onnx
+  policySha256: 3000df452681056738a15b46fa67f4f8436b34bbb6dcc6b22fa08b1b1f8dd071
+  encoder: vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/encoder.onnx
+  encoderSha256: 507d0630d78873f7aabfeab4eae9d7669610d709fcc903c4296d1908da54b3e7
+  parameters: vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/params.yaml
+  parametersSha256: 6ef76b28d28055686a3dd0670cd5698cb87a58636e84871c4fd34606239e328d
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/limx_tron2/metrics
+paramsHashFormat: "sha256:<hex>"
+mappings:
+  navigate_obstacle_course:
+    task: fixed_three_obstacle_navigation
+    policy: >-
+      A shared state-driven route planner selects velocity commands from the
+      measured base pose. MuJoCo maps them through LimX's pinned official ONNX
+      policy into joint torques. Webots maps the same task policy through a
+      bounded task-level Supervisor chassis-velocity adapter on the dynamic
+      official model. Neither simulator writes root translation/rotation,
+      teleports qpos or replays a prerecorded trajectory.
+    inputs: []
+    metrics: [waypoints_completed, detected_obstacles, minimum_clearance_m, collision, goal_distance_m, final_base_pose]
+    limits:
+      maxDurationSec: 70
+      maxLinearVelocityMps: 0.65
+      maxYawRateRadPerSec: 0.5
+    success: ten waypoints and goal reached, all obstacles detected, no collision, finite safe state
+  stop:
+    task: safe_stop
+    output: correlated terminal safe-stop result
+    success: zero velocity retained and no navigation episode started
+    limitation: validates a paid idle safe-stop; it does not preempt an already-running navigation episode
+validation:
+  mujoco:
+    level: actuator-level
+    controller: pinned LimX WF_TRON2A ONNX policy and history encoder
+  webots:
+    level: task-level
+    controller: shared online RoutePlanner with bounded Supervisor chassis-velocity commands
+    maxChassisVelocityMps: 0.25
+    rootPoseWrites: 0
+    trajectoryReplay: false
+    builtInDemoMotion: false

@@ -1,0 +1,16 @@
+[
+  {
+    "skill_id": "navigate_obstacle_course",
+    "description": "Navigate the fixed three-obstacle course with official LimX WF_TRON2A assets and measured simulator state.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  },
+  {
+    "skill_id": "stop",
+    "description": "Safely retain zero velocity without starting navigation.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]

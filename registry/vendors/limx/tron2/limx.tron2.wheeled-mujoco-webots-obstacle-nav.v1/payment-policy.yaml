@@ -1,0 +1,27 @@
+schemaVersion: payment-policy.v1
+profileId: limx.tron2.wheeled-mujoco-webots-obstacle-nav.v1
+provider: x402
+network: eip155:84532
+asset:
+  symbol: USDC
+  address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  decimals: 6
+payTo: "<configure ROBO_PAYEE_ADDRESS in the Tunnel deployment>"
+policies:
+  - skillId: navigate_obstacle_course
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+settlement:
+  facilitator: https://x402.org/facilitator
+  scheme: exact
+  settleOnStatus: success
+  rule: >-
+    Tunnel verifies the payment before it publishes the private correlated
+    ActionEvent. It settles only after the same action_id receives a success
+    result. Invalid/unverified input, rejected actions, simulator failures,
+    timeouts, and durable replays remain unsettled.

@@ -3,12 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -19,6 +18,14 @@ const (
 	DefaultAIPGatewayURL    = "https://gateway.aip.unibase.com"
 	DefaultAIPChainID       = 97
 	DefaultAIPLocalPort     = 8000
+
+	EIP155Prefix         = "eip155:"
+	DefaultTokenVersion  = "1"
+	DefaultTokenDecimals = 6
+
+	TransferMethodEIP3009 = "eip3009"
+	TransferMethodPermit2 = "permit2"
+	zeroEVMAddress        = "0x0000000000000000000000000000000000000000"
 )
 
 func getEnvOrDefault(key, defaultVal string) string {
@@ -29,12 +36,18 @@ func getEnvOrDefault(key, defaultVal string) string {
 }
 
 type Config struct {
-	RobotID         string `json:"robot_id"`
-	EVMPayeeAddress string `json:"evm_payee_address"`
-	Price           string `json:"price"`
-	Network         string `json:"network"`
-	ProxyWSURL      string `json:"-"`
-	FacilitatorURL  string `json:"-"`
+	RobotID              string `json:"robot_id"`
+	EVMPayeeAddress      string `json:"evm_payee_address"`
+	Price                string `json:"price"`
+	Network              string `json:"network"`
+	TokenAddress         string `json:"token_address"`
+	TokenName            string `json:"token_name"`
+	TokenVersion         string `json:"token_version"`
+	TokenDecimals        int    `json:"token_decimals"`
+	TokenTransferMethod  string `json:"token_transfer_method"`
+	TokenSupportsEIP2612 bool   `json:"token_supports_eip2612"`
+	ProxyWSURL           string `json:"-"`
+	FacilitatorURL       string `json:"-"`
 
 	// aIP
 	AIPEnabled       bool   `json:"-"`
@@ -66,8 +79,9 @@ func (c *Config) AIPEndpointURL() string {
 }
 
 var (
-	priceRegex   = regexp.MustCompile(`^\$\d+(\.\d+)?$`)
+	priceRegex   = regexp.MustCompile(`^\$?\d+(\.\d+)?$`)
 	networkRegex = regexp.MustCompile(`^[a-z0-9]{3,8}:[-_a-zA-Z0-9]{1,32}$`)
+	addressRegex = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
 )
 
 // chainPresets are the networks selectable via the CHAIN env var. A preset
@@ -83,6 +97,99 @@ var chainPresets = map[string]struct {
 	"base-mainnet": {"eip155:8453", 8453},
 }
 
+// ChainID returns the EIP-155 chain ID of the configured network.
+// The second return value is false when the network is not an eip155 CAIP-2 ID.
+func (c *Config) ChainID() (*big.Int, bool) {
+	if !strings.HasPrefix(c.Network, EIP155Prefix) {
+		return nil, false
+	}
+	return new(big.Int).SetString(strings.TrimPrefix(c.Network, EIP155Prefix), 10)
+}
+
+// Validate checks the user-supplied fields and fills in defaults. It is safe to call on a
+// candidate copy of a Config to vet a hot-reload update before committing it.
+func (c *Config) Validate() error {
+	if strings.TrimSpace(c.RobotID) == "" {
+		// A generated ID breaks the robot-scoped action and payment binding on
+		// every restart. Deployments must provide a stable identity explicitly.
+		return fmt.Errorf("robot_id is required (set ROBOT_ID or config.json)")
+	}
+
+	if c.Price == "" {
+		c.Price = "0.001"
+	}
+	if !priceRegex.MatchString(c.Price) {
+		return fmt.Errorf("invalid price format: %q, expected a decimal amount like 0.001 or $0.001", c.Price)
+	}
+
+	if c.Network == "" {
+		c.Network = "eip155:8453"
+	}
+	if !networkRegex.MatchString(c.Network) {
+		return fmt.Errorf("invalid network format: %q, expected format like eip155:8453", c.Network)
+	}
+
+	if c.EVMPayeeAddress == "" {
+		return fmt.Errorf("evm_payee_address is required")
+	}
+	if strings.EqualFold(c.EVMPayeeAddress, zeroEVMAddress) {
+		return fmt.Errorf("evm_payee_address must not be the zero address")
+	}
+
+	return c.validateToken()
+}
+
+// validateToken checks the optional token fields. They are only meaningful together: an empty
+// token_address means "use whatever default asset x402 knows for this network".
+func (c *Config) validateToken() error {
+	if c.TokenAddress == "" {
+		return nil
+	}
+
+	if !addressRegex.MatchString(c.TokenAddress) {
+		return fmt.Errorf("invalid token_address format: %q, expected a 0x-prefixed 20-byte hex address", c.TokenAddress)
+	}
+	if _, ok := c.ChainID(); !ok {
+		return fmt.Errorf("token_address requires an eip155 network, got %q", c.Network)
+	}
+	if c.TokenDecimals < 0 || c.TokenDecimals > 36 {
+		return fmt.Errorf("invalid token_decimals: %d, expected 0-36", c.TokenDecimals)
+	}
+
+	switch c.TokenTransferMethod {
+	case "":
+		c.TokenTransferMethod = TransferMethodEIP3009
+	case TransferMethodEIP3009, TransferMethodPermit2:
+	default:
+		return fmt.Errorf("invalid token_transfer_method: %q, expected %q or %q",
+			c.TokenTransferMethod, TransferMethodEIP3009, TransferMethodPermit2)
+	}
+
+	if c.TokenSupportsEIP2612 && c.TokenTransferMethod != TransferMethodPermit2 {
+		return fmt.Errorf("token_supports_eip2612 only applies when token_transfer_method is %q", TransferMethodPermit2)
+	}
+
+	if c.NeedsEIP712Domain() && c.TokenName == "" {
+		return fmt.Errorf("token_name is required for %s transfers (it forms the EIP-712 domain the payer signs)",
+			c.TokenTransferMethod)
+	}
+
+	if c.TokenVersion == "" {
+		c.TokenVersion = DefaultTokenVersion
+	}
+	if c.TokenDecimals == 0 {
+		c.TokenDecimals = DefaultTokenDecimals
+	}
+
+	return nil
+}
+
+// NeedsEIP712Domain reports whether the payer will sign against the token's own EIP-712 domain,
+// which is what makes token_name and token_version load-bearing.
+func (c *Config) NeedsEIP712Domain() bool {
+	return c.TokenTransferMethod != TransferMethodPermit2 || c.TokenSupportsEIP2612
+}
+
 func LoadConfig(path string) (*Config, error) {
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -93,21 +200,12 @@ func LoadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(file, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+	applyDeploymentOverrides(&cfg)
 
 	cfg.ProxyWSURL = getEnvOrDefault("PROXY_WS_URL", DefaultProxyWSURL)
 	cfg.FacilitatorURL = getEnvOrDefault("FACILITATOR_URL", DefaultFacilitatorURL)
 
-	if cfg.RobotID == "" {
-		cfg.RobotID = uuid.NewString()
-	}
-
-	if cfg.Price == "" {
-		cfg.Price = "$0.001"
-	}
-	if !priceRegex.MatchString(cfg.Price) {
-		return nil, fmt.Errorf("invalid price format: %q, expected format like $0.001", cfg.Price)
-	}
-
+	// CHAIN overrides the configured network, so it has to be applied before validation.
 	defaultChainID := DefaultAIPChainID
 	if chain := os.Getenv("CHAIN"); chain != "" {
 		preset, ok := chainPresets[strings.ToLower(chain)]
@@ -117,15 +215,9 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.Network = preset.Network
 		defaultChainID = preset.ChainID
 	}
-	if cfg.Network == "" {
-		cfg.Network = "eip155:8453" // Base mainnet CAIP-2 ID
-	}
-	if !networkRegex.MatchString(cfg.Network) {
-		return nil, fmt.Errorf("invalid network format: %q, expected format like eip155:8453", cfg.Network)
-	}
 
-	if cfg.EVMPayeeAddress == "" {
-		return nil, fmt.Errorf("evm_payee_address is required")
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 
 	if err := loadAIPConfig(&cfg, defaultChainID); err != nil {
@@ -133,6 +225,24 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+// applyDeploymentOverrides keeps robot-specific values out of the checked-in
+// example config. A deployment can select its identity, payee, price, and
+// network without editing a tracked file.
+func applyDeploymentOverrides(cfg *Config) {
+	if value := strings.TrimSpace(os.Getenv("ROBOT_ID")); value != "" {
+		cfg.RobotID = value
+	}
+	if value := strings.TrimSpace(os.Getenv("ROBO_PAYEE_ADDRESS")); value != "" {
+		cfg.EVMPayeeAddress = value
+	}
+	if value := strings.TrimSpace(os.Getenv("ROBO_PRICE")); value != "" {
+		cfg.Price = value
+	}
+	if value := strings.TrimSpace(os.Getenv("ROBO_NETWORK")); value != "" {
+		cfg.Network = value
+	}
 }
 
 func loadAIPConfig(cfg *Config, defaultChainID int) error {

@@ -26,6 +26,16 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 
 The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
 
+## Tier 1 simulator profile: LimX TRON 2
+
+This branch includes the LimX TRON 2 `WF_TRON2A` **simulator-only** Tier 1
+profile: payment-gated obstacle navigation with actuator-level MuJoCo evidence,
+an explicitly task-level Webots cross-check, real Zenoh correlation, and a Base
+Sepolia x402 evidence workflow. Start with the profile runbook for pinned model
+provenance, setup, test commands, safety boundaries and troubleshooting:
+
+-> [LimX TRON 2 profile runbook](registry/vendors/limx/tron2/limx.tron2.wheeled-mujoco-webots-obstacle-nav.v1/README.md)
+
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 
@@ -62,13 +72,15 @@ Package names are `isaac_sim_bridge_g1`, `isaac_sim_bridge_go2`, and `isaac_sim_
 
 The tunnel (`tunnel/`) keeps an outbound WebSocket to the Fabric proxy, verifies x402 micropayments, and publishes accepted actions to the same Zenoh topic the bridge listens on.
 
-Set the payee address (and any overrides) in `tunnel/config.json`:
+`tunnel/config.json` is deliberately an inert checked-in example. Set the
+stable robot identity and payee in an untracked `tunnel/.env` (or a deployment
+secret manager) before starting the Tunnel:
 
 ```json
 {
   "robot_id": "my-robot",
   "evm_payee_address": "0xYourAddress",
-  "price": "$0.002",
+  "price": "0.001",
   "network": "eip155:84532"
 }
 ```
@@ -89,11 +101,34 @@ Common environment overrides:
 | `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
 | `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
 
+### Fail-closed paid action contract
+
+Every deployment supplies a robot-scoped skill catalog and an explicit
+allowlist. The Tunnel refuses all actions until both are configured:
+
+```bash
+ROBOT_ID=limx-tron2-wf-sim-01
+ROBO_PAYEE_ADDRESS=0xYourAddress
+SKILL_CATALOG_PATH=../registry/vendors/limx/tron2/limx.tron2.wheeled-mujoco-webots-obstacle-nav.v1/skill-catalog.json
+ALLOWED_ACTIONS=navigate_obstacle_course,stop
+```
+
+`POST /action` verifies x402 before publishing anything to Zenoh and returns
+`202 Accepted` with an `action_id` and `status_url`. Settlement is deferred
+until a terminal result matches the exact action, robot, skill, parameter hash
+and idempotency key. Invalid payment, failure, timeout, mismatch and replay do
+not actuate or settle.
+
+The current shared Fabric Tunnel/proxy identifies the robot by its configured
+ID but does not yet provide a signed robot-to-payee handshake. That binding is
+an upstream protocol dependency; this profile does not claim otherwise.
+
 ## 4. Register the robot on BitAgent (Unibase AIP) — optional
 
 With `AIP_ENABLED=true`, the tunnel additionally registers the robot as an
-A2A-compatible agent on the BitAgent network (Unibase AIP), so any AIP client
-or agent can discover and call it. The integration is built on the
+A2A-compatible discovery agent on the BitAgent network (Unibase AIP). Direct
+execution remains restricted to the x402-verified Tunnel endpoint. The
+integration is built on the
 [Unibase AIP Go SDK](https://github.com/unibaseio/aip-go-sdk) — see
 `tunnel/internal/aipagent/agent.go`, which wraps the robot in a single
 `wrappers.ExposeAsA2A(...)` call.
@@ -152,6 +187,7 @@ registering robot as AIP agent  robot_id=<id>  endpoint_url=…/robots/<id>
 ws connected to proxy           robot_id=<id>
 ```
 
-Actions received via AIP are published to the same Zenoh topic
-(`robot/tunnel/action`) as paid x402 actions, so the bridge and robot-side
-safety logic are identical for both paths.
+Direct actions received through AIP are intentionally rejected and never
+published to Zenoh because AIP job input does not currently carry the exact
+Tunnel-verified payment and correlation contract. Use the paid Tunnel action
+endpoint for execution; AIP remains discovery-only.
