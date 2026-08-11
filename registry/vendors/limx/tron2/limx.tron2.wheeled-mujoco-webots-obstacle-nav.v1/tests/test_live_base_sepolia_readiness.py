@@ -38,9 +38,11 @@ def test_public_readiness_retries_404_until_robot_is_discoverable(monkeypatch: p
     monkeypatch.setattr(RUNNER.requests, "get", get)
     monkeypatch.setattr(RUNNER.time, "sleep", lambda _: None)
 
-    RUNNER._wait_for_public_tunnel(RunningTunnel(), "https://api.example/robots/tron2", timeout_seconds=1)
+    RUNNER._wait_for_public_tunnel(
+        RunningTunnel(), "https://api.example/robots/tron2/skills", timeout_seconds=1
+    )
 
-    assert calls == ["https://api.example/robots/tron2"] * 2
+    assert calls == ["https://api.example/robots/tron2/skills"] * 2
 
 
 def test_public_readiness_fails_immediately_if_tunnel_exits() -> None:
@@ -51,4 +53,6 @@ def test_public_readiness_fails_immediately_if_tunnel_exits() -> None:
             return self.returncode
 
     with pytest.raises(RuntimeError, match=r"exit=17"):
-        RUNNER._wait_for_public_tunnel(ExitedTunnel(), "https://api.example/robots/tron2", timeout_seconds=1)
+        RUNNER._wait_for_public_tunnel(
+            ExitedTunnel(), "https://api.example/robots/tron2/skills", timeout_seconds=1
+        )

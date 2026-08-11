@@ -107,11 +107,11 @@ def _wait_for_tunnel(proxy: LocalTunnelProxy, tunnel: subprocess.Popen[str]) -> 
 
 def _wait_for_public_tunnel(
     tunnel: subprocess.Popen[str],
-    discovery_url: str,
+    skills_url: str,
     *,
     timeout_seconds: float = 90.0,
 ) -> None:
-    """Wait until Fabric has registered the Tunnel's public robot route."""
+    """Wait until Fabric can route a supported Tunnel discovery request."""
 
     deadline = time.monotonic() + timeout_seconds
     last_observation = "no discovery response"
@@ -119,7 +119,7 @@ def _wait_for_public_tunnel(
         if tunnel.poll() is not None:
             raise RuntimeError(f"Tunnel exited before connecting to the Fabric proxy (exit={tunnel.returncode})")
         try:
-            response = requests.get(discovery_url, timeout=10)
+            response = requests.get(skills_url, timeout=10)
             if response.status_code == 200:
                 return
             last_observation = f"HTTP {response.status_code}: {response.text[:300]}"
@@ -343,12 +343,13 @@ def main(argv: list[str] | None = None) -> int:
         try:
             _wait_for_bridge_ready(ready, bridge)
             if proxy is None:
-                _wait_for_public_tunnel(tunnel, base_url)
+                # Fabric maps /robots/{id}/skills to Tunnel's supported
+                # internal /skills route.  The robot root maps to `/`, which
+                # intentionally returns 404 and therefore is not a readiness
+                # endpoint (the approved Spot E2E follows the same contract).
+                _wait_for_public_tunnel(tunnel, base_url + "/skills")
             else:
                 _wait_for_tunnel(proxy, tunnel)
-            robot_discovery = requests.get(base_url, timeout=30)
-            robot_discovery.raise_for_status()
-            print("[client] robot discovery", json.dumps(robot_discovery.json(), indent=2), flush=True)
             discovery = requests.get(base_url + "/skills", timeout=30)
             discovery.raise_for_status()
             print("[client] skill discovery", json.dumps(discovery.json(), indent=2), flush=True)
