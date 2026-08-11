@@ -227,4 +227,5 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 // RegisterAllRoutes registers all real handlers on the router.
 func RegisterAllRoutes(router *gin.Engine, h *handlers.Handlers) {
 	router.POST("/action", h.PostAction)
+	router.GET("/action/:id/status", h.GetActionStatus)
 }
