@@ -17,7 +17,6 @@ import (
 	aipserver "github.com/unibaseio/aip-go-sdk/server"
 	x402 "github.com/x402-foundation/x402/go"
 	x402http "github.com/x402-foundation/x402/go/http"
-	ginmw "github.com/x402-foundation/x402/go/http/gin"
 	evm "github.com/x402-foundation/x402/go/mechanisms/evm/exact/server"
 	"go.uber.org/zap"
 
@@ -29,6 +28,7 @@ import (
 
 const (
 	RobotConfigTopicPrefix = "robot/config/"
+	RobotResultTopic       = "robot/tunnel/result"
 )
 
 func main() {
@@ -137,8 +137,35 @@ func main() {
 		}()
 	}
 
+	x402Server, err := buildX402Server(cfg)
+	if err != nil {
+		logger.Fatal("failed to build x402 server", zap.Error(err))
+	}
+
+	h := handlers.NewHandlers(logger)
+
+	watcher := handlers.NewExecutionWatcher(h.Store, x402Server, logger)
+	resultKe, err := zenoh.NewKeyExpr(RobotResultTopic)
+	if err != nil {
+		logger.Fatal("failed to create result key expression", zap.Error(err))
+	}
+	resultSub, err := session.DeclareSubscriber(resultKe, zenoh.Closure[zenoh.Sample]{
+		Call: func(sample zenoh.Sample) {
+			watcher.HandleResult(sample.Payload().Bytes())
+		},
+	}, nil)
+	if err != nil {
+		logger.Fatal("failed to declare result subscriber", zap.Error(err))
+	}
+	defer func() {
+		if err := resultSub.Undeclare(); err != nil {
+			logger.Warn("failed to undeclare result subscriber", zap.Error(err))
+		}
+	}()
+	logger.Info("execution watcher subscribed", zap.String("topic", RobotResultTopic))
+
 	for {
-		router := setupRouter(cfg, aipSrv, logger)
+		router := setupRouter(cfg, aipSrv, logger, x402Server, h)
 		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)
@@ -162,7 +189,42 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger) *gin.Engine {
+// buildX402Server constructs the x402 resource server used for BOTH the
+// accept-time verify-only gate and the later ExecutionWatcher settlement
+// call. Built once and shared, rather than rebuilt on every reconnect.
+func buildX402Server(cfg *config.Config) (*x402http.HTTPServer, error) {
+	facilitatorClient := x402http.NewHTTPFacilitatorClient(&x402http.FacilitatorConfig{
+		URL: cfg.FacilitatorURL,
+	})
+
+	routes := x402http.RoutesConfig{
+		"POST /action": {
+			Accepts: x402http.PaymentOptions{
+				{
+					Scheme:  "exact",
+					Price:   cfg.Price,
+					Network: x402.Network(cfg.Network),
+					PayTo:   cfg.EVMPayeeAddress,
+				},
+			},
+			Description: "Run a paid robot action",
+			MimeType:    "application/json",
+		},
+	}
+
+	server := x402http.Newx402HTTPResourceServer(routes, x402.WithFacilitatorClient(facilitatorClient))
+	server.Register(x402.Network(cfg.Network), evm.NewExactEvmScheme())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := server.Initialize(ctx); err != nil {
+		return nil, err
+	}
+
+	return server, nil
+}
+
+func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger, x402Server *x402http.HTTPServer, h *handlers.Handlers) *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
@@ -184,35 +246,11 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		MaxAge:           12 * time.Hour,
 	}))
 
-	facilitatorClient := x402http.NewHTTPFacilitatorClient(&x402http.FacilitatorConfig{
-		URL: cfg.FacilitatorURL,
-	})
+	// Verify-only: never settles here. Settlement happens exclusively in
+	// ExecutionWatcher, after a terminal robot/tunnel/result confirms the
+	// simulator actually succeeded.
+	router.Use(handlers.X402VerifyOnly(x402Server, 30*time.Second))
 
-	routes := x402http.RoutesConfig{
-		"POST /action": {
-			Accepts: x402http.PaymentOptions{
-				{
-					Scheme:  "exact",
-					Price:   cfg.Price,
-					Network: x402.Network(cfg.Network),
-					PayTo:   cfg.EVMPayeeAddress,
-				},
-			},
-			Description: "Run a paid robot action",
-			MimeType:    "application/json",
-		},
-	}
-
-	router.Use(ginmw.X402Payment(ginmw.Config{
-		Routes:      routes,
-		Facilitator: facilitatorClient,
-		Schemes: []ginmw.SchemeConfig{
-			{Network: x402.Network(cfg.Network), Server: evm.NewExactEvmScheme()},
-		},
-		Timeout: 30 * time.Second,
-	}))
-
-	h := handlers.NewHandlers(logger)
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)
