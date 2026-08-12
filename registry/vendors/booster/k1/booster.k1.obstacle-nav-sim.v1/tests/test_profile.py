@@ -101,15 +101,18 @@ def test_execution_mapping_topics_match_profile(profile, execution_mapping):
     assert execution_mapping["transport"]["resultTopic"] == profile["runtime"]["resultTopic"]
 
 
-def test_execution_mapping_requires_all_payment_fields_the_validator_checks(execution_mapping):
-    """Keeps execution-mapping.yaml's documented contract in sync with
-    what bridge/action_validator.py actually enforces in code."""
-    required = set(execution_mapping["envelope"]["requiredPaymentFields"])
-    expected = {
-        "provider", "authorizationId", "verified", "status", "settled",
-        "network", "asset", "amount", "payTo", "issuedAt", "expiresAt",
-    }
+def test_execution_mapping_envelope_matches_tunnel_action_event_schema(execution_mapping):
+    """Keeps execution-mapping.yaml's documented envelope contract in sync
+    with what the Go tunnel actually publishes to actionTopic
+    (tunnel/internal/handlers/handlers.go::PostAction) and what
+    bridge/booster_k1_zenoh_bridge.py actually parses (via the shared
+    action_event.py). Payment fields are deliberately absent here --
+    payment is fully handled in the tunnel before publish; see
+    payment-policy.yaml's enforcedBy pointers instead."""
+    required = set(execution_mapping["envelope"]["requiredFields"])
+    expected = {"actionId", "action", "params"}
     assert required == expected
+    assert execution_mapping["envelope"]["correlationField"] == "actionId"
 
 
 def test_payment_policy_settlement_gate_excludes_success(payment_policy):

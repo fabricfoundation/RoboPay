@@ -1,16 +1,20 @@
 """Booster K1 Zenoh bridge -- the RoboPay integration gate.
 
-    Tunnel (x402 verify) -> robot/tunnel/action -> [this bridge]
-        validate -> replay-check -> dispatch to MuJoCo -> robot/tunnel/result
+    Tunnel (x402 verify, fail-closed) -> robot/tunnel/action -> [this bridge]
+        parse (shared action_event.py) -> replay-check -> dispatch to
+        MuJoCo -> robot/tunnel/result
 
-No fallback path: an unreachable Zenoh session, a failed validation,
-or a detected replay all reject the action. This is the only route
-into simulation/mujoco/runner.py.
-
-Published status is 'success' only when the simulator itself reports
-success, so a downstream settlement service never settles on a
-failed run."""
-import argparse
+Payment verification and settlement are handled entirely by the Go
+tunnel (tunnel/internal/handlers): it verifies the x402 payment before
+ever publishing to robot/tunnel/action, and it alone calls
+ProcessSettlement, only after this bridge's result confirms success.
+This bridge does not re-verify payment -- it trusts that every event
+on robot/tunnel/action already passed the tunnel's fail-closed gate,
+and its only remaining job is: don't dispatch malformed events, don't
+dispatch replays, and report a truthful terminal result correlated by
+actionId so the tunnel's execution watcher can decide whether to
+settle.
+"""
 import json
 import logging
 import os
@@ -22,7 +26,22 @@ import zenoh
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, THIS_DIR)
-from action_validator import validate_envelope, ValidationError  # noqa: E402
+
+# Import action_event.py directly by file path rather than as
+# `zenoh_bridge.action_event` -- the zenoh_bridge package's __init__.py
+# also imports command_mapper.py, which requires geometry_msgs (a ROS2
+# dependency this simulator-only bridge does not need).
+import importlib.util
+
+_ACTION_EVENT_PATH = os.path.normpath(os.path.join(
+    THIS_DIR, "..", "..", "..", "..", "..", "..",
+    "bridge", "common", "zenoh_bridge", "zenoh_bridge", "action_event.py",
+))
+_spec = importlib.util.spec_from_file_location("action_event", _ACTION_EVENT_PATH)
+_action_event_module = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_action_event_module)
+parse_action_event = _action_event_module.parse_action_event
+
 from replay_guard import ReplayGuard, ReplayDetected, Fingerprint  # noqa: E402
 
 PROFILE_ROOT = os.path.normpath(os.path.join(THIS_DIR, ".."))
@@ -33,6 +52,8 @@ DEFAULT_DB_PATH = os.path.join(PROFILE_ROOT, "bridge", "replay_guard.db")
 ACTION_TOPIC = "robot/tunnel/action"
 RESULT_TOPIC = "robot/tunnel/result"
 
+SKILL_ID = "k1_navigate_avoid_obstacles"
+
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] [booster-k1-bridge] %(levelname)s: %(message)s",
@@ -41,7 +62,9 @@ log = logging.getLogger("booster_k1_bridge")
 
 
 def make_result(action_id: str, status: str, **extra) -> dict:
-    """Every result carries the originating actionId for correlation."""
+    """Every result carries the originating actionId, so the tunnel's
+    execution watcher can correlate it back to the reserved payment
+    record and decide whether to settle."""
     result = {
         "schemaVersion": "robot-action-result.v1",
         "actionId": action_id,
@@ -97,63 +120,61 @@ class BoosterK1Bridge:
 
     def _on_action(self, sample):
         raw = bytes(sample.payload)
-        try:
-            envelope = json.loads(raw)
-        except json.JSONDecodeError as e:
-            log.warning("Rejecting malformed JSON on %s: %s", ACTION_TOPIC, e)
-            # No actionId to correlate a result with -- drop and log only.
+        event = parse_action_event(raw)
+        if event is None:
+            # No actionId to correlate a result with (either the JSON was
+            # malformed, or the tunnel's own gate somehow let through an
+            # event missing actionId/action -- either way there is nothing
+            # to publish a terminal result against). Log and drop.
+            log.warning("Dropping unparseable/incomplete action event on %s", ACTION_TOPIC)
             return
 
-        action_id = envelope.get("actionId", "<unknown>")
+        action_id = event.action_id
 
-        # --- STAGE 1: validate envelope + payment ---
-        try:
-            validated = validate_envelope(envelope)
-        except ValidationError as e:
-            log.warning("Rejected action_id=%s: %s", action_id, e)
-            self._publish(make_result(
-                action_id, "rejected", errorCode=e.code, errorMessage=e.message,
-            ))
+        if event.action != SKILL_ID:
+            log.warning("Rejected action_id=%s: unknown skill %r (this bridge only serves %r)",
+                         action_id, event.action, SKILL_ID)
+            self._publish(make_result(action_id, "rejected", errorCode="unknown_skill"))
             return
 
-        # --- STAGE 2: replay protection (reserve BEFORE dispatch) ---
+        params = event.params
+        if "goal_x" not in params or "goal_y" not in params:
+            log.warning("Rejected action_id=%s: params missing goal_x/goal_y", action_id)
+            self._publish(make_result(action_id, "rejected", errorCode="invalid_params"))
+            return
+
         fp = Fingerprint(
-            action_id=validated.action_id,
-            robot_id=validated.robot_id,
-            skill_id=validated.skill_id,
-            params_hash=envelope["paramsHash"],
-            authorization_id=validated.authorization_id,
+            action_id=action_id,
+            robot_id="booster-k1-sim-01",
+            skill_id=event.action,
+            params_hash=json.dumps(params, sort_keys=True),
+            authorization_id=action_id,  # tunnel owns the real authorizationId; this
+                                          # bridge only needs a unique key to prevent
+                                          # dispatching the same actionId twice.
         )
         try:
-            self.guard.check_and_reserve(validated.idempotency_key, fp)
+            self.guard.check_and_reserve(action_id, fp)
         except ReplayDetected as e:
             log.warning("Rejected replay for action_id=%s: %s", action_id, e)
-            self._publish(make_result(
-                action_id, "rejected", errorCode="replay_detected", errorMessage=str(e),
-            ))
+            self._publish(make_result(action_id, "rejected", errorCode="replay_detected", errorMessage=str(e)))
             return
 
-        # --- STAGE 3: dispatch to simulator ---
-        log.info("Dispatching action_id=%s to MuJoCo simulator with params=%s",
-                  action_id, validated.params)
+        log.info("Dispatching action_id=%s to MuJoCo simulator with params=%s", action_id, params)
         try:
-            metrics = dispatch_to_simulator(validated.params)
+            metrics = dispatch_to_simulator(params)
         except Exception as e:
             log.error("Simulator dispatch failed for action_id=%s: %s", action_id, e)
-            self.guard.record_result(validated.idempotency_key, "error")
-            self._publish(make_result(
-                action_id, "error", errorCode="simulator_failure", errorMessage=str(e),
-            ))
+            self.guard.record_result(action_id, "error")
+            self._publish(make_result(action_id, "error", errorCode="simulator_failure", errorMessage=str(e)))
             return
 
-        # --- STAGE 4: publish terminal result, gated by simulator status ---
         sim_status = metrics.get("status")
         result_status = "success" if sim_status == "success" else "error"
-        self.guard.record_result(validated.idempotency_key, result_status)
+        self.guard.record_result(action_id, result_status)
         self._publish(make_result(
             action_id, result_status,
-            robotId=validated.robot_id,
-            skillId=validated.skill_id,
+            robotId="booster-k1-sim-01",
+            skillId=event.action,
             simulatorStatus=sim_status,
             metrics={
                 "distance_to_goal_m": metrics.get("distance_to_goal_m"),
@@ -165,11 +186,7 @@ class BoosterK1Bridge:
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--db-path", default=DEFAULT_DB_PATH)
-    args = parser.parse_args()
-
-    bridge = BoosterK1Bridge(db_path=args.db_path)
+    bridge = BoosterK1Bridge()
     bridge.start()
     log.info("Bridge running. Press Ctrl+C to stop.")
     try:
