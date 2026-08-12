@@ -1,0 +1,41 @@
+name: spot-simulation-tests
+
+on:
+  push:
+    paths:
+      - "simulation/spot/**"
+      - "simulation/pybullet/**"
+      - "simulation/setup.sh"
+      - "registry/vendors/boston_dynamics/**"
+      - ".github/workflows/spot-simulation-tests.yml"
+  pull_request:
+    paths:
+      - "simulation/spot/**"
+      - "simulation/pybullet/**"
+      - "simulation/setup.sh"
+      - "registry/vendors/boston_dynamics/**"
+      - ".github/workflows/spot-simulation-tests.yml"
+
+jobs:
+  mujoco-pybullet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install mujoco numpy pybullet cryptography eclipse-zenoh
+      - name: Fetch Spot model assets
+        run: cd simulation && bash setup.sh
+      - name: Skill acceptance (wave / sit / stand / stop / bow / nod / turn / hold)
+        run: cd simulation/spot && python3 test_spot_control.py
+      - name: Payment gate (402 / 409 / settle-only-on-success)
+        run: cd simulation/spot && python3 test_payment_gate.py
+      - name: Result semantics over peer-mode Zenoh (success + every error path)
+        run: cd simulation/spot && python3 test_result_semantics.py
+      - name: End-to-end paid action over peer-mode Zenoh
+        run: cd simulation/spot && python3 test_link.py
+      - name: Sim-to-sim (MuJoCo poses vs PyBullet URDF)
+        run: cd simulation/pybullet && python3 test_sim2sim.py

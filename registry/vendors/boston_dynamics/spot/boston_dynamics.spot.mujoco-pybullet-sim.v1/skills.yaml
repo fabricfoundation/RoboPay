@@ -1,0 +1,66 @@
+schemaVersion: robot-skills.v1
+profileId: boston_dynamics.spot.mujoco-pybullet-sim.v1
+skills:
+  - skillId: wave
+    description: Raise the front-right paw in a greeting arc and lower it back
+      to stance (the iconic Spot wave). A body-weight compensation force keeps
+      the torso stable while the paw is airborne.
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 10
+  - skillId: sit
+    description: Crouch the body into a sit posture and return to the standing
+      stance.
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 12
+  - skillId: stand
+    description: Return from a crouched pose to the home standing stance.
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 8
+  - skillId: stop
+    description: >-
+      Safe stop: halt all motion and return to the home stance immediately.
+      Fail-safe skill that brings the robot back to its stable home pose.
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 6
+  - skillId: bow
+    description: Dip the front of the body into a play bow (front lowers while
+      the hind stays up).
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 10
+  - skillId: nod
+    description: Gentle full-body bob used as a greeting nod.
+    params: {}
+    paymentRequired: true
+    limits:
+      timeoutSec: 8
+  - skillId: turn_to_face
+    description: Yaw the body toward a requested heading in degrees using a
+      static-stability shuffle. Returns the achieved yaw and remaining heading
+      error honestly (a small residual is reported, never faked).
+    params:
+      headingDeg:
+        type: angle
+        absMax: 180.0
+    paymentRequired: true
+    limits:
+      timeoutSec: 12
+  - skillId: hold
+    description: Hold the current stance for the requested duration.
+    params:
+      seconds:
+        type: number
+        min: 0.5
+        max: 5.0
+    paymentRequired: true
+    limits:
+      timeoutSec: 8

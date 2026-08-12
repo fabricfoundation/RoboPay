@@ -1,0 +1,21 @@
+schemaVersion: agent-functions.v1
+functions:
+  - name: request_robot_action
+    method: POST
+    url: /action
+    body:
+      actionId: string
+      robotId: string
+      skillId: string
+      params: object
+      paramsHash: sha256 of canonical JSON params
+      idempotencyKey: string
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+  - name: submit_paid_robot_action
+    method: POST
+    url: /action
+    headers:
+      PAYMENT-SIGNATURE: string
+    body: same as request_robot_action
