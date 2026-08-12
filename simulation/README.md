@@ -134,7 +134,8 @@ localhost, no separate router needed):
 | `robot/tunnel/result` | robot -> relay | `{"status": "success", actionId, skill, result: {message, metrics}}` or `{"status": "error", actionId, skill, error: {code, message}}` |
 
 The skill catalog lives in `spot/skills.json` / `go2/skills.json` (8 priced
-skills, $0.002 each; printed at startup for discovery). `robopay_link.py`
+skills at $0.002 each, plus the Go2 `navigate_obstacle` skill at $0.005;
+printed at startup for discovery). `robopay_link.py`
 validates every envelope: unknown skill, out-of-schema or tampered params
 (`paramsHash` is sha256 of canonical JSON), wrong robotId, and replayed
 `idempotencyKey` all produce an error result and never actuate the robot.
@@ -148,14 +149,19 @@ execution results, so publishing them on the documented result topic is the
 integration point this submission provides — the relay can subscribe there to
 correlate by `actionId` and decide settlement.
 
-Payment gate: `payment_gate.py` reimplements the tunnel's x402 middleware so
-the simulator-only submissions exercise the same semantics end to end —
-receipts are Ed25519-signed by a local facilitator whose key is persisted
-next to the module (so the payer side and the robot side share one trusted
-facilitator, like the tunnel trusts the advertised facilitator public key),
-a replayed idempotencyKey or txHash is a 409, and settlement is recorded only
-for success results. No private keys or secrets leave the repo; no on-chain
-settlement happens.
+Payment gate: `payment_gate.py` mirrors the tunnel's x402 middleware
+decision semantics so the simulator-only submissions exercise the same flow
+end to end — receipts are Ed25519-signed by a local facilitator whose key is
+persisted next to the module (so the payer side and the robot side share one
+trusted facilitator, like the tunnel trusts the advertised facilitator
+public key), a replayed idempotencyKey or txHash is a 409, and settlement is
+recorded only for success results. Replay protection is durable
+(file-backed store; `test_durable_replay.py` proves keys survive a restart).
+No private keys or secrets leave the repo. By default settlement stays on
+the local facilitator ledger; **optional on-chain settlement** (Base
+Sepolia, EIP-3009) is available through `go2/settlement_base_sepolia.py`
+when `BASE_SEPOLIA_RPC_URL` + `PRIVATE_KEY` are set (`test_settlement.py`
+verifies the guards).
 
 Configuration (env vars, defaults in parentheses):
 
@@ -210,6 +216,12 @@ same kinematics by construction. Foot-tip positions agree to **0.02 cm**
 maximum across all poses and all four feet
 (`pybullet/go2_sim2sim_report.json`).
 
+Webots (`webots/test_sim2sim_go2_webots.py`): a sim-to-sim *harness* is
+committed for the Webots R2025a runtime (real Supervisor code reading
+physics-reported foot positions; no placeholders). It reports
+`skipped_webots_runtime_missing` and is NOT claimed as a measured result
+until run under Webots against a world importing the unitree_ros go2 URDF.
+
 Expected outputs — success (`test_link.py`) and failure
 (`test_result_semantics.py`) results on `robot/tunnel/result`:
 
@@ -244,11 +256,15 @@ simulation/
 │   └── test_spot_control.py / test_payment_gate.py / test_result_semantics.py / test_link.py
 ├── go2/
 │   ├── go2_control.py       joint-space skill controller on MuJoCo (Go2, PD servo)
-│   ├── payment_gate.py      x402 gate (402/409, settle-only-on-success)
+│   ├── obstacle_world.py    injects static obstacle geoms into the scene (physics contacts)
+│   ├── payment_gate.py      x402 gate (402/409, settle-only-on-success, durable replay)
+│   ├── settlement_base_sepolia.py  optional Base Sepolia EIP-3009 settlement (env-gated)
 │   ├── robopay_link.py      action validation, payment gate, skill execution
 │   ├── skills.json          priced skill catalog (discovery)
 │   ├── simulate_paid_action.py
-│   └── test_go2_control.py / test_payment_gate.py / test_result_semantics.py / test_link.py
+│   └── test_go2_control.py / test_payment_gate.py / test_result_semantics.py
+│       / test_link.py / test_obstacle_nav.py / test_durable_replay.py
+│       / test_settlement.py
 └── pybullet/
     ├── spot_simple_kin.urdf  Spot kinematic URDF (mesh-free) for sim-to-sim
     ├── go2_simple_kin.urdf   Go2 kinematic URDF (mesh-free) for sim-to-sim

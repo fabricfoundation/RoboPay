@@ -17,6 +17,7 @@ Simulators: MuJoCo (google-deepmind/mujoco_menagerie unitree_go2)
 - [x] nod
 - [x] turn_to_face
 - [x] hold
+- [x] navigate_obstacle
 
 ## Skill acceptance (simulation/go2/test_go2_control.py)
 
@@ -35,6 +36,25 @@ the robot's own stance rather than a hardcoded constant).
 | turn_to_face | yawed 17.2 deg toward heading 30, residual 12.9 deg | > 4 | pass |
 | hold | stance held at 0.283 m | stable | pass |
 | unknown skill | error result UNKNOWN_SKILL | error | pass |
+
+### Obstacle navigation (simulation/go2/test_obstacle_nav.py)
+
+The controller drives a potential-field local planner (attraction toward the
+next waypoint + repulsion from each obstacle) through the static course and
+**decides success from the physics state**: obstacle contact is detected from
+MuJoCo contact pairs, not a distance estimate. Success requires the goal to be
+reached with zero contacts; a timeout returns `TIMEOUT`, a contact returns
+`COLLISION`.
+
+| metric | result |
+|---|---|
+| waypoints reached | 4/4 |
+| final goal distance | ≤ 0.20 m |
+| obstacle contacts | 0 |
+| min obstacle clearance | > 0 |
+| status on success | success |
+| status on timeout | error / TIMEOUT |
+| status on collision | error / COLLISION |
 
 Every successful skill returns the body to the home stance height afterwards
 (|bodyZ - 0.283| < 0.02), so paid actions can run back to back.
@@ -65,6 +85,12 @@ applied to the torso.
 - [x] Failure paths return {"status": "error"} and never settle
       (UNPAID / INVALID_PARAMS / UNKNOWN_SKILL / WRONG_ROBOT / DUPLICATE /
       tampered paramsHash — test_result_semantics.py + test_payment_gate.py)
+- [x] Obstacle navigation reaches the goal with zero physics contacts and a
+      correct success/error decision (TIMEOUT / COLLISION) — test_obstacle_nav.py
+- [x] Durable replay: idempotencyKey / txHash rejected after the store is
+      reloaded from disk (tunnel-restart semantics) — test_durable_replay.py
+- [x] Optional Base Sepolia settlement module: no-settle-on-failure contract
+      and configuration guard — test_settlement.py
 
 ## Sim-to-sim (simulation/pybullet/test_sim2sim_go2.py)
 
@@ -75,9 +101,23 @@ nod max dip, turn end, home). MuJoCo loads the official menagerie
 (`go2_simple_kin.urdf`) that `make_go2_kin_urdf.py` generates deterministically
 from that *same* `go2.xml` — PyBullet cannot parse the menagerie MJCF 3.x
 directly, so the conversion is committed and reproducible rather than
-hand-rolled. Foot-sphere centres agree to well under 1 cm across all poses and
-all four feet (simulation/pybullet/go2_sim2sim_report.json). Both simulators
-therefore run the same kinematics for every skill.
+hand-rolled. Foot-sphere centres agree to **≤ 0.01 m (1 cm) tolerance, with the
+observed worst-case error 0.0002 m = 0.02 cm** across all poses and all four
+feet (simulation/pybullet/go2_sim2sim_report.json). Both simulators therefore
+run the same kinematics for every skill.
+
+## Sim-to-sim (simulation/webots/test_sim2sim_go2_webots.py)
+
+A genuine Webots supervisor controller is committed in `simulation/webots/`
+that re-runs the same skill policies and compares the foot-tip positions
+reported by the Webots physics engine against the MuJoCo baseline, writing a
+real `go2_webots_sim2sim_report.json` with measured errors. **This harness is
+ready but requires the Webots R2025a runtime, which is not bundled in this
+repository or in the current CI environment; it is therefore NOT claimed as a
+measured result.** Running it under Webots (or in a container that installs
+Webots R2025a + the unitree_ros URDF assets) produces the measured report.
+Claims in this repository never describe the Webots run as validated until
+that report exists with a `pass` verdict.
 
 ## Evidence
 
@@ -94,14 +134,20 @@ Commands:
 
 Logs: each test prints its checks as JSON and PASS/FAIL.
 
-Known limitations: simulator-only profile — payment settlement is simulated.
-The x402 gate (402/409, signed receipts, settle-only-on-success) is exercised
-against the same facilitator the robot link trusts; no on-chain settlement
-happens. The tunnel binary in this repo is not run on Windows; the Python
-payment gate reimplements the exact decisions the tunnel's x402 middleware
-makes before actuation, and the wire contract is exercised through peer-mode
-Zenoh exactly as the tunnel would publish it (see simulation/README.md).
+Known limitations: simulator-only profile. The x402 gate (402/409, signed
+receipts, settle-only-on-success) is exercised against the same local
+facilitator the robot link trusts — a **simulator gate that mirrors the
+tunnel's x402 middleware decision semantics**, not the compiled Go tunnel
+binary. Optional on-chain settlement (Base Sepolia, EIP-3009
+TransferWithAuthorization) is available via `simulation/go2/
+settlement_base_sepolia.py` when `BASE_SEPOLIA_RPC_URL` + `PRIVATE_KEY` are
+set; by default settlement stays on the local facilitator and no on-chain
+transaction happens. Replay protection is file-backed
+(`simulation/go2/test_durable_replay.py` proves idempotencyKeys survive a
+store restart). The wire contract is exercised through peer-mode Zenoh
+exactly as the tunnel would publish it (see simulation/README.md).
 turn_to_face reports the achieved yaw and remaining error honestly (a partial
 turn is not faked as a complete one); the heading is reached via a
 static-stability hip-abduction shuffle, so no external force is applied to
-the torso.
+the torso. navigate_obstacle uses static obstacles; dynamic obstacles are not
+yet supported.

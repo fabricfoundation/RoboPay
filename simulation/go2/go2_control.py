@@ -16,11 +16,15 @@ simulator state metrics after every action:
   * ``bow``           dip the front of the body into a "play bow"
   * ``nod``           gentle full-body bob as a greeting nod
   * ``turn_to_face``  yaw the body toward a requested heading (degrees)
+  * ``navigate_obstacle`` potential-field obstacle navigation to a goal pose
 
 Each skill is a finite pose schedule driven by smoothstep interpolation. The
 ``wave`` skill applies a documented body-weight compensation force while the
 paw is airborne (see ``docs/validation-report.md``); all other skills run
-purely on the joint servo with zero external forces.
+purely on the joint servo with zero external forces. ``navigate_obstacle``
+steers with a potential-field local planner and decides success/failure from
+the physics state (goal reached / TIMEOUT / COLLISION), using MuJoCo contact
+pairs for obstacle contact — never a distance estimate.
 
 Metrics include body height, body yaw/pitch/roll, per-leg joint positions, a
 stability flag and a skill-specific outcome summary (e.g. paw lift height,
@@ -36,6 +40,8 @@ from typing import Optional
 
 import numpy as np
 import mujoco
+
+from obstacle_world import OBSTACLE_GEOM_PREFIX, OBSTACLES
 
 # Joint naming conventions (menagerie Unitree Go2):
 #   FL/FR/RL/RR = front-left/front-right/rear-left/rear-right
@@ -137,6 +143,10 @@ class Go2Controller:
         self._foot_geom = {leg: self.model.geom(leg).id for leg in LEGS}
         self._total_mass = sum(self.model.body_mass[i]
                                for i in range(self.model.nbody))
+        self._obstacle_geoms = {
+            self.model.geom(i).id
+            for i in range(self.model.ngeom)
+            if self.model.geom(i).name.startswith(OBSTACLE_GEOM_PREFIX)}
         self._on_step = None
         self.home_body_z = HOME_BODY_Z
         self.reset()
@@ -201,6 +211,24 @@ class Go2Controller:
             "joints": {name: round(float(d.qpos[self.joint_adr[name]]), 4)
                        for name in LEG_JOINTS},
         }
+
+    def collision_count(self) -> int:
+        """Number of active MuJoCo contacts involving an obstacle geom.
+
+        Obstacle geoms are discovered from the loaded model by name prefix
+        (``obs_*``, injected by ``obstacle_world.build_obstacle_world``). When
+        the model has no obstacle geoms this returns 0, so the same controller
+        is safe on the plain menagerie scene.
+        """
+        if not self._obstacle_geoms:
+            return 0
+        n = 0
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+            if contact.geom1 in self._obstacle_geoms \
+                    or contact.geom2 in self._obstacle_geoms:
+                n += 1
+        return n
 
     # -- skills ----------------------------------------------------------
     def _interpolate(self, start: dict, end: dict, t: float):
@@ -356,22 +384,42 @@ class Go2Controller:
 
     def run_navigate_obstacle(self, goal_x: float, goal_y: float,
                                waypoints: list, duration: float = 60.0):
-        """Navigate through a static obstacle course to a goal pose.
+        """Navigate a static obstacle course to a goal pose.
 
-        Uses a static-stability hip-abduction shuffle with bounded forward
-        velocity. Reports waypoints reached, path length, minimum obstacle
-        clearance, contacts, final goal distance, and heading error.
+        Steering is a potential-field local planner: an attractive vector pulls
+        toward the current waypoint and each obstacle within its influence
+        radius pushes the robot away; the blended direction drives the same
+        static-stability hip-abduction shuffle used by ``turn_to_face``, so the
+        body stays inside the stability polygon.
 
-        Obstacles are defined as static circles (x, y, radius).
+        Success is decided from the physics state, never from the loop
+        completing:
+
+          * goal reached within tolerance      -> ``success``
+          * obstacle contact (MuJoCo contacts) -> ``error`` / ``COLLISION``
+          * timeout before the goal            -> ``error`` / ``TIMEOUT``
+
+        ``waypoints`` is a list of ``{"x": .., "y": ..}`` objects (the
+        registry contract) or ``(x, y)`` tuples.
         """
-        OBSTACLES = [
-            (1.2, 0.3, 0.25),
-            (2.3, -0.2, 0.2),
-            (3.1, 0.1, 0.15),
-        ]
-        WAYPOINTS = [(0.0, 0.0)] + waypoints + [(goal_x, goal_y)]
+        ROBOT_RADIUS = 0.25
+        INFLUENCE_M = 0.6
         TOLERANCE_WP = 0.15
         TOLERANCE_GOAL = 0.20
+        MAX_SPEED = 0.25
+
+        pts: list = []
+        for wp in waypoints:
+            if isinstance(wp, dict):
+                if "x" not in wp or "y" not in wp:
+                    raise ValueError(
+                        "each waypoint must be an object with numeric 'x' and 'y'")
+                pts.append((float(wp["x"]), float(wp["y"])))
+            else:
+                pts.append((float(wp[0]), float(wp[1])))
+        if not pts:
+            pts = [(float(goal_x), float(goal_y))]
+        targets = pts + [(float(goal_x), float(goal_y))]
 
         current_wp = 0
         waypoints_reached = 0
@@ -379,79 +427,100 @@ class Go2Controller:
         min_clearance = 9e9
         contacts = 0
         last_x, last_y = self.data.qpos[0], self.data.qpos[1]
+        max_steps = max(1, int(duration / self.sim_dt))
+        goal_reached = False
 
-        max_steps = int(duration / self.sim_dt)
-
-        for step in range(max_steps):
+        for _ in range(max_steps):
             x, y = self.data.qpos[0], self.data.qpos[1]
             path_length += math.hypot(x - last_x, y - last_y)
             last_x, last_y = x, y
 
-            if current_wp < len(WAYPOINTS):
-                wx, wy = WAYPOINTS[current_wp]
+            if current_wp < len(targets):
+                wx, wy = targets[current_wp]
                 if math.hypot(x - wx, y - wy) <= TOLERANCE_WP:
                     waypoints_reached += 1
                     current_wp += 1
 
-            for ox, oy, r in [
-                (1.2, 0.3, 0.25),
-                (2.3, -0.2, 0.2),
-                (3.1, 0.1, 0.15),
-            ]:
+            for ox, oy, r in OBSTACLES:
                 d = math.hypot(x - ox, y - oy) - r
                 min_clearance = min(min_clearance, d)
+            contacts = max(contacts, self.collision_count())
 
-            if current_wp < len(WAYPOINTS):
-                target_x, target_y = WAYPOINTS[current_wp]
+            if current_wp < len(targets):
+                tx, ty = targets[current_wp]
             else:
-                target_x, target_y = goal_x, goal_y
+                tx, ty = targets[-1]
 
-            target_yaw = math.atan2(target_y - y, target_x - x)
-            current_yaw = math.atan2(
-                2 * (self.data.qpos[6] * self.data.qpos[3] + self.data.qpos[4] * self.data.qpos[5]),
-                1 - 2 * (self.data.qpos[4] ** 2 + self.data.qpos[5] ** 2)
-            )
-            yaw_error = target_yaw - current_yaw
-            yaw_error = (yaw_error + math.pi) % (2 * math.pi) - math.pi
+            # -- potential field: attraction + repulsion -----------------
+            dx, dy = tx - x, ty - y
+            dist_t = math.hypot(dx, dy) or 1e-6
+            fx, fy = dx / dist_t, dy / dist_t
+            for ox, oy, r in OBSTACLES:
+                oxx, oyy = x - ox, y - oy
+                dist_o = math.hypot(oxx, oyy) or 1e-6
+                reach = r + ROBOT_RADIUS + INFLUENCE_M
+                if dist_o < reach:
+                    strength = (reach - dist_o) / reach
+                    fx += strength * oxx / dist_o
+                    fy += strength * oyy / dist_o
+            norm = math.hypot(fx, fy) or 1e-6
+            fx, fy = fx / norm, fy / norm
+
+            target_yaw = math.atan2(fy, fx)
+            yaw_error = shortest_angle(quat_to_yaw(self.data.qpos[3:7]),
+                                       target_yaw)
 
             s = 1.0 if yaw_error > 0 else -1.0
             amp = min(0.35, 0.1 + 0.8 * abs(yaw_error))
-            targets = dict(self._hold_commands)
-            targets["FL_hip_joint"] = targets.get("FL_hip_joint", 0.0) + s * amp
-            targets["FR_hip_joint"] = targets.get("FR_hip_joint", 0.0) + s * amp
-            targets["RL_hip_joint"] = targets.get("RL_hip_joint", 0.0) - s * amp
-            targets["RR_hip_joint"] = targets.get("RR_hip_joint", 0.0) - s * amp
+            targets2 = dict(self._hold_commands)
+            targets2["FL_hip_joint"] = targets2.get("FL_hip_joint", 0.0) + s * amp
+            targets2["FR_hip_joint"] = targets2.get("FR_hip_joint", 0.0) + s * amp
+            targets2["RL_hip_joint"] = targets2.get("RL_hip_joint", 0.0) - s * amp
+            targets2["RR_hip_joint"] = targets2.get("RR_hip_joint", 0.0) - s * amp
 
-            forward_vel = min(0.25, 0.15 + 0.1 * abs(yaw_error))
-            targets["FL_thigh_joint"] = targets.get("FL_thigh_joint", 0.9) - forward_vel * 0.5
-            targets["FR_thigh_joint"] = targets.get("FR_thigh_joint", 0.9) - forward_vel * 0.5
-            targets["RL_thigh_joint"] = targets.get("RL_thigh_joint", 0.9) + forward_vel * 0.5
-            targets["RR_thigh_joint"] = targets.get("RR_thigh_joint", 0.9) + forward_vel * 0.5
+            forward_vel = min(MAX_SPEED, 0.15 + 0.1 * abs(yaw_error))
+            targets2["FL_thigh_joint"] = targets2.get("FL_thigh_joint", 0.9) \
+                - forward_vel * 0.5
+            targets2["FR_thigh_joint"] = targets2.get("FR_thigh_joint", 0.9) \
+                - forward_vel * 0.5
+            targets2["RL_thigh_joint"] = targets2.get("RL_thigh_joint", 0.9) \
+                + forward_vel * 0.5
+            targets2["RR_thigh_joint"] = targets2.get("RR_thigh_joint", 0.9) \
+                + forward_vel * 0.5
 
-            self._apply(targets)
-            self._hold_commands = targets
+            self._apply(targets2)
+            self._hold_commands = targets2
             self.step()
 
-            if math.hypot(x - ox, y - oy) <= r + 0.05:
-                contacts += 1
-
-            if math.hypot(x - goal_x, y - goal_y) <= 0.20:
+            if math.hypot(self.data.qpos[0] - goal_x,
+                          self.data.qpos[1] - goal_y) <= TOLERANCE_GOAL:
+                goal_reached = True
                 break
 
         final_x, final_y = self.data.qpos[0], self.data.qpos[1]
         final_goal_dist = math.hypot(final_x - goal_x, final_y - goal_y)
-        final_yaw = math.atan2(
-            2 * (self.data.qpos[6] * self.data.qpos[3] + self.data.qpos[4] * self.data.qpos[5]),
-            1 - 2 * (self.data.qpos[4] ** 2 + self.data.qpos[5] ** 2)
-        )
+        final_yaw = quat_to_yaw(self.data.qpos[3:7])
         target_yaw = math.atan2(goal_y - final_y, goal_x - final_x)
-        heading_error = abs((target_yaw - final_yaw + math.pi) % (2 * math.pi) - math.pi)
+        heading_error = abs(shortest_angle(final_yaw, target_yaw))
 
-        result = ActionResult(status="success", skill="navigate_obstacle",
-                              message="Obstacle navigation completed")
+        result = ActionResult(skill="navigate_obstacle")
+        if contacts > 0:
+            result.status = "error"
+            result.message = "Obstacle contact detected during navigation"
+            result.error = {"code": "COLLISION",
+                            "message": "the robot contacted an obstacle"}
+        elif goal_reached or final_goal_dist <= TOLERANCE_GOAL:
+            result.status = "success"
+            result.message = "Obstacle navigation completed: goal reached"
+        else:
+            result.status = "error"
+            result.message = "Navigation timed out before reaching the goal"
+            result.error = {"code": "TIMEOUT",
+                            "message": "goal not reached within the budget"}
+
         extra = {
             "waypointsReached": waypoints_reached,
-            "totalWaypoints": len(WAYPOINTS) - 1,
+            "totalWaypoints": len(targets),
             "pathLengthM": round(path_length, 3),
             "minClearanceM": round(min_clearance, 3),
             "contacts": contacts,
@@ -500,15 +569,37 @@ class Go2Controller:
             for _ in self._timeline(duration):
                 self.step()
         elif skill == "navigate_obstacle":
-            goal_x = float(params.get("goalX", 0.0))
-            goal_y = float(params.get("goalY", 0.0))
-            waypoints = params.get("waypoints", [])
-            result = self.run_navigate_obstacle(goal_x, goal_y, waypoints, duration)
+            goal_x = params.get("goalX")
+            goal_y = params.get("goalY")
+            waypoints = params.get("waypoints")
+            if not isinstance(goal_x, (int, float)) \
+                    or not isinstance(goal_y, (int, float)):
+                result.status = "error"
+                result.message = "goalX and goalY are required numeric params"
+                result.error = {"code": "INVALID_PARAMS",
+                                "message": result.message}
+            elif not isinstance(waypoints, list) or len(waypoints) > 8 \
+                    or len(waypoints) < 1:
+                result.status = "error"
+                result.message = "waypoints must be a list of {x, y} (1..8)"
+                result.error = {"code": "INVALID_PARAMS",
+                                "message": result.message}
+            else:
+                try:
+                    result = self.run_navigate_obstacle(
+                        float(goal_x), float(goal_y), waypoints, duration)
+                except (TypeError, ValueError, KeyError) as exc:
+                    result.status = "error"
+                    result.message = f"invalid navigation params: {exc}"
+                    result.error = {"code": "INVALID_PARAMS",
+                                    "message": result.message}
         else:
             result.status = "error"
             result.message = "unknown skill"
             result.error = {"code": "UNKNOWN_SKILL", "message": f"no skill named '{skill}'"}
         m = self.metrics()
+        for k, v in result.metrics.items():
+            m.setdefault(k, v)
         m.update({k: float(v) for k, v in extra.items()})
         result.metrics = m
         return result

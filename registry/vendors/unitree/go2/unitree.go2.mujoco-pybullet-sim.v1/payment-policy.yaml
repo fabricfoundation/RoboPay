@@ -34,6 +34,10 @@ policies:
     required: true
     priceUSDC: "0.002"
     paymentHeader: PAYMENT-SIGNATURE
+  - skillId: navigate_obstacle
+    required: true
+    priceUSDC: "0.005"
+    paymentHeader: PAYMENT-SIGNATURE
 settlement:
   settleOnStatus: success
   rule: >-

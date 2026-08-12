@@ -37,5 +37,11 @@ jobs:
         run: cd simulation/go2 && python3 test_result_semantics.py
       - name: End-to-end paid action over peer-mode Zenoh
         run: cd simulation/go2 && python3 test_link.py
+      - name: Obstacle navigation (potential-field planner, physics contacts)
+        run: cd simulation/go2 && python3 test_obstacle_nav.py
+      - name: Durable replay (idempotency keys survive store restart)
+        run: cd simulation/go2 && python3 test_durable_replay.py
+      - name: Optional Base Sepolia settlement guards (no-settle-on-failure)
+        run: cd simulation/go2 && python3 test_settlement.py
       - name: Sim-to-sim (MuJoCo poses vs PyBullet kinematic URDF)
         run: cd simulation/pybullet && python3 test_sim2sim_go2.py

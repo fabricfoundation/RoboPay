@@ -152,7 +152,9 @@ class Link:
         payload["actionId"] = base["actionId"]
         payload["skill"] = base["skill"]
         if result.status == "success":
-            self.gate.decide_settlement("success", base["actionId"])
+            price = (self.catalog.get(base["skill"]) or {}).get("priceUSDC")
+            self.gate.decide_settlement("success", base["actionId"],
+                                        action.get("payment"), price)
         self.publish_result(session, payload)
         self.succeeded.append(result.metrics)
 

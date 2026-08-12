@@ -20,4 +20,10 @@ cases:
   - name: unpaid receipt is not executed
     action: sit without a payment signature
     expect: {status: error, code: UNPAID}
+  - name: obstacle navigation reaches the goal with zero contacts
+    action: {skillId: navigate_obstacle, params: {goalX: 4.0, goalY: 0.0, waypoints: [{x: 1.0, y: 0.5}, {x: 2.0, y: 0.0}, {x: 3.0, y: -0.5}]}}
+    expect: {status: success, metrics: {contacts: 0, finalGoalDistanceM: <= 0.2}}
+  - name: obstacle navigation missing goal is invalid
+    action: {skillId: navigate_obstacle, params: {waypoints: [{x: 1.0, y: 0.5}]}}
+    expect: {status: error, code: INVALID_PARAMS}
 settlementInvariant: only results with status "success" may settle

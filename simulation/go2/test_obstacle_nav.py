@@ -1,208 +1,185 @@
 """Test obstacle navigation skill on MuJoCo Go2.
 
-Verifies the robot can follow a waypoint path while maintaining
-static stability and avoiding obstacles. Reports:
-- waypoints reached
-- path length
-- minimum obstacle clearance
-- contacts
-- final goal distance
-- heading error
+Drives the real controller path (``Go2Controller.execute("navigate_obstacle",
+...)``) so the success/failure decision is the one the paid action actually
+reports, not a re-implementation of the loop in the test. Obstacle geoms are
+injected into the scene (``obstacle_world.build_obstacle_world``) so obstacle
+contact is detected by the physics engine from real MuJoCo contact pairs.
+
+Asserts on the reported ActionResult:
+- status == "success" and the goal is reached with zero obstacle contacts
+- waypointsReached == totalWaypoints (start is not counted as a waypoint)
+- final goal distance and minimum clearance within tolerance
+
+Writes simulation/docs/obstacle_nav_report.json. Exits nonzero on failure.
 """
 
-import math
+import json
 import pathlib
 import sys
-
-import numpy as np
 
 HERE = pathlib.Path(__file__).parent
 SIM_ROOT = HERE.parent
 sys.path.insert(0, str(SIM_ROOT / "go2"))
 
-import mujoco
+from go2_control import Go2Controller  # noqa: E402
+from obstacle_world import build_obstacle_world  # noqa: E402
 
-from go2_control import Go2Controller, HOME
-
-LEGS = ["FL", "FR", "RL", "RR"]
-FOOT_GEOM_NAMES = [leg.lower() for leg in LEGS]
-
-# Static obstacle course: 4 waypoints forming a path around obstacles
+TOLERANCE_GOAL = 0.20          # 20 cm
 WAYPOINTS = [
-    (0.0, 0.0),    # start
-    (1.0, 0.5),    # waypoint 1
-    (2.0, 0.0),    # waypoint 2
-    (3.0, -0.5),   # waypoint 3
-    (4.0, 0.0),    # goal
+    {"x": 1.0, "y": 0.5},
+    {"x": 2.0, "y": 0.0},
+    {"x": 3.0, "y": -0.5},
 ]
-
-# Obstacle positions (x, y, radius)
-OBSTACLES = [
-    (1.2, 0.3, 0.25),
-    (2.3, -0.2, 0.2),
-    (3.1, 0.1, 0.15),
-]
-
-TOLERANCE_WAYPOINT = 0.15   # 15 cm
-TOLERANCE_GOAL = 0.20       # 20 cm
-MAX_CLEARANCE_ERROR = 0.05  # 5 cm
+GOAL = {"goalX": 4.0, "goalY": 0.0}
 
 
-def point_to_segment_dist(px, py, x1, y1, x2, y2):
-    """Distance from point to line segment."""
-    dx = x2 - x1
-    dy = y2 - y1
-    if dx == 0 and dy == 0:
-        return math.hypot(px - x1, py - y1)
-    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
-    closest_x = x1 + t * dx
-    closest_y = y1 + t * dy
-    return math.hypot(px - closest_x, py - closest_y)
-
-
-def check_collision(x, y):
-    """Check if position collides with any obstacle."""
-    for ox, oy, r in OBSTACLES:
-        if math.hypot(x - ox, y - oy) <= r + 0.05:  # 5 cm robot radius
-            return True
-    return False
-
-
-def main():
-    # Resolve model path
-    env = HERE.parent.parent / "models" / "mujoco_menagerie" / "unitree_go2" / "scene.xml"
+def resolve_scene():
+    env = SIM_ROOT / "models" / "mujoco_menagerie" / "unitree_go2" / "scene.xml"
     if not env.exists():
-        env = HERE.parent.parent / "models" / "mujoco_menagerie" / "unitree_go2" / "go2.xml"
+        env = SIM_ROOT / "models" / "mujoco_menagerie" / "unitree_go2" / "go2.xml"
     if not env.exists():
         print(f"Model not found at {env}; run simulation/setup.sh")
         sys.exit(1)
+    return str(env)
 
-    ctl = Go2Controller(model_path=str(env))
+
+def main():
+    scene = resolve_scene()
+    world = build_obstacle_world(scene)
+    ctl = Go2Controller(model_path=world)
     ctl.reset(settle=True)
 
     print(f"Home body Z: {ctl.home_body_z:.4f}")
+    print(f"Obstacle geoms in world: {len(ctl._obstacle_geoms)}")
 
-    # Navigation parameters
-    current_wp = 0
-    waypoints_reached = 0
-    path_length = 0.0
-    min_clearance = 9e9
-    contacts = 0
-    last_x, last_y = ctl.data.qpos[0], ctl.data.qpos[1]
+    # Record the real physics trajectory so the course map below is drawn
+    # from the actual simulated path, not from a sketch.
+    trajectory = []
 
-    max_steps = int(60.0 / ctl.sim_dt)
-    goal_x, goal_y = WAYPOINTS[-1]
+    def record(controller):
+        trajectory.append((controller.data.qpos[0], controller.data.qpos[1]))
 
-    for step in range(max_steps):
-        # Current position
-        x, y = ctl.data.qpos[0], ctl.data.qpos[1]
-        path_length += math.hypot(x - last_x, y - last_y)
-        last_x, last_y = x, y
-
-        # Check waypoint
-        if current_wp < len(WAYPOINTS):
-            wx, wy = WAYPOINTS[current_wp]
-            if math.hypot(x - wx, y - wy) <= TOLERANCE_WAYPOINT:
-                waypoints_reached += 1
-                current_wp += 1
-
-        # Check clearance
-        for ox, oy, r in OBSTACLES:
-            d = math.hypot(x - ox, y - oy) - r
-            min_clearance = min(min_clearance, d)
-
-        # Simple steering toward next waypoint/goal
-        if current_wp < len(WAYPOINTS):
-            target_x, target_y = WAYPOINTS[current_wp]
-        else:
-            target_x, target_y = goal_x, goal_y
-
-        target_yaw = math.atan2(target_y - y, target_x - x)
-        current_yaw = math.atan2(
-            2 * (ctl.data.qpos[6] * ctl.data.qpos[3] + ctl.data.qpos[4] * ctl.data.qpos[5]),
-            1 - 2 * (ctl.data.qpos[4] ** 2 + ctl.data.qpos[5] ** 2)
-        )
-        yaw_error = target_yaw - current_yaw
-        yaw_error = (yaw_error + math.pi) % (2 * math.pi) - math.pi
-
-        # Static-stability shuffle: differential hip abduction
-        s = 1.0 if yaw_error > 0 else -1.0
-        amp = min(0.35, 0.1 + 0.8 * abs(yaw_error))
-        targets = dict(ctl._hold_commands)
-        targets["FL_hip_joint"] = targets.get("FL_hip_joint", 0.0) + s * amp
-        targets["FR_hip_joint"] = targets.get("FR_hip_joint", 0.0) + s * amp
-        targets["RL_hip_joint"] = targets.get("RL_hip_joint", 0.0) - s * amp
-        targets["RR_hip_joint"] = targets.get("RR_hip_joint", 0.0) - s * amp
-
-        # Forward velocity component (bounded)
-        forward_vel = min(0.25, 0.15 + 0.1 * abs(yaw_error))
-        targets["FL_thigh_joint"] = targets.get("FL_thigh_joint", 0.9) - forward_vel * 0.5
-        targets["FR_thigh_joint"] = targets.get("FR_thigh_joint", 0.9) - forward_vel * 0.5
-        targets["RL_thigh_joint"] = targets.get("RL_thigh_joint", 0.9) + forward_vel * 0.5
-        targets["RR_thigh_joint"] = targets.get("RR_thigh_joint", 0.9) + forward_vel * 0.5
-
-        ctl._apply(targets)
-        ctl._hold_commands = targets
-        ctl.step()
-
-        # Check collision
-        if check_collision(x, y):
-            contacts += 1
-
-        # Check goal
-        if math.hypot(x - goal_x, y - goal_y) <= TOLERANCE_GOAL:
-            break
-
-    # Final metrics
-    final_x, final_y = ctl.data.qpos[0], ctl.data.qpos[1]
-    final_goal_dist = math.hypot(final_x - goal_x, final_y - goal_y)
-    final_yaw = math.atan2(
-        2 * (ctl.data.qpos[6] * ctl.data.qpos[3] + ctl.data.qpos[4] * ctl.data.qpos[5]),
-        1 - 2 * (ctl.data.qpos[4] ** 2 + ctl.data.qpos[5] ** 2)
-    )
-    target_yaw = math.atan2(goal_y - final_y, goal_x - final_x)
-    heading_error = abs((target_yaw - final_yaw + math.pi) % (2 * math.pi) - math.pi)
+    ctl.set_on_step(record)
+    params = {"goalX": GOAL["goalX"], "goalY": GOAL["goalY"],
+              "waypoints": WAYPOINTS}
+    result = ctl.execute("navigate_obstacle", params)
+    m = result.metrics
 
     print(f"\n=== Obstacle Navigation Results ===")
-    print(f"Waypoints reached: {waypoints_reached}/{len(WAYPOINTS)-1}")
-    print(f"Path length: {path_length:.3f} m")
-    print(f"Min obstacle clearance: {min_clearance:.3f} m")
-    print(f"Contacts: {contacts}")
-    print(f"Final goal distance: {final_goal_dist:.3f} m")
-    print(f"Heading error: {math.degrees(heading_error):.1f} deg")
+    print(f"Status:            {result.status}")
+    print(f"Waypoints reached: {m.get('waypointsReached')}/{m.get('totalWaypoints')}")
+    print(f"Path length:       {m.get('pathLengthM')} m")
+    print(f"Min clearance:     {m.get('minClearanceM')} m")
+    print(f"Contacts:          {m.get('contacts')}")
+    print(f"Final goal dist:   {m.get('finalGoalDistanceM')} m")
+    print(f"Heading error:     {m.get('headingErrorDeg')} deg")
 
     success = (
-        waypoints_reached == len(WAYPOINTS) - 1 and
-        final_goal_dist <= TOLERANCE_GOAL and
-        contacts == 0 and
-        min_clearance > 0
+        result.status == "success"
+        and m.get("contacts") == 0
+        and m.get("finalGoalDistanceM", 9e9) <= TOLERANCE_GOAL
+        and m.get("waypointsReached") == m.get("totalWaypoints")
+        and m.get("minClearanceM", 0.0) > 0
     )
 
     report = {
         "skill": "navigate_obstacle",
         "success": success,
-        "waypoints_reached": waypoints_reached,
-        "total_waypoints": len(WAYPOINTS) - 1,
-        "path_length_m": round(path_length, 3),
-        "min_clearance_m": round(min_clearance, 3),
-        "contacts": contacts,
-        "final_goal_distance_m": round(final_goal_dist, 3),
-        "heading_error_deg": round(math.degrees(heading_error), 1),
-        "tolerance_waypoint_m": TOLERANCE_WAYPOINT,
+        "status": result.status,
+        "message": result.message,
+        "waypoints_reached": m.get("waypointsReached"),
+        "total_waypoints": m.get("totalWaypoints"),
+        "path_length_m": m.get("pathLengthM"),
+        "min_clearance_m": m.get("minClearanceM"),
+        "contacts": m.get("contacts"),
+        "final_goal_distance_m": m.get("finalGoalDistanceM"),
+        "heading_error_deg": m.get("headingErrorDeg"),
         "tolerance_goal_m": TOLERANCE_GOAL,
     }
-
-    import json
     out = HERE.parent / "docs" / "obstacle_nav_report.json"
     out.write_text(json.dumps(report, indent=2))
     print(f"Report written to {out}")
 
+    write_course_map(trajectory, WAYPOINTS, GOAL)
+    print(f"Course map written to {out.parent / 'obstacle_course_map.svg'}")
+
     if success:
         print("RESULT: PASS")
         sys.exit(0)
-    else:
-        print("RESULT: FAIL")
-        sys.exit(1)
+    print("RESULT: FAIL")
+    sys.exit(1)
+
+
+def write_course_map(trajectory, waypoints, goal, sample_every=40):
+    """Draw the actual physics path over the static course as an SVG."""
+    from obstacle_world import OBSTACLES
+
+    xmin, xmax, ymin, ymax = -0.6, 4.6, -1.2, 1.2
+    width, height = 780, 360
+
+    def sx(x):
+        return (x - xmin) / (xmax - xmin) * width
+
+    def sy(y):
+        return (y - ymax) / (ymin - ymax) * height
+
+    parts = []
+    parts.append(f'<svg xmlns="http://www.w3.org/2000/svg" '
+                 f'viewBox="0 0 {width} {height}" width="{width}" '
+                 f'height="{height}">')
+    parts.append('<rect x="0" y="0" width="100%" height="100%" fill="#fbfbfb"/>')
+
+    for i, (ox, oy, r) in enumerate(OBSTACLES):
+        cx, cy = sx(ox), sy(oy)
+        rr = r * (width / (xmax - xmin))
+        parts.append(
+            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{rr:.1f}" '
+            f'fill="rgba(200,60,60,0.35)" stroke="#c43c3c" stroke-width="2"/>')
+        parts.append(
+            f'<text x="{cx:.1f}" y="{cy - rr - 6:.1f}" font-size="13" '
+            f'fill="#a33">obs_{i} (r={r})</text>')
+
+    for i, wp in enumerate(waypoints):
+        cx, cy = sx(wp["x"]), sy(wp["y"])
+        parts.append(
+            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill="#2f6fde"/>')
+        parts.append(
+            f'<text x="{cx + 8:.1f}" y="{cy - 6:.1f}" font-size="12" '
+            f'fill="#2f6fde">wp{i + 1}</text>')
+
+    gx, gy = sx(goal["goalX"]), sy(goal["goalY"])
+    parts.append(
+        f'<path d="M {gx - 9} {gy - 9} L {gx + 9} {gy + 9} M {gx + 9} '
+        f'{gy - 9} L {gx - 9} {gy + 9}" stroke="#1c8a3c" stroke-width="3"/>')
+    parts.append(
+        f'<text x="{gx + 10:.1f}" y="{gy - 6:.1f}" font-size="13" '
+        f'fill="#1c8a3c">goal</text>')
+
+    if trajectory:
+        pts = trajectory[::sample_every] + [trajectory[-1]]
+        path = " ".join(f"{sx(x):.1f},{sy(y):.1f}" for x, y in pts)
+        parts.append(
+            f'<polyline points="{path}" fill="none" stroke="#333" '
+            f'stroke-width="2.5" stroke-linejoin="round" '
+            f'stroke-linecap="round"/>')
+        start_x, start_y = sx(trajectory[0][0]), sy(trajectory[0][1])
+        end_x, end_y = sx(trajectory[-1][0]), sy(trajectory[-1][1])
+        parts.append(
+            f'<circle cx="{start_x:.1f}" cy="{start_y:.1f}" r="7" '
+            f'fill="#333"/><text x="{start_x + 9:.1f}" y="{start_y - 6:.1f}" '
+            f'font-size="13" fill="#333">start</text>')
+        parts.append(
+            f'<circle cx="{end_x:.1f}" cy="{end_y:.1f}" r="7" fill="#1c8a3c"/>')
+
+    parts.append(
+        f'<text x="12" y="{height - 12}" font-size="12" fill="#666">'
+        f'simulated physics path (MuJoCo, sample every {sample_every} steps)'
+        f'</text>')
+    parts.append("</svg>")
+
+    out = HERE.parent / "docs" / "obstacle_course_map.svg"
+    out.write_text("\n".join(parts), encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -3,13 +3,14 @@ vendor: unitree
 robotModel: go2
 robotType: mujoco-pybullet-sim
 profileId: unitree.go2.mujoco-pybullet-sim.v1
-profileVersion: 1.0.0
+profileVersion: 1.1.0
 runtime:
   transport: zenoh
   actionTopic: robot/tunnel/action
   resultTopic: robot/tunnel/result
   bridge: tunnel (this repo, Go) + simulation/go2/robopay_link.py
   simulators: [mujoco, pybullet]
+  webotsValidation: harness ready (simulation/webots); runtime requires Webots R2025a
 maintainers:
   - github: EslaM-X
 status: experimental

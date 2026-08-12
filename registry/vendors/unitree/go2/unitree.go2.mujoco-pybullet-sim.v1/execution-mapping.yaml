@@ -46,3 +46,15 @@ mappings:
     controller: hold the stance joints for "$params.seconds"
     goal: hold the current stance
     metrics: [bodyZ]
+  navigate_obstacle:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: >-
+      potential-field local planner (attraction toward the current waypoint,
+      repulsion from each obstacle within its influence radius) driving the
+      static-stability hip-abduction shuffle; obstacle contact counted from
+      physics contact pairs (simulation/go2/obstacle_world.py injects the
+      obstacle geoms into the MuJoCo scene); success only when the goal is
+      reached with zero contacts; TIMEOUT / COLLISION are error results
+    goal: reach ("$params.goalX", "$params.goalY") via the waypoint list
+    metrics: [waypointsReached, totalWaypoints, pathLengthM, minClearanceM,
+      contacts, finalGoalDistanceM, headingErrorDeg]

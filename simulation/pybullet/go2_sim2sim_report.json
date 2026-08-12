@@ -6,6 +6,8 @@
   "model": "../models/mujoco_menagerie/unitree_go2/scene.xml",
   "pybullet_model": "go2_simple_kin.urdf",
   "tolerance_m": 0.01,
+  "tolerance_cm": 1.0,
+  "note": "tolerance is 1 cm; observed worst-case error is 0.0002 m = 0.02 cm",
   "poses": {
     "hold": {
       "foot_errors_m": {
@@ -57,5 +59,6 @@
     }
   },
   "max_error_m": 0.0002,
+  "max_error_cm": 0.02,
   "verdict": "pass"
 }

@@ -1,8 +1,8 @@
-"""x402-style payment gate for the Go2 simulator profile.
+"""x402-compatible simulator payment gate for the Go2 simulator profile.
 
-Reimplements the exact payment decisions the RoboPay tunnel makes before any
-actuation is allowed (tunnel/internal/handlers + x402 middleware), so the
-simulator-only submission can exercise the same semantics end to end:
+Mirrors the payment decisions the RoboPay tunnel's x402 middleware makes
+before any actuation is allowed (tunnel/internal/handlers + x402 middleware),
+so the simulator-only submission can exercise the same semantics end to end:
 
   * an action WITHOUT a valid paid receipt is answered 402 with a
     PAYMENT-REQUIRED challenge and never reaches the robot,
@@ -14,8 +14,11 @@ simulator-only submission can exercise the same semantics end to end:
     failure path produces an error result and must not settle.
 
 Receipts are Ed25519-signed by a local facilitator and carry a txHash like a
-real settlement record. On-chain settlement is not performed; see
-docs/validation-report.md.
+real settlement record. This is a simulator gate: it mirrors the tunnel's
+decision semantics in Python rather than executing the compiled Go tunnel.
+Optional on-chain settlement (Base Sepolia, EIP-3009) is available through
+``settlement_base_sepolia.settle_if_success`` when the environment is
+configured; by default the local facilitator ledger is used.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ import base64
 import datetime
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import threading
@@ -32,6 +36,8 @@ from typing import Any, Dict, Optional, Tuple
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ed25519
+
+logger = logging.getLogger(__name__)
 
 PAYMENT_REQUIRED_HEADER = "PAYMENT-REQUIRED"
 UNPAID_STATUS = 402
@@ -99,18 +105,39 @@ class Facilitator:
 
 
 class ReplayStore:
-    """Thread-safe store of seen idempotency keys / tx hashes."""
+    """Thread-safe store of seen idempotency keys / tx hashes.
 
-    def __init__(self) -> None:
+    When constructed with a ``path`` the store is file-backed: every mark is
+    flushed to disk atomically and a fresh store reloads the previous keys, so
+    replayed keys are still rejected after a process restart (the tunnel's
+    durable-replay semantics). Without a path the store is in-memory only.
+    """
+
+    def __init__(self, path: Optional[str] = None) -> None:
+        self._path = pathlib.Path(path) if path else None
         self._seen: set[str] = set()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+        if self._path and self._path.exists():
+            try:
+                self._seen = set(json.loads(
+                    self._path.read_text(encoding="utf-8")).get("seen", []))
+            except Exception:
+                self._seen = set()
 
     def check_and_mark(self, key: str) -> bool:
         with self._lock:
             if key in self._seen:
                 return False
             self._seen.add(key)
+            if self._path:
+                self._flush()
             return True
+
+    def _flush(self) -> None:
+        tmp = self._path.with_name(self._path.name + ".tmp")
+        tmp.write_text(json.dumps({"seen": sorted(self._seen)}),
+                       encoding="utf-8")
+        tmp.replace(self._path)
 
     def __len__(self) -> int:
         with self._lock:
@@ -207,12 +234,16 @@ class PaymentGate:
     harness) and verify them on the other (the robot link) with the same
     local facilitator — mirroring how the tunnel's x402 middleware trusts the
     facilitator's advertised public key. No secrets leave the repo.
+
+    Pass ``store_path`` for a file-backed (durable) replay store; the default
+    is in-memory so tests stay isolated.
     """
 
     KEY_FILE = pathlib.Path(__file__).parent / "facilitator_private_key.b64"
 
     def __init__(self, facilitator: Optional[Facilitator] = None,
-                 key_file: Optional[pathlib.Path] = None):
+                 key_file: Optional[pathlib.Path] = None,
+                 store_path: Optional[str] = None):
         key_file = key_file or self.KEY_FILE
         if facilitator is None:
             private_b64 = None
@@ -226,7 +257,7 @@ class PaymentGate:
                         serialization.PrivateFormat.Raw,
                         serialization.NoEncryption())).decode("ascii"))
         self.facilitator = facilitator
-        self.store = ReplayStore()
+        self.store = ReplayStore(path=store_path)
         self.ledger = SettlementLedger()
 
     @property
@@ -237,9 +268,25 @@ class PaymentGate:
         """Verify the envelope; returns (ok, status_code, reason)."""
         return verify_payment(envelope, self.public_key_b64, self.store)
 
-    def decide_settlement(self, result_status: str, action_id: str) -> bool:
-        """Settle only on a success result."""
-        if result_status == "success":
-            self.ledger.settle(action_id)
-            return True
-        return False
+    def decide_settlement(self, result_status: str, action_id: str,
+                          payment_payload: Optional[Dict[str, Any]] = None,
+                          amount_usdc: Optional[str] = None) -> bool:
+        """Settle only on a success result.
+
+        Local ledger records the settlement; when the optional Base Sepolia
+        module is configured, an on-chain EIP-3009 transfer is attempted and
+        its tx hash is recorded on the ledger. Failure results never settle.
+        """
+        if result_status != "success":
+            return False
+        tx = self.ledger.settle(action_id)
+        if ONCHAIN_SETTLEMENT_AVAILABLE and payment_payload and amount_usdc:
+            try:
+                receipt = settle_if_success(result_status, payment_payload,
+                                            amount_usdc)
+                if receipt is not None and receipt.success:
+                    with self.ledger._lock:
+                        self.ledger._settled[action_id] = receipt.tx_hash or tx
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("optional on-chain settlement skipped: %s", exc)
+        return True
