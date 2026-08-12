@@ -8,7 +8,7 @@ menagerie foot-sphere distance) must agree within a tight tolerance, which
 proves the two simulators run the *same* kinematics for the skills the
 controller performs.
 
-Writes sim2sim_report.json next to this file. Exits nonzero on failure.
+Writes spot_sim2sim_report.json next to this file. Exits nonzero on failure.
 """
 
 import json
@@ -146,7 +146,7 @@ def main():
     ok = worst <= TOLERANCE
     report["max_error_m"] = round(worst, 4)
     report["verdict"] = "pass" if ok else "fail"
-    with open(HERE / "sim2sim_report.json", "w", encoding="utf-8") as f:
+    with open(HERE / "spot_sim2sim_report.json", "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print(f"max error {worst*100:.2f} cm -> "
           f"{'PASS' if ok else 'FAIL'}")

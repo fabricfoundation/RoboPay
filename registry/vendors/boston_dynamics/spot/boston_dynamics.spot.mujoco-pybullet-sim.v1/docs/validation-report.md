@@ -58,7 +58,7 @@ Every successful skill returns the body to the home stance height afterwards
 The same skill joint configurations are recomputed in MuJoCo and PyBullet at
 each skill's salient pose (wave peak lift, sit deepest crouch, bow max pitch,
 nod max dip, turn end, home). Foot-tip positions agree to 0.06 cm maximum
-across all six poses and all four feet (simulation/pybullet/sim2sim_report.json).
+across all six poses and all four feet (simulation/pybullet/spot_sim2sim_report.json).
 Both simulators therefore run the same kinematics for every skill.
 
 ## Evidence
