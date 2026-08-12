@@ -36,6 +36,18 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 PAYMENT_REQUIRED_HEADER = "PAYMENT-REQUIRED"
 UNPAID_STATUS = 402
 
+try:
+    from settlement_base_sepolia import (
+        settle_if_success,
+        get_settler,
+        BaseSepoliaSettler,
+        SettlementConfig,
+        SettlementReceipt,
+    )
+    ONCHAIN_SETTLEMENT_AVAILABLE = True
+except ImportError:
+    ONCHAIN_SETTLEMENT_AVAILABLE = False
+
 
 def canonical_params(params: Any) -> str:
     return json.dumps(params, sort_keys=True, separators=(",", ":"))
