@@ -419,7 +419,8 @@ class Go2Controller:
                 pts.append((float(wp[0]), float(wp[1])))
         if not pts:
             pts = [(float(goal_x), float(goal_y))]
-        targets = pts + [(float(goal_x), float(goal_y))]
+        targets = list(pts)
+        total_waypoints = len(targets)
 
         current_wp = 0
         waypoints_reached = 0
@@ -449,7 +450,7 @@ class Go2Controller:
             if current_wp < len(targets):
                 tx, ty = targets[current_wp]
             else:
-                tx, ty = targets[-1]
+                tx, ty = goal_x, goal_y
 
             # -- potential field: attraction + repulsion -----------------
             dx, dy = tx - x, ty - y
@@ -520,7 +521,7 @@ class Go2Controller:
 
         extra = {
             "waypointsReached": waypoints_reached,
-            "totalWaypoints": len(targets),
+            "totalWaypoints": total_waypoints,
             "pathLengthM": round(path_length, 3),
             "minClearanceM": round(min_clearance, 3),
             "contacts": contacts,

@@ -1,12 +1,18 @@
-"""Sim-to-sim harness: MuJoCo go2.xml vs the unitree_ros URDF in Webots.
+"""Sim-to-sim harness: MuJoCo go2.xml vs the same Go2 kinematics in Webots.
 
 The Go2 tier-1 demo runs the paid skills on the MuJoCo menagerie Go2 model.
 This module is the sim-to-sim *harness* for the Webots runtime: it re-runs
 every skill in MuJoCo, captures the joint configuration at each salient
-moment, and — when a Webots R2025a world importing the official unitree_ros
-go2 URDF is present — applies the same joint targets through the Webots
-Supervisor and reads the foot-tip positions reported by the Webots physics
-engine, computing a real measured error against the MuJoCo baseline.
+moment, and — when a Webots R2025a world with the Go2 model is present —
+applies the same joint targets through the Webots Supervisor and reads the
+foot-tip positions reported by the Webots physics engine, computing a real
+measured error against the MuJoCo baseline.
+
+The Webots model (`webots/go2_sim2sim.wbt`) is rebuilt from the same MJCF
+kinematics (same joint axes/anchors/ranges, motor limits and body masses). It
+uses the exact device names the MuJoCo controller writes (FL_hip_joint ...
+RR_calf_joint) and foot nodes DEF FL_foot / FR_foot / RL_foot / RR_foot, so
+the same joint targets drive both engines.
 
 HONESTY CONTRACT:
 - Without the Webots runtime this module writes a report with
@@ -17,8 +23,9 @@ HONESTY CONTRACT:
   only set from real measurements, and the skip path sets it to null.
 
 Required world conventions (documented in simulation/webots/README.md):
-  robot node named with DEF GO2 (or the controller attached to it), and foot
-  nodes DEF FL_foot / FR_foot / RL_foot / RR_foot.
+  robot node named with DEF GO2 (Supervisor, controller "go2_sim2sim"), motors
+  named FL_hip_joint/.../RR_calf_joint, and foot nodes
+  DEF FL_foot / FR_foot / RL_foot / RR_foot.
 """
 
 import json
@@ -102,7 +109,7 @@ def capture_mujoco_baseline():
     return baseline
 
 
-def measure_webots_foot_positions(supervisor, timestep, joint_pos, steps=5):
+def measure_webots_foot_positions(supervisor, timestep, joint_pos, steps=20):
     """Apply joint targets to the Webots robot and read foot-tip positions."""
     motors = {}
     for leg in LEGS:
@@ -111,8 +118,8 @@ def measure_webots_foot_positions(supervisor, timestep, joint_pos, steps=5):
             device = supervisor.getDevice(name)
             if device is None:
                 raise SystemExit(
-                    f"Webots world missing motor '{name}'; expected a world "
-                    f"that imports the unitree_ros go2 URDF (see README)")
+                    f"Webots world missing motor '{name}'; expected the Go2 "
+                    f"model world go2_sim2sim.wbt (see README)")
             motors[name] = device
     for name, val in joint_pos.items():
         motors[name].setPosition(float(val))
@@ -123,8 +130,8 @@ def measure_webots_foot_positions(supervisor, timestep, joint_pos, steps=5):
         node = supervisor.getFromDef(f"{leg}_foot")
         if node is None:
             raise SystemExit(
-                f"Webots world missing node DEF {leg}_foot; expected a world "
-                f"that imports the unitree_ros go2 URDF (see README)")
+                f"Webots world missing node DEF {leg}_foot; expected the Go2 "
+                f"model world go2_sim2sim.wbt (see README)")
         tips[leg.lower()] = np.array(node.getPosition(), dtype=float)
     return tips
 
@@ -134,15 +141,16 @@ def main():
 
     if not WEBOTS_PRESENT:
         report = {
-            "simulators": ["mujoco", "webots-unitree_ros"],
+            "simulators": ["mujoco", "webots"],
             "model_mujoco": os.path.relpath(resolve_mujoco_scene(), HERE)
             .replace("\\", "/"),
             "verdict": "skipped_webots_runtime_missing",
             "max_error_m": None,
             "note": "NOT a measured result. The Webots R2025a runtime is not "
-                    "bundled in this repo or in CI; running the harness under "
-                    "Webots with a world that imports the unitree_ros go2 URDF "
-                    "produces the measured report with verdict pass/fail.",
+                    "available in this environment; running this harness as "
+                    "the 'go2_sim2sim' controller in the Webots world "
+                    "go2_sim2sim.wbt produces the measured report with "
+                    "verdict pass/fail.",
         }
         with open(HERE / "go2_webots_sim2sim_report.json", "w",
                   encoding="utf-8") as f:
@@ -154,7 +162,7 @@ def main():
     supervisor = Supervisor()
     timestep = int(supervisor.getBasicTimeStep())
     report = {
-        "simulators": ["mujoco", "webots-unitree_ros"],
+        "simulators": ["mujoco", "webots"],
         "model_mujoco": os.path.relpath(resolve_mujoco_scene(), HERE)
         .replace("\\", "/"),
         "tolerance_m": TOLERANCE,

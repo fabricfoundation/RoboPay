@@ -51,7 +51,7 @@ try:
         SettlementReceipt,
     )
     ONCHAIN_SETTLEMENT_AVAILABLE = True
-except ImportError:
+except Exception:  # noqa: BLE001  (ImportError or missing keccak backend)
     ONCHAIN_SETTLEMENT_AVAILABLE = False
 
 
