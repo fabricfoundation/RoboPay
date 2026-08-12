@@ -72,8 +72,6 @@ NOD_TARGET = {f"{leg}_calf_joint": -2.0 for leg in LEGS} \
     | {f"{leg}_thigh_joint": 0.85 for leg in LEGS}
 WAVE_PEAK = {"FR_thigh_joint": 2.0, "FR_calf_joint": -2.55, "FR_hip_joint": 0.35}
 WAVE_COMP = 0.85  # fraction of body weight compensated while the paw is airborne
-TURN_GAIN = 3.0   # Nm/rad of heading error for the bounded yaw torque
-TURN_MAX = 14.0   # Nm cap on the yaw torque (keeps the shuffle gentle)
 
 
 def quat_to_yaw(q) -> float:
@@ -134,7 +132,7 @@ class Go2Controller:
             self.joint_adr[name] = self.model.jnt_qposadr[jid]
             self.vel_adr[name] = self.model.jnt_dofadr[jid]
             self.act_adr[name] = i
-        self._body_id = self.model.body("base_link").id
+        self._body_id = self.model.body("base").id
         self._foot_geom = {leg: self.model.geom(leg).id for leg in LEGS}
         self._total_mass = sum(self.model.body_mass[i]
                                for i in range(self.model.nbody))
@@ -321,14 +319,13 @@ class Go2Controller:
     def run_turn_to_face(self, target_yaw_deg: float, duration: float = 12.0):
         """Yaw the body toward a heading with a static-stability shuffle.
 
-        A proportional servo commands a bounded body yaw torque (about the
-        world Z axis) whose sign drives the rotation toward the target, while
-        a differential hip-abduction splay keeps the feet planted inside the
-        static-stability polygon so the body stays level and never topples.
-        The controller converges to the target (or times out, reporting the
-        residual error honestly); the torque is a stand-in for the ground
-        interaction a real Go2 shuffle produces, documented in
-        ``docs/validation-report.md``.
+        A single continuous proportional servo commands a differential
+        hip-abduction splay (front pair vs hind pair) whose sign drives the
+        rotation toward the target. The pose stays inside the static-stability
+        polygon, so the body stays level (measured body-Z ~ home) and never
+        topples. The controller converges to the target (or times out,
+        reporting the residual error honestly); no external torque is applied
+        to the torso.
         """
         target_yaw = math.radians(target_yaw_deg)
         start_yaw = math.degrees(quat_to_yaw(self.data.qpos[3:7]))
@@ -340,21 +337,16 @@ class Go2Controller:
             if abs(err) <= math.radians(1.5):
                 break
             s = 1.0 if err > 0 else -1.0
-            amp = min(0.5, 0.15 + 1.2 * abs(err))
-            torque = -TURN_GAIN * err
-            torque = max(-TURN_MAX, min(TURN_MAX, torque))
-            self.data.xfrc_applied[self._body_id] = [0.0, 0.0, 0.0,
-                                                     0.0, 0.0, torque]
+            amp = min(0.4, 0.12 + 1.2 * abs(err))
             targets = dict(self._hold_commands)
-            targets["FL_hip_joint"] = start.get("FL_hip_joint", 0.0) - s * amp
-            targets["FR_hip_joint"] = start.get("FR_hip_joint", 0.0) - s * amp
-            targets["RL_hip_joint"] = start.get("RL_hip_joint", 0.0) + s * amp
-            targets["RR_hip_joint"] = start.get("RR_hip_joint", 0.0) + s * amp
+            targets["FL_hip_joint"] = start.get("FL_hip_joint", 0.0) + s * amp
+            targets["FR_hip_joint"] = start.get("FR_hip_joint", 0.0) + s * amp
+            targets["RL_hip_joint"] = start.get("RL_hip_joint", 0.0) - s * amp
+            targets["RR_hip_joint"] = start.get("RR_hip_joint", 0.0) - s * amp
             self._apply(targets)
             self._hold_commands = targets
             self.step()
             min_z = min(min_z, self.data.qpos[2])
-        self.data.xfrc_applied[self._body_id] = 0.0
         final_yaw = math.degrees(quat_to_yaw(self.data.qpos[3:7]))
         err_final = math.degrees(abs(shortest_angle(
             quat_to_yaw(self.data.qpos[3:7]), target_yaw)))

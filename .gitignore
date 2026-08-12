@@ -16,17 +16,12 @@ go.work.sum
 
 .env
 
-*.b64
-keys/
-
 .idea/
 .vscode/
 
 .zenoh-c/
 
 bin/
-
-simulation/models/
 
 __pycache__/
 *.pyc

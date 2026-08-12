@@ -42,10 +42,10 @@ Every successful skill returns the body to the home stance height afterwards
 `turn_to_face` reports the achieved yaw and the remaining heading error
 honestly: a partial turn is never faked as a complete one (the result message
 states "Partial turn: X deg short of heading" when the residual exceeds 2
-deg). The yaw is produced by a bounded body yaw torque plus a differential
-hip-abduction shuffle; the torque is a documented stand-in for the ground
-interaction a real Go2 shuffle produces and is the only skill (besides wave's
-body-weight compensation) that applies an external force.
+deg). The yaw is produced by a differential hip-abduction shuffle (front pair
+vs hind pair) driven by a proportional servo; the pose stays inside the
+static-stability polygon, so the body stays level and no external torque is
+applied to the torso.
 
 ## Validation results
 
@@ -76,7 +76,7 @@ nod max dip, turn end, home). MuJoCo loads the official menagerie
 from that *same* `go2.xml` — PyBullet cannot parse the menagerie MJCF 3.x
 directly, so the conversion is committed and reproducible rather than
 hand-rolled. Foot-sphere centres agree to well under 1 cm across all poses and
-all four feet (simulation/pybullet/sim2sim_report.json). Both simulators
+all four feet (simulation/pybullet/go2_sim2sim_report.json). Both simulators
 therefore run the same kinematics for every skill.
 
 ## Evidence
@@ -102,5 +102,6 @@ payment gate reimplements the exact decisions the tunnel's x402 middleware
 makes before actuation, and the wire contract is exercised through peer-mode
 Zenoh exactly as the tunnel would publish it (see simulation/README.md).
 turn_to_face reports the achieved yaw and remaining error honestly (a partial
-turn is not faked as a complete one), and the yaw torque used by that skill
-is a documented simulation simplification.
+turn is not faked as a complete one); the heading is reached via a
+static-stability hip-abduction shuffle, so no external force is applied to
+the torso.
