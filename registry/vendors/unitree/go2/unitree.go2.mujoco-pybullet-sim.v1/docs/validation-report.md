@@ -4,7 +4,8 @@ OS: Windows 11; MuJoCo tests also on ubuntu-latest via CI
 ROS2: not used (simulator-only; Zenoh consumed directly, see simulation/README.md)
 Zenoh: eclipse-zenoh 1.x (Python), peer mode, localhost
 Simulators: MuJoCo (google-deepmind/mujoco_menagerie unitree_go2)
-             and PyBullet (loadMJCF of the *same* go2.xml)
+             and PyBullet (deterministic kinematic URDF generated from the
+             *same* go2.xml)
 
 ## Validated skills
 
@@ -69,11 +70,14 @@ body-weight compensation) that applies an external force.
 
 The same skill joint configurations are recomputed in MuJoCo and PyBullet at
 each skill's salient pose (wave peak lift, sit deepest crouch, bow max pitch,
-nod max dip, turn end, home) by loading the **same** go2.xml through
-pybullet.loadMJCF — no hand-rolled URDF in between. Foot-sphere centres agree
-to well under 1 cm across all poses and all four feet
-(simulation/pybullet/sim2sim_report.json). Both simulators therefore run the
-same kinematics for every skill.
+nod max dip, turn end, home). MuJoCo loads the official menagerie
+`unitree_go2/scene.xml`; PyBullet loads a kinematic URDF
+(`go2_simple_kin.urdf`) that `make_go2_kin_urdf.py` generates deterministically
+from that *same* `go2.xml` — PyBullet cannot parse the menagerie MJCF 3.x
+directly, so the conversion is committed and reproducible rather than
+hand-rolled. Foot-sphere centres agree to well under 1 cm across all poses and
+all four feet (simulation/pybullet/sim2sim_report.json). Both simulators
+therefore run the same kinematics for every skill.
 
 ## Evidence
 
