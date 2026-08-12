@@ -95,22 +95,60 @@
    "maxJointRadPerSec": 3.0
   }
  },
- {
-  "skillId": "hold",
-  "name": "hold",
-  "description": "Hold the current stance for the requested duration.",
-  "priceUSDC": "0.002",
-  "robotId": "test-robot",
-  "paymentRequired": true,
-  "paramsSchema": {
-   "seconds": {
-    "type": "number",
-    "min": 0.5,
-    "max": 5.0
-   }
+{
+    "skillId": "hold",
+    "name": "hold",
+    "description": "Hold the current stance for the requested duration.",
+    "priceUSDC": "0.002",
+    "robotId": "test-robot",
+    "paymentRequired": true,
+    "paramsSchema": {
+      "seconds": {
+        "type": "number",
+        "min": 0.5,
+        "max": 5.0
+      }
+    },
+    "limits": {
+      "timeoutSec": 8
+    }
   },
-  "limits": {
-   "timeoutSec": 8
+  {
+    "skillId": "navigate_obstacle",
+    "name": "navigate_obstacle",
+    "description": "Navigate through a static obstacle course to a goal pose. The robot follows a waypoint path while avoiding obstacles using a static-stability shuffle. Reports waypoints reached, path length, minimum obstacle clearance, contacts, final goal distance, and heading error.",
+    "priceUSDC": "0.005",
+    "robotId": "test-robot",
+    "paymentRequired": true,
+    "paramsSchema": {
+      "goalX": {
+        "type": "number",
+        "min": -5.0,
+        "max": 5.0
+      },
+      "goalY": {
+        "type": "number",
+        "min": -5.0,
+        "max": 5.0
+      },
+      "waypoints": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          },
+          "required": ["x", "y"]
+        },
+        "minItems": 1,
+        "maxItems": 8
+      }
+    },
+    "limits": {
+      "timeoutSec": 60,
+      "maxJointRadPerSec": 2.5,
+      "maxLinearVelMps": 0.3
+    }
   }
- }
 ]

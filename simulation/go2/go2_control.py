@@ -55,7 +55,8 @@ HOME = {f"{leg}_{part}_joint": val
 HOME_BODY_Z = 0.27
 
 SKILL_DURATIONS = {"wave": 2.8, "sit": 5.0, "stand": 2.4, "bow": 3.2,
-                   "nod": 2.4, "turn_to_face": 12.0, "hold": 1.0, "stop": 1.2}
+                    "nod": 2.4, "turn_to_face": 12.0, "hold": 1.0, "stop": 1.2,
+                    "navigate_obstacle": 60.0}
 
 # PD position servo gains. Go2 motor torque limits: hip +/-23.7 Nm,
 # knee +/-45.43 Nm; MuJoCo clamps ctrl to the actuator range, so large
@@ -353,6 +354,115 @@ class Go2Controller:
         self._hold_commands = dict(HOME)
         return start_yaw, final_yaw, err_final, min_z
 
+    def run_navigate_obstacle(self, goal_x: float, goal_y: float,
+                               waypoints: list, duration: float = 60.0):
+        """Navigate through a static obstacle course to a goal pose.
+
+        Uses a static-stability hip-abduction shuffle with bounded forward
+        velocity. Reports waypoints reached, path length, minimum obstacle
+        clearance, contacts, final goal distance, and heading error.
+
+        Obstacles are defined as static circles (x, y, radius).
+        """
+        OBSTACLES = [
+            (1.2, 0.3, 0.25),
+            (2.3, -0.2, 0.2),
+            (3.1, 0.1, 0.15),
+        ]
+        WAYPOINTS = [(0.0, 0.0)] + waypoints + [(goal_x, goal_y)]
+        TOLERANCE_WP = 0.15
+        TOLERANCE_GOAL = 0.20
+
+        current_wp = 0
+        waypoints_reached = 0
+        path_length = 0.0
+        min_clearance = 9e9
+        contacts = 0
+        last_x, last_y = self.data.qpos[0], self.data.qpos[1]
+
+        max_steps = int(duration / self.sim_dt)
+
+        for step in range(max_steps):
+            x, y = self.data.qpos[0], self.data.qpos[1]
+            path_length += math.hypot(x - last_x, y - last_y)
+            last_x, last_y = x, y
+
+            if current_wp < len(WAYPOINTS):
+                wx, wy = WAYPOINTS[current_wp]
+                if math.hypot(x - wx, y - wy) <= TOLERANCE_WP:
+                    waypoints_reached += 1
+                    current_wp += 1
+
+            for ox, oy, r in [
+                (1.2, 0.3, 0.25),
+                (2.3, -0.2, 0.2),
+                (3.1, 0.1, 0.15),
+            ]:
+                d = math.hypot(x - ox, y - oy) - r
+                min_clearance = min(min_clearance, d)
+
+            if current_wp < len(WAYPOINTS):
+                target_x, target_y = WAYPOINTS[current_wp]
+            else:
+                target_x, target_y = goal_x, goal_y
+
+            target_yaw = math.atan2(target_y - y, target_x - x)
+            current_yaw = math.atan2(
+                2 * (self.data.qpos[6] * self.data.qpos[3] + self.data.qpos[4] * self.data.qpos[5]),
+                1 - 2 * (self.data.qpos[4] ** 2 + self.data.qpos[5] ** 2)
+            )
+            yaw_error = target_yaw - current_yaw
+            yaw_error = (yaw_error + math.pi) % (2 * math.pi) - math.pi
+
+            s = 1.0 if yaw_error > 0 else -1.0
+            amp = min(0.35, 0.1 + 0.8 * abs(yaw_error))
+            targets = dict(self._hold_commands)
+            targets["FL_hip_joint"] = targets.get("FL_hip_joint", 0.0) + s * amp
+            targets["FR_hip_joint"] = targets.get("FR_hip_joint", 0.0) + s * amp
+            targets["RL_hip_joint"] = targets.get("RL_hip_joint", 0.0) - s * amp
+            targets["RR_hip_joint"] = targets.get("RR_hip_joint", 0.0) - s * amp
+
+            forward_vel = min(0.25, 0.15 + 0.1 * abs(yaw_error))
+            targets["FL_thigh_joint"] = targets.get("FL_thigh_joint", 0.9) - forward_vel * 0.5
+            targets["FR_thigh_joint"] = targets.get("FR_thigh_joint", 0.9) - forward_vel * 0.5
+            targets["RL_thigh_joint"] = targets.get("RL_thigh_joint", 0.9) + forward_vel * 0.5
+            targets["RR_thigh_joint"] = targets.get("RR_thigh_joint", 0.9) + forward_vel * 0.5
+
+            self._apply(targets)
+            self._hold_commands = targets
+            self.step()
+
+            if math.hypot(x - ox, y - oy) <= r + 0.05:
+                contacts += 1
+
+            if math.hypot(x - goal_x, y - goal_y) <= 0.20:
+                break
+
+        final_x, final_y = self.data.qpos[0], self.data.qpos[1]
+        final_goal_dist = math.hypot(final_x - goal_x, final_y - goal_y)
+        final_yaw = math.atan2(
+            2 * (self.data.qpos[6] * self.data.qpos[3] + self.data.qpos[4] * self.data.qpos[5]),
+            1 - 2 * (self.data.qpos[4] ** 2 + self.data.qpos[5] ** 2)
+        )
+        target_yaw = math.atan2(goal_y - final_y, goal_x - final_x)
+        heading_error = abs((target_yaw - final_yaw + math.pi) % (2 * math.pi) - math.pi)
+
+        result = ActionResult(status="success", skill="navigate_obstacle",
+                              message="Obstacle navigation completed")
+        extra = {
+            "waypointsReached": waypoints_reached,
+            "totalWaypoints": len(WAYPOINTS) - 1,
+            "pathLengthM": round(path_length, 3),
+            "minClearanceM": round(min_clearance, 3),
+            "contacts": contacts,
+            "finalGoalDistanceM": round(final_goal_dist, 3),
+            "headingErrorDeg": round(math.degrees(heading_error), 1),
+        }
+        m = self.metrics()
+        m.update({k: float(v) for k, v in extra.items()})
+        result.metrics = m
+        return result
+
     # -- policy entrypoint ----------------------------------------------
     def execute(self, skill: str, params: dict) -> ActionResult:
         """Run a skill and report simulator state metrics."""
@@ -389,6 +499,11 @@ class Go2Controller:
         elif skill == "hold":
             for _ in self._timeline(duration):
                 self.step()
+        elif skill == "navigate_obstacle":
+            goal_x = float(params.get("goalX", 0.0))
+            goal_y = float(params.get("goalY", 0.0))
+            waypoints = params.get("waypoints", [])
+            result = self.run_navigate_obstacle(goal_x, goal_y, waypoints, duration)
         else:
             result.status = "error"
             result.message = "unknown skill"
