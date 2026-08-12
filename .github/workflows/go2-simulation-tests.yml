@@ -1,0 +1,41 @@
+name: go2-simulation-tests
+
+on:
+  push:
+    paths:
+      - "simulation/go2/**"
+      - "simulation/pybullet/**"
+      - "simulation/setup.sh"
+      - "registry/vendors/unitree/**"
+      - ".github/workflows/go2-simulation-tests.yml"
+  pull_request:
+    paths:
+      - "simulation/go2/**"
+      - "simulation/pybullet/**"
+      - "simulation/setup.sh"
+      - "registry/vendors/unitree/**"
+      - ".github/workflows/go2-simulation-tests.yml"
+
+jobs:
+  mujoco-pybullet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install mujoco numpy pybullet cryptography eclipse-zenoh
+      - name: Fetch Go2 model assets
+        run: cd simulation && bash setup.sh
+      - name: Skill acceptance (wave / sit / stand / stop / bow / nod / turn / hold)
+        run: cd simulation/go2 && python3 test_go2_control.py
+      - name: Payment gate (402 / 409 / settle-only-on-success)
+        run: cd simulation/go2 && python3 test_payment_gate.py
+      - name: Result semantics over peer-mode Zenoh (success + every error path)
+        run: cd simulation/go2 && python3 test_result_semantics.py
+      - name: End-to-end paid action over peer-mode Zenoh
+        run: cd simulation/go2 && python3 test_link.py
+      - name: Sim-to-sim (MuJoCo poses vs PyBullet kinematic URDF)
+        run: cd simulation/pybullet && python3 test_sim2sim_go2.py
