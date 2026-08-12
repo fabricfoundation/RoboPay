@@ -21,10 +21,40 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 ├── bridge/          # ROS2 bridge: Zenoh action events → robot /cmd_vel
 │   ├── common/zenoh_bridge/                 # shared Zenoh + action parsing
 │   └── unitree/{g1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
+├── simulation/      # Tier 1 simulator-only paid-action demo (MuJoCo + PyBullet)
+│   ├── go2/         # Go2 skill controller, x402 gate, Zenoh link, tests
+│   └── pybullet/    # sim-to-sim checks (kinematic URDF generated from go2.xml)
+├── registry/        # machine-readable robot action profiles
+│   └── vendors/unitree/go2/unitree.go2.mujoco-pybullet-sim.v1/
 └── Makefile         # builds/runs the tunnel and the bridge
 ```
 
 The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
+
+## Tier 1: simulator-only Go2 paid actions (MuJoCo + PyBullet)
+
+The simulator-only submission runs the full paid-action wire contract against
+the official Go2 MuJoCo model (`mujoco_menagerie`): a paid action arriving on
+the tunnel's Zenoh topic starts a Go2 skill episode (wave, sit, stand, stop,
+bow, nod, turn_to_face, hold), driven by a joint-space trajectory controller,
+and returns a correlated result. The x402 payment gate (402/409,
+settle-only-on-success) is exercised end to end in peer-mode Zenoh.
+
+```sh
+cd simulation && ./setup.sh            # fetch pinned Go2 model assets
+cd simulation/go2
+python3 test_go2_control.py            # every skill's physics actually happen
+python3 test_payment_gate.py           # x402 gate semantics
+python3 test_result_semantics.py       # success + every error path over Zenoh
+python3 test_link.py                   # paid action -> Zenoh -> episode -> result
+cd ../pybullet
+python3 test_sim2sim_go2.py            # same poses in MuJoCo and PyBullet
+```
+
+Full documentation, wire contract, robot identity and safety notes:
+`simulation/README.md`. Machine-readable profile (skills, pricing, payment
+policy, execution mapping, skill-contract tests, validation report):
+`registry/vendors/unitree/go2/unitree.go2.mujoco-pybullet-sim.v1/`.
 
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
