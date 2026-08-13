@@ -1,15 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Run Go Lint
+#
+# Static analysis for the tunnel, enforced on every change that touches Go
+# sources, the shared Makefile, or CI definitions. Documentation-only changes
+# (e.g. README, docs/) intentionally skip this job — Go code is untouched, so
+# nothing here can regress.
+#
+# Hardening goals:
+#   • Pin golangci-lint through the official action (v6) instead of piping the
+#     project's master `install.sh` into a shell — no supply-chain surprises.
+#   • Bound every run with concurrency and a timeout, run with least-privilege
+#     `contents: read`, and allow manual dispatch for maintainer triage.
+#   • Cache the pinned zenoh-c release so cgo builds skip the download.
+# ─────────────────────────────────────────────────────────────────────────────
 name: Run Go Lint
 
 on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'tunnel/**'
+      - 'Makefile'
+      - '.github/workflows/**'
   pull_request:
-    branches:
-      - '**'
+    paths:
+      - 'tunnel/**'
+      - 'Makefile'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,26 +51,28 @@ jobs:
           go-version: '1.25'
           cache-dependency-path: tunnel/go.sum
 
-      - name: Cache Go modules
-        uses: actions/cache@v3
+      # zenoh-go links against a compiled zenoh-c, which `make lint` provisions
+      # via the Makefile. Cache the pinned release per runner+arch so the
+      # download happens once and every later run starts warm.
+      - name: Cache zenoh-c release
+        uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          path: .zenoh-c
+          key: ${{ runner.os }}-zenohc-1.9.0-${{ runner.arch }}
 
       - name: Install dependencies
         working-directory: tunnel
         run: go mod download
 
+      # The official action installs the pinned binary (v2.7.2, unchanged from
+      # the previous shell script) into the runner's cache and prepends it to
+      # PATH. `make lint` below reuses that binary and stays the single source
+      # of truth for cgo environment setup and lint flags.
       - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
-
-      - name: Add golangci-lint to PATH
-        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.7.2
+          args: --version
 
       - name: Run make lint
         run: make lint

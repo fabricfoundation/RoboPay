@@ -1,16 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Run Go Unit Tests
+#
+# The tunnel's full test suite with coverage, run on every change touching Go
+# sources, the shared Makefile, or CI definitions (documentation-only PRs skip).
+#
+# Hardening goals:
+#   • Single test execution — previously `make test` AND `make test-coverage`
+#     ran the suite twice back-to-back. Now one `make test-coverage` run
+#     produces the profile and `go tool cover -func` surfaces the summary
+#     directly in the logs.
+#   • Bound every run with concurrency and a timeout, run with least-privilege
+#     `contents: read`, and allow manual dispatch for maintainer triage.
+#   • Cache the pinned zenoh-c release (a cgo prerequisite) per runner+arch.
+# ─────────────────────────────────────────────────────────────────────────────
 name: Run Go Unit Tests
 
 on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'tunnel/**'
+      - 'Makefile'
+      - '.github/workflows/**'
   pull_request:
-    branches:
-      - '**'
+    paths:
+      - 'tunnel/**'
+      - 'Makefile'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,25 +51,27 @@ jobs:
           go-version: '1.25'
           cache-dependency-path: tunnel/go.sum
 
-      - name: Cache Go modules
-        uses: actions/cache@v3
+      # zenoh-go links against a compiled zenoh-c, which `make test-coverage`
+      # provisions via the Makefile. Cache the pinned release per runner+arch
+      # so the download happens once and every later run starts warm.
+      - name: Cache zenoh-c release
+        uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          path: .zenoh-c
+          key: ${{ runner.os }}-zenohc-1.9.0-${{ runner.arch }}
 
       - name: Install dependencies
         working-directory: tunnel
         run: go mod download
 
-      - name: Run make test
-        run: make test
-
-      - name: Run unit tests with coverage
-        run: make test-coverage
+      # `make test-coverage` provisions zenoh-c, runs the suite once with a
+      # coverage profile, then `go tool cover -func` prints the per-function
+      # summary into the run log — no redundant second pass. The cover call
+      # runs inside tunnel/ where go.mod lives.
+      - name: Run tests with coverage
+        run: |
+          make test-coverage
+          cd tunnel && go tool cover -func coverage.out
 
       - name: Upload test coverage
         uses: actions/upload-artifact@v4
