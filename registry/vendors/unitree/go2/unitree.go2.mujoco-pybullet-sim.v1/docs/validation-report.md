@@ -39,22 +39,42 @@ the robot's own stance rather than a hardcoded constant).
 
 ### Obstacle navigation (simulation/go2/test_obstacle_nav.py)
 
-The controller drives a potential-field local planner (attraction toward the
-next waypoint + repulsion from each obstacle) through the static course and
-**decides success from the physics state**: obstacle contact is detected from
-MuJoCo contact pairs, not a distance estimate. Success requires the goal to be
-reached with zero contacts; a timeout returns `TIMEOUT`, a contact returns
-`COLLISION`.
+Locomotion is a slow diagonal trot steered by a **shared calf gain** (``kc``,
+scaling ``calf = -1.8 + kc*off``) chosen from a measured calibration table
+(``STEER_TABLE`` in go2_control.py): the net travel direction is monotone and
+reproducible over -21.7 deg (kc=0.88) .. ~0 deg (kc=1.00), so a descending
+course is followed as a sequence of straight, low-drift segments. A
+potential-field local planner adds repulsion from each obstacle (each cylinder
+sits just inside its nominal waypoint segment, so the field must actively
+steer around it) and a look-ahead point on the segment keeps the requested
+bearing inside the calibrated range near the waypoint. **Success is decided
+from the physics state**: obstacle contact is detected from MuJoCo contact
+pairs, not a distance estimate. Success requires the goal to be reached with
+zero contacts; a timeout returns `TIMEOUT`, a contact returns `COLLISION`.
+
+Measured on the committed course (descending slalom, 3 obstacles, 20 cm
+tolerances):
 
 | metric | result |
 |---|---|
-| waypoints reached | 4/4 |
-| final goal distance | ≤ 0.20 m |
+| waypoints reached | 3/3 |
+| final goal distance | 0.099 m (≤ 0.20) |
 | obstacle contacts | 0 |
-| min obstacle clearance | > 0 |
+| min obstacle clearance | 0.047 m (> 0) |
 | status on success | success |
 | status on timeout | error / TIMEOUT |
 | status on collision | error / COLLISION |
+
+The course and the measured trajectory are drawn from the real physics run in
+`simulation/docs/obstacle_course_map.svg`; the raw numbers land in
+`simulation/docs/obstacle_nav_report.json`.
+
+Failure semantics are exercised adversarially
+(`simulation/go2/test_adversarial_nav.py`, report in
+`simulation/docs/obstacle_adversarial_report.json`): an unreachable goal
+returns `error` / `TIMEOUT` and a blocking obstacle returns `error` /
+`COLLISION` from real MuJoCo contact pairs (8 simultaneous contact pairs
+measured) — the skill never fakes a partial success as a win.
 
 Every successful skill returns the body to the home stance height afterwards
 (|bodyZ - 0.283| < 0.02), so paid actions can run back to back.
@@ -129,8 +149,13 @@ Commands:
     python3 test_payment_gate.py
     python3 test_result_semantics.py
     python3 test_link.py
+    python3 test_obstacle_nav.py
+    python3 test_adversarial_nav.py
     cd ../pybullet
     python3 test_sim2sim_go2.py
+
+Everything above (plus durable replay and settlement guards) also runs in one
+command: `bash simulation/verify_go2_tier1.sh`.
 
 Logs: each test prints its checks as JSON and PASS/FAIL.
 

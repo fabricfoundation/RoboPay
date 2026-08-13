@@ -30,6 +30,7 @@ def main():
     checks["fresh_key_accepted"] = store1.check_and_mark("idem-restart-A") is True
     checks["second_mark_same_instance_rejected"] = \
         store1.check_and_mark("idem-restart-A") is False
+    checks["txhash_marked"] = store1.check_and_mark("txhash-restart-1") is True
 
     # --- 2) simulate restart: brand-new store on the same file ----------
     store2 = ReplayStore(path=str(store_file))

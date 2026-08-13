@@ -7,7 +7,6 @@
   "pybullet_model": "go2_simple_kin.urdf",
   "tolerance_m": 0.01,
   "tolerance_cm": 1.0,
-  "note": "tolerance is 1 cm; observed worst-case error is 0.0002 m = 0.02 cm",
   "poses": {
     "hold": {
       "foot_errors_m": {
@@ -27,7 +26,7 @@
     },
     "sit": {
       "foot_errors_m": {
-        "fl": 0.0,
+        "fl": 0.0001,
         "fr": 0.0001,
         "rl": 0.0001,
         "rr": 0.0001
@@ -60,5 +59,6 @@
   },
   "max_error_m": 0.0002,
   "max_error_cm": 0.02,
+  "note": "tolerance is 1.0 cm; observed worst-case error is 0.0002 m = 0.02 cm",
   "verdict": "pass"
 }

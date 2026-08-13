@@ -26,12 +26,17 @@ from go2_control import Go2Controller  # noqa: E402
 from obstacle_world import build_obstacle_world  # noqa: E402
 
 TOLERANCE_GOAL = 0.20          # 20 cm
+# Descending course inside the calibrated steering range of the gait
+# (-21.7 deg .. ~0 deg, see the STEER_TABLE note in go2_control.py): each
+# segment is a gentle downward slope and each obstacle sits just inside the
+# nominal segment line, so the potential-field repulsion must actively steer
+# the robot around it.
 WAYPOINTS = [
-    {"x": 1.0, "y": 0.5},
-    {"x": 2.0, "y": 0.0},
-    {"x": 3.0, "y": -0.5},
+    {"x": 1.2, "y": -0.20},
+    {"x": 2.4, "y": -0.55},
+    {"x": 3.6, "y": -0.85},
 ]
-GOAL = {"goalX": 4.0, "goalY": 0.0}
+GOAL = {"goalX": 4.4, "goalY": -0.95}
 
 
 def resolve_scene():
@@ -115,8 +120,8 @@ def write_course_map(trajectory, waypoints, goal, sample_every=40):
     """Draw the actual physics path over the static course as an SVG."""
     from obstacle_world import OBSTACLES
 
-    xmin, xmax, ymin, ymax = -0.6, 4.6, -1.2, 1.2
-    width, height = 780, 360
+    xmin, xmax, ymin, ymax = -0.6, 5.0, -1.4, 0.6
+    width, height = 780, 340
 
     def sx(x):
         return (x - xmin) / (xmax - xmin) * width

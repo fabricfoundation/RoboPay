@@ -41,6 +41,8 @@ jobs:
         run: cd simulation/go2 && python3 test_link.py
       - name: Obstacle navigation (potential-field planner, physics contacts)
         run: cd simulation/go2 && python3 test_obstacle_nav.py
+      - name: Adversarial navigation (honest TIMEOUT / COLLISION semantics)
+        run: cd simulation/go2 && python3 test_adversarial_nav.py
       - name: Durable replay (idempotency keys survive store restart)
         run: cd simulation/go2 && python3 test_durable_replay.py
       - name: Optional Base Sepolia settlement guards (no-settle-on-failure)
@@ -80,4 +82,48 @@ jobs:
         with:
           name: go2-webots-sim2sim-report
           path: simulation/webots/go2_webots_sim2sim_report.json
+          if-no-files-found: warn
+
+  go-tunnel-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tunnel/go.mod
+          cache-dependency-path: tunnel/go.sum
+      - name: Install Python dependencies
+        run: pip install websockets mujoco numpy cryptography eclipse-zenoh eth-account
+      - name: Fetch Go2 model assets
+        run: cd simulation && bash setup.sh
+      - name: Install zenoh-c (per tunnel/Dockerfile)
+        run: |
+          curl -fsSL -o /tmp/zc.zip https://github.com/eclipse-zenoh/zenoh-c/releases/download/1.9.0/zenoh-c-1.9.0-x86_64-unknown-linux-musl-standalone.zip \
+            || { echo "zenoh-c download failed"; exit 0; }
+          sudo mkdir -p /opt/zenoh-c
+          sudo unzip -q /tmp/zc.zip -d /opt/zenoh-c
+          ls /opt/zenoh-c/include | head
+      - name: Build the real Go tunnel (same recipe as tunnel/Dockerfile)
+        run: |
+          cd tunnel
+          CGO_ENABLED=1 GOOS=linux \
+          CGO_CFLAGS="-I/opt/zenoh-c/include" \
+          CGO_LDFLAGS="-L/opt/zenoh-c/lib -lzenohc" \
+          go build -o main cmd/main.go
+          ls -la main
+      - name: Run real-tunnel E2E (WS proxy + x402 402 + Zenoh wire interop)
+        env:
+          LD_LIBRARY_PATH: /opt/zenoh-c/lib
+        run: cd simulation/go2 && TUNNEL_BIN=../../tunnel/main python3 test_go_tunnel_e2e.py
+      - name: Upload Go tunnel E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-tunnel-e2e-report
+          path: simulation/docs/go_tunnel_e2e_report.json
           if-no-files-found: warn

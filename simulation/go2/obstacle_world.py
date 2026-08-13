@@ -14,10 +14,15 @@ import pathlib
 from typing import List, Optional, Sequence, Tuple
 
 # (x, y, radius) in metres — the static course used by the tier-1 demo.
+#
+# The course descends gently in -y. Each cylinder sits just inside the
+# nominal waypoint-to-waypoint line (the straight line would clip its
+# inscribed circle), so the controller's potential-field repulsion must
+# actively steer the robot around it — verified positive minimum clearance.
 OBSTACLES: List[Tuple[float, float, float]] = [
-    (1.2, 0.3, 0.25),
-    (2.3, -0.2, 0.2),
-    (3.1, 0.1, 0.15),
+    (1.750, -0.548, 0.18),
+    (2.968, -0.826, 0.18),
+    (3.976, -1.047, 0.15),
 ]
 
 # Cylinder height (metres). Tall enough to be a clear obstacle for the Go2

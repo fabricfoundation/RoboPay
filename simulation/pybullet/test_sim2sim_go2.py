@@ -142,6 +142,7 @@ def main():
               "model": os.path.relpath(xml, HERE).replace("\\", "/"),
               "pybullet_model": os.path.relpath(urdf, HERE).replace("\\", "/"),
               "tolerance_m": TOLERANCE,
+              "tolerance_cm": round(TOLERANCE * 100, 1),
               "poses": {}}
     worst = 0.0
     for name, (joint_pos, foot_pos, _metrics, body_pose) in poses.items():
@@ -157,6 +158,10 @@ def main():
 
     ok = worst <= TOLERANCE
     report["max_error_m"] = round(worst, 4)
+    report["max_error_cm"] = round(worst * 100, 2)
+    report["note"] = (f"tolerance is {round(TOLERANCE*100,1)} cm; observed "
+                      f"worst-case error is {worst:.4f} m = "
+                      f"{worst*100:.2f} cm")
     report["verdict"] = "pass" if ok else "fail"
     with open(HERE / "go2_sim2sim_report.json", "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
