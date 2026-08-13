@@ -2,15 +2,17 @@
 
 Booster K1 Tier 1 -- `k1_navigate_avoid_obstacles` skill.
 
-## Test suite
-python3 -m pytest tests/ -v
-| Module | Tests | Status | Covers |
+## Test suite summary
+
+| Layer | Tests | Status | Covers |
 |---|---|---|---|
-| `test_action_validator.py` | 11 | PASSED | payment/envelope validation: missing fields, tampered params hash, unverified/pending/expired/already-settled payment, wrong network/asset/amount |
-| `test_replay_guard.py` | 7 | PASSED | idempotencyKey/actionId/authorizationId replay rejection, legitimate independent actions, concurrent-duplicate reservation |
-| `test_bridge.py` | 6 | PASSED | full `_on_action` flow with simulator + Zenoh mocked: valid dispatch, unpaid rejection (no dispatch), replay rejection (no second dispatch), simulator failure/collision -> status=error |
-| `test_profile.py` | 12 | PASSED | registry YAML cross-consistency (profileId, skillId, topics) and alignment with the code's actual enforcement |
-| **Total** | **36** | **PASSED** | |
+| Python -- `test_bridge.py` | 8 | PASSED | event parsing, wrong skill, bad params, replay, simulator failure/collision |
+| Python -- `test_profile.py` | 12 | PASSED | registry YAML cross-consistency, envelope matches the tunnel's real schema |
+| Python -- `test_replay_guard.py` | 7 | PASSED | bridge-local SQLite dedup (idempotencyKey/actionId/authorizationId) |
+| Go -- `internal` (pre-existing) | 4 | PASSED | WS client dial/backoff, untouched by this submission |
+| Go -- `internal/handlers` | 21 | PASSED | fail-closed allowlist, async 202/status contract, durable idempotency, verify-only gate, execution watcher |
+| Go -- `cmd` (e2e) | 3 | PASSED | full router wiring against a recording facilitator: unpaid rejection, deferred settlement exactly-once, settlement-failure honesty |
+| **Total** | **55** | **PASSED** | |
 
 ## MuJoCo run (real physics, not mocked)
 python3 simulation/mujoco/runner.py --goal_x 5.0 --goal_y 0.0 --max_time_sec 60
@@ -21,16 +23,15 @@ python3 simulation/mujoco/runner.py --goal_x 5.0 --goal_y 0.0 --max_time_sec 60
 | path_length_m | 5.4299 |
 | collision_count | 0 |
 | sim_time_sec | 30.5 |
-| physics_steps | 3050 |
-| policy_calls | 305 |
 
 Robot starts at (0, 0), navigates around two static obstacles
 (cylinder at (2.5, 0), box at (1.2, 1.0)) to a goal at (5, 0).
 
 ## Webots run (real physics, independent engine, same policy code)
-extern-controller mode, see docs/README.md for the exact procedure
 
-GOAL_X=5.0 GOAL_Y=0.0 MAX_TIME_SEC=60 python3 k1_navigation.py
+Extern-controller mode; see `docs/README.md` for the exact two-process
+procedure.
+
 | Metric | Value |
 |---|---|
 | status | success |
@@ -38,11 +39,6 @@ GOAL_X=5.0 GOAL_Y=0.0 MAX_TIME_SEC=60 python3 k1_navigation.py
 | path_length_m | 5.3593 |
 | collision_count | 0 |
 | sim_time_sec | 9.9 |
-| physics_steps | 990 |
-| policy_calls | 198 |
-
-Identical scenario (same start pose, same goal, same obstacle
-positions) run through Webots' ODE physics instead of MuJoCo's.
 
 ## Sim-to-sim comparison
 python3 simulation/sim_to_sim_validate.py --skip-run
@@ -53,40 +49,56 @@ python3 simulation/sim_to_sim_validate.py --skip-run
 | path_length_m | 5.4299 | 5.3593 | 1.3% | 15% rel | PASS |
 | collision_count | 0 | 0 | 0 | exact match | PASS |
 
-**Overall: PASSED.**
+**Overall: PASSED.** `sim_time_sec` is intentionally excluded from
+comparison -- see Limitations.
 
-`sim_time_sec` is intentionally not compared -- it differs (30.5s vs
-9.9s) because each engine's `basicTimeStep`/`timestep` resolution
-interacts differently with the policy's fixed-rate tick, not because
-the trajectories differ. Spatial and outcome metrics, which are what
-actually matter for "did the robot do the task correctly," agree
-within 1-2%.
+## Payment gate: verify-only, deferred settlement
 
-## End-to-end bridge run (real Zenoh, real payment gate, real simulator)
+Architecture (see `docs/README.md` for the full flow diagram):
+POST /action --(X402VerifyOnly: verify, never settle)--> PostAction
+--(fail-closed allowlist check, reserve actionId)--> robot/tunnel/action
+--> bridge --> simulator --> robot/tunnel/result
+--> ExecutionWatcher --(settle iff status=success)--> facilitator
+`tunnel/cmd/e2e_test.go` wires the real gate + watcher against a
+recording facilitator (no real network, analogous to the recording-
+facilitator pattern used elsewhere in this repo's x402 test suites)
+and proves:
 
-Raw session log: `docs/evidence/terminal/bridge-e2e-session.log`.
-
-| Scenario | Sent | Result | Simulator dispatched? |
-|---|---|---|---|
-| Valid paid action | `payment.verified=true, status=authorized, settled=false` | `status=success`, metrics matching the manual MuJoCo run above | Yes, once |
-| Unpaid action | `payment.verified=false` | `status=rejected`, `errorCode=payment_not_verified` | No |
-| Replay of the first action's actionId | same `actionId`, new `idempotencyKey`/`authorizationId` | `status=rejected`, `errorCode=replay_detected` | No (not dispatched a second time) |
+| Scenario | Facilitator calls observed |
+|---|---|
+| Unpaid `POST /action` | `Verify`: 0, `Settle`: 0 (rejected 402 before reaching the facilitator at all) |
+| Genuine success result | `Settle`: exactly 1, called only after the result arrived -- never at accept time |
+| Failure result | `Settle`: 0 |
+| Replayed success result (already settled) | `Settle`: 0 additional calls |
+| Facilitator-side settlement failure | Recorded as `state=settlement_failed, settled=false` -- never silently upgraded to success |
 
 ## Limitations
 
-- The K1 base is represented as a geometric proxy (cylinder torso,
-  planar slide+slide+hinge joints) in both simulators. Booster's
-  official CAD/URDF for the K1 is not publicly available, so no
-  submission using it could include a real CAD model without
-  redistributing unlicensed assets. This is a simplification of the
-  robot's visual/collision geometry, not of the RoboPay integration,
-  payment gate, or policy logic, which all operate identically
+- The K1 base is a geometric proxy (cylinder torso, planar
+  slide+slide+hinge joints) in both simulators. This submission does
+  not have access to Booster's official CAD/URDF. This is a
+  simplification of the robot's geometry only -- the RoboPay
+  integration, payment gate, and policy logic operate identically
   regardless of the geometry used.
-- The replay guard's SQLite database is local to a single bridge
-  process/instance. A multi-instance deployment would need a shared
-  store; out of scope for this Tier 1 simulation submission.
+- `sim_time_sec` differs between MuJoCo (30.5s) and Webots (9.9s) for
+  the same scenario, because each engine's timestep resolution
+  interacts differently with the policy's fixed-rate tick, not
+  because the trajectories differ. `sim_to_sim_validate.py`
+  deliberately does not compare this field.
+- No live Base Sepolia transaction or real EVM-signed
+  `PAYMENT-SIGNATURE` header is included -- this environment does not
+  have wallet/signing credentials. The verify/settle separation --
+  the actual behavior under scrutiny -- is instead proven directly
+  against the production `ExecutionWatcher` and `IdempotencyStore`
+  types using a recording facilitator, which observes and asserts on
+  the exact same code path a real facilitator would exercise, minus
+  the network call itself.
+- The bridge-local `replay_guard.py` SQLite store is a secondary,
+  single-process dedup layer. The tunnel's file-backed
+  `IdempotencyStore` (survives a tunnel restart; see
+  `TestIdempotencyStore_PersistsAcrossReopen`) is the authoritative
+  replay guard for payment/settlement purposes.
 - `sim_to_sim_validate.py --skip-run` requires both `results/metrics.json`
   files to already exist; the Webots leg cannot be auto-launched by
   the script because Webots' extern-controller mode requires two
-  separate processes (see docs/README.md). This is a reproducibility
-  step documented explicitly, not a gap in the validation logic.
+  separate processes (see `docs/README.md`).
