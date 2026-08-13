@@ -66,10 +66,12 @@ skills:
       timeoutSec: 8
   - skillId: navigate_obstacle
     description: >-
-      Navigate through a static obstacle course to a goal pose. Steering is a
-      potential-field local planner (attraction toward the next waypoint +
-      repulsion from each obstacle) driving the same static-stability
-      hip-abduction shuffle as turn_to_face; obstacle contact is detected by
+      Navigate through a static obstacle course to a goal pose. Steering uses a
+      measured calf-gain calibration (STEER_TABLE: shared calf gain kc yields a
+      monotone straight-line net heading over -21.7..0 deg) driving a slow
+      diagonal trot; a potential-field local planner pulls toward a look-ahead
+      point on the waypoint segment and repels from obstacles, then the robot
+      settles to a static stance at the goal. Obstacle contact is detected by
       the physics engine (MuJoCo contact pairs), not a distance estimate.
       Reports waypoints reached, path length, minimum clearance, contacts,
       final goal distance and heading error. Returns success only when the
