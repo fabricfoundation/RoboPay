@@ -4,43 +4,103 @@ profileId: booster.k1.obstacle-nav-sim.v1
 claimBoundary:
   scope: simulation-only
   claimed: >-
-    A real, unmocked run of the RoboPay integration gate
-    (bridge/booster_k1_zenoh_bridge.py) over a live Zenoh session,
-    covering three scenarios in a single continuous session: a valid
-    paid action reaching the simulator and returning a correlated
-    success result, an unpaid action rejected before simulator
-    dispatch, and a replayed actionId rejected before a second
-    simulator dispatch.
+    (1) A real, unmocked policy-driven MuJoCo and Webots run of the
+    obstacle-avoidance skill, cross-validated by sim_to_sim_validate.py.
+    (2) A real, unmocked Go router/gate/watcher wiring
+    (tunnel/cmd/e2e_test.go) proving the payment-verification and
+    deferred-settlement contract against a recording facilitator:
+    zero facilitator calls for an unpaid request, exactly one Settle
+    call and only after a genuine success result, and zero additional
+    Settle calls for a failure result, a facilitator-side settlement
+    failure, or a replayed success result.
   notClaimed: >-
-    This evidence does not involve real x402 payment infrastructure,
-    a real Tunnel service, or physical hardware -- the payment fields
-    in the demo action envelopes are constructed directly by
-    demo/send_test_action.py to exercise the bridge's validation
-    logic, not produced by an actual x402 payment flow. The
-    action_validator.py logic that would accept or reject a real
-    x402-verified payment is unit-tested separately (see
-    tests/test_action_validator.py) against the same field contract.
+    No live Base Sepolia transaction or real EVM-signed
+    PAYMENT-SIGNATURE header exists in this submission -- this
+    environment has no wallet/signing credentials, and constructing
+    one is out of scope. The recording facilitator in
+    tunnel/cmd/e2e_test.go never touches a real network; it observes
+    and asserts on the exact same ExecutionWatcher/IdempotencyStore
+    code path a real facilitator interaction would exercise, minus
+    the network call itself. BK1-E2E-001 below documents a real Zenoh
+    session, but against an earlier architecture where the bridge
+    itself validated payment fields in the Zenoh payload -- payment
+    verification has since moved entirely into the Go tunnel (see
+    BK1-GO-E2E-001), and the bridge no longer receives payment data at
+    all, so BK1-E2E-001 is retained only as historical evidence of
+    the bridge's dispatch/replay behavior, not of the current payment
+    gate.
 
 evidence:
+  - evidenceId: BK1-GO-E2E-001
+    scope: real-go-router-gate-watcher-against-recording-facilitator
+    file: ../../../../../../../tunnel/cmd/e2e_test.go
+    captureDate: 2026-08-11
+    source:
+      description: >-
+        Go test file exercising the production gin.Engine wiring
+        (X402VerifyOnly middleware + PostAction + GetActionStatus),
+        the production ExecutionWatcher, and the production
+        IdempotencyStore, all unmodified from tunnel/cmd/main.go's
+        real construction -- only the FacilitatorClient is a
+        recording fake (no real network/funds).
+      redaction: none -- no secrets; all identifiers are synthetic test values.
+    trace:
+      unpaidRequest:
+        request: "POST /action with no PAYMENT-SIGNATURE header"
+        result: "402, zero Verify calls, zero Settle calls"
+      genuineSuccess:
+        request: "ExecutionWatcher.HandleResult({actionId, status: success}) for a reserved action with stored payment data"
+        result: "exactly 1 Settle call; state=succeeded, settled=true"
+      failureResult:
+        request: "ExecutionWatcher.HandleResult({actionId, status: error})"
+        result: "0 Settle calls; settled remains false"
+      replayedSuccess:
+        request: "the same success result delivered a second time for an already-settled actionId"
+        result: "0 additional Settle calls"
+      settlementFailure:
+        request: "genuine success result, but the (fake) facilitator's Settle returns success=false"
+        result: "state=settlement_failed, settled=false -- never upgraded to success"
+    visibleEvidence:
+      - "go test ./cmd/... -v: TestE2E_ValidPaidAction_VerifiesOnceDispatchesOnceSettlesOnlyAfterSuccess PASS"
+      - "go test ./cmd/... -v: TestE2E_SettlementOnlyAfterTerminalSuccess PASS"
+      - "go test ./cmd/... -v: TestE2E_SettlementFailure_DoesNotMarkSettled PASS"
+    limitations:
+      - No real x402 facilitator network call; no live Base Sepolia transaction.
+      - >-
+        Does not exercise the WebSocket/Fabric-proxy transport layer
+        (tunnel/internal/client.go) -- tests call the gin.Engine
+        directly via httptest, which is the same http.Handler the
+        real WS client dispatches into, so the payment/settlement
+        logic under test is identical, but the proxy transport itself
+        is untested here.
+
   - evidenceId: BK1-E2E-001
+    status: historical -- describes an earlier architecture, retained for
+      the record rather than deleted
     file: terminal/bridge-e2e-session.log
     sha256: 705cbe3ebc54e22c211268abf5b686e942160bcb1f5cbbb9fb7c648b365a2876
     bytes: 2184
     format: plain-text-log
     captureDate: 2026-08-01
-    scope: real-bridge-real-zenoh-real-mujoco-three-scenarios
+    scope: real-bridge-real-zenoh-real-mujoco-three-scenarios-old-architecture
     source:
       description: >-
-        Direct terminal output from bridge/booster_k1_zenoh_bridge.py
-        (subscriber/dispatcher side), captured verbatim during a live
-        session against a real Zenoh router and the real MuJoCo
-        runner. Client-side (demo/send_test_action.py) results for
-        the same three requests are appended as comments at the end
-        of the log for cross-reference.
+        Direct terminal output from an earlier version of
+        bridge/booster_k1_zenoh_bridge.py, from before payment
+        verification moved into the Go tunnel. At the time, the
+        bridge itself parsed and validated payment fields
+        (payment.verified, payment.status, etc.) carried directly in
+        the robot/tunnel/action Zenoh payload; that code
+        (action_validator.py) has since been deleted as dead code,
+        because the tunnel no longer publishes payment fields to
+        Zenoh at all. This log remains accurate evidence of the
+        bridge's dispatch-once and replay-rejection behavior, which
+        is unchanged in the current architecture (see test_bridge.py);
+        it is NOT current evidence of how payment is verified.
       redaction: >-
         none -- no secrets, wallet addresses, or personal data appear
-        in bridge log output (payment fields in the demo envelopes are
-        synthetic placeholder values, not real credentials).
+        in bridge log output (payment fields in the demo envelopes
+        were synthetic placeholder values, not real credentials).
     trace:
       scenario1:
         actionId: act_12936446e2a44324
@@ -57,26 +117,12 @@ evidence:
         request: "same actionId, new idempotencyKey and authorizationId"
         result: "status=rejected, errorCode=replay_detected"
         simulatorDispatched: false
-    visibleEvidence:
-      - >-
-        Dispatching action_id=... to MuJoCo simulator logged exactly
-        once for the valid action, and never for the unpaid or
-        replayed requests
-      - Zenoh session opened and subscription established on robot/tunnel/action
-      - Published result actionId=... status=success for the valid action
-      - "Rejected action_id=...: payment_not_verified for the unpaid action"
-      - >-
-        Rejected replay for action_id=...: replay detected (actionId
-        already used) for the replay attempt
     limitations:
+      - Describes a bridge-level payment check that no longer exists in the current code.
       - Synthetic x402 payment fields, not a real Tunnel/x402 payment flow.
       - >-
         Single-process, single-session demonstration; does not cover
         concurrent multi-client load or a distributed replay-guard store.
-      - >-
-        Does not include a captured screenshot/video; this is a raw
-        terminal log, which is the actual, complete output rather
-        than a cropped visual excerpt.
 
   - evidenceId: BK1-MUJOCO-001
     file: ../../simulation/mujoco/results/metrics.json
