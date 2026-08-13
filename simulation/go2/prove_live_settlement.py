@@ -39,7 +39,7 @@ import pathlib
 import secrets
 import sys
 
-HERE = pathlib.Path(__file__).parent
+HERE = pathlib.Path(__file__).resolve().parent
 DOCS = HERE.parent / "docs"
 sys.path.insert(0, str(HERE))
 
@@ -160,7 +160,15 @@ def proof_success(settler, config):
         "balanceBeforeUSDC": balance_before / 1_000_000,
     }
     if receipt.success:
+        # Public RPC nodes can lag the balance write by a moment; re-read a
+        # few times so the reported delta is the confirmed on-chain value.
+        import time
         balance_after = settler.get_balance()
+        for _ in range(5):
+            if balance_after > balance_before:
+                break
+            time.sleep(1.5)
+            balance_after = settler.get_balance()
         evidence["balanceAfterUSDC"] = balance_after / 1_000_000
         evidence["deltaUSDC"] = (balance_after - balance_before) / 1_000_000
     _write("settlement-proof.json", evidence)

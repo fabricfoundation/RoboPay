@@ -43,6 +43,7 @@ Security:
 import os
 import json
 import logging
+import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
@@ -389,7 +390,9 @@ class BaseSepoliaSettler:
             raise RuntimeError("BaseSepoliaSettler requires web3.py and valid config")
 
         self.config = config
-        self.w3 = Web3(Web3.HTTPProvider(config.rpc_url))
+        self.w3 = Web3(Web3.HTTPProvider(
+            config.rpc_url,
+            request_kwargs={"headers": {"User-Agent": "robopay-settlement/1.0"}}))
         self.account = Account.from_key(config.private_key)
         self.usdc = self.w3.eth.contract(
             address=Web3.to_checksum_address(config.usdc_contract),
@@ -472,23 +475,41 @@ class BaseSepoliaSettler:
 
             signed = self.w3.eth.account.sign_transaction(
                 tx, self.config.private_key)
-            tx_hash = self.w3.eth.send_raw_transaction(signed.rawTransaction)
+            # web3.py v7 renamed rawTransaction -> raw_transaction; keep a
+            # fallback so the module works on both API generations.
+            raw = getattr(signed, "raw_transaction", None) or getattr(
+                signed, "rawTransaction", None)
+            tx_hash = self.w3.eth.send_raw_transaction(raw)
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash,
                                                                timeout=120)
 
             if receipt.status == 1:
-                used = self.usdc.functions.authorizationState(
-                    from_addr, nonce).call()
+                # The authorizationState write may lag a public RPC node by a
+                # moment; retry a few times so the recorded verdict reflects
+                # the confirmed on-chain state rather than a stale read.
+                used = False
+                for _ in range(5):
+                    try:
+                        used = bool(self.usdc.functions.authorizationState(
+                            from_addr, nonce).call())
+                    except Exception:  # noqa: BLE001
+                        used = False
+                    if used:
+                        break
+                    time.sleep(1.5)
                 logger.info(
                     f"Settlement successful: {tx_hash.hex()} "
                     f"(authorizationState used: {used})")
+                block_number = getattr(
+                    receipt, "block_number", None) or receipt.blockNumber
+                gas_used = getattr(receipt, "gas_used", None) or receipt.gasUsed
                 return SettlementReceipt(
                     success=True,
                     tx_hash=tx_hash.hex(),
-                    block_number=receipt.blockNumber,
-                    gas_used=receipt.gasUsed,
+                    block_number=block_number,
+                    gas_used=gas_used,
                     facilitator_verified=bool(self.config.facilitator_url),
-                    authorization_verified=True,
+                    authorization_verified=used,
                 )
             return SettlementReceipt(
                 success=False,

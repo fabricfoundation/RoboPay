@@ -159,15 +159,54 @@ command: `bash simulation/verify_go2_tier1.sh`.
 
 Logs: each test prints its checks as JSON and PASS/FAIL.
 
+## Live on-chain settlement (Base Sepolia, EIP-3009)
+
+The optional settlement module was exercised against the real Base Sepolia
+chain (chainId **84532**) using the official Circle **USDC** contract
+`0x036CbD53842c5426634e7929541eC2318f3dCF7e` (name `USDC`, EIP-3009 version
+`2`, decimals 6 — the version/domain match the module's EIP-712 domain).
+Three independent, verifiable settlement transactions settled **1.0 USDC
+each** from the payer to the payee using `transferWithAuthorization`:
+
+| # | txHash | block | gasUsed |
+|---|---|---|---|
+| 1 | `0x64bf269dbc11ca8c24f2b09d038306607035d06669891c84bb3cde029027b6d8` | 45416876 | 100380 |
+| 2 | `0x3dfc298391f1a66e1ecbc34ce942b090c00346b98879dae80b8e5d15a7d2d897` | 45416922 | 83288 |
+| 3 | `0x6bb1c8edc789068cdba95f556a21720f9d55b564824be07eb758b36815fbb504` | 45416937 | 83256 |
+
+For each successful settlement the receipt logs contain the EIP-3009
+`AuthorizationUsed(authorizer, nonce)` event (topic
+`0x98de5035...` = `keccak256("AuthorizationUsed(address,bytes32)")`) and the
+ERC-20 `Transfer` event of exactly 1.0 USDC from payer to payee. On-chain
+post-checks confirmed the payee's balance increased by exactly 1.0 USDC per
+transaction and `authorizationState(authorizer, nonce)` returns `true`
+(consumed) for every nonce used. All of this was funded **entirely from free
+faucets** (Circle USDC faucet + Coinbase CDP Portal Base Sepolia ETH faucet;
+total gas spent across all three settlements was under 0.000002 ETH) — no
+deposited capital was required to prove settlement.
+
+The **no-settle-on-failure contract** was also proven live: with the relay in
+a `timeout` result state, `settle_if_success` short-circuits before any
+transaction is built or broadcast, and the relay's on-chain nonce is provably
+unchanged before vs. after (relayNonceBefore == relayNonceAfter ==
+relayNonceUnchanged == true).
+
+Machine-readable evidence:
+`simulation/docs/settlement-proof.json` (success) and
+`simulation/docs/settlement-proof-failure.json` (failure).
+Reproduce with `simulation/go2/prove_live_settlement.py` (requires
+`PRIVATE_KEY`, `PAYEE_ADDRESS`, `BASE_SEPOLIA_RPC_URL`; **never commit keys**).
+
 Known limitations: simulator-only profile. The x402 gate (402/409, signed
 receipts, settle-only-on-success) is exercised against the same local
 facilitator the robot link trusts — a **simulator gate that mirrors the
 tunnel's x402 middleware decision semantics**, not the compiled Go tunnel
 binary. Optional on-chain settlement (Base Sepolia, EIP-3009
 TransferWithAuthorization) is available via `simulation/go2/
-settlement_base_sepolia.py` when `BASE_SEPOLIA_RPC_URL` + `PRIVATE_KEY` are
-set; by default settlement stays on the local facilitator and no on-chain
-transaction happens. Replay protection is file-backed
+settlement_base_sepolia.py` and has been **verified live on-chain** (see the
+"Live on-chain settlement" section above); by default settlement stays on the
+local facilitator and no on-chain transaction happens. Replay protection is
+file-backed
 (`simulation/go2/test_durable_replay.py` proves idempotencyKeys survive a
 store restart). The wire contract is exercised through peer-mode Zenoh
 exactly as the tunnel would publish it (see simulation/README.md).

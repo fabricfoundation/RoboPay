@@ -1,0 +1,13 @@
+{
+  "phase": "failure",
+  "chainId": 84532,
+  "resultStatus": "timeout",
+  "settlementReturned": null,
+  "settled": false,
+  "txHash": null,
+  "relayNonceBefore": 3,
+  "relayNonceAfter": 3,
+  "nonceUnchanged": true,
+  "explainer": "settle_if_success short-circuits on any non-success result before a transaction can be built or broadcast; the unchanged relay nonce is the on-chain evidence",
+  "error": null
+}
