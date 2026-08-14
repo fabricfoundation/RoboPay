@@ -290,8 +290,10 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 			"PAYMENT-REQUIRED",
 			"PAYMENT-RESPONSE",
 		},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
+		// AllowCredentials must stay false: the spec forbids combining a
+		// wildcard origin with credentials, and the tunnel never uses cookies
+		// (payments are authorized via x402 headers, not browser sessions).
+		MaxAge: 12 * time.Hour,
 	}))
 
 	facilitatorClient := x402http.NewHTTPFacilitatorClient(&x402http.FacilitatorConfig{

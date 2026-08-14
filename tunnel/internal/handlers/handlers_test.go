@@ -41,3 +41,19 @@ func TestPostAction_InvalidJSON(t *testing.T) {
 		t.Fatalf("expected status 400, got %d", res.Code)
 	}
 }
+
+func TestPostAction_RejectsOversizedBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	h := NewHandlers(zap.NewNop())
+	router.POST("/action", h.PostAction)
+
+	req := httptest.NewRequest(http.MethodPost, "/action", bytes.NewReader(make([]byte, maxActionBodyBytes+1)))
+	res := httptest.NewRecorder()
+
+	router.ServeHTTP(res, req)
+
+	if res.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected status 413, got %d", res.Code)
+	}
+}

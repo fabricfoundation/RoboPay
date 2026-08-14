@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"sync"
@@ -14,6 +15,10 @@ import (
 
 const (
 	RobotActionTopic = "robot/tunnel/action"
+
+	// maxActionBodyBytes caps paid action requests at 1 MiB so a client can
+	// never force unbounded memory use on the tunnel's paid endpoint.
+	maxActionBodyBytes = 1 << 20
 )
 
 type zenohPublisher interface {
@@ -74,8 +79,17 @@ func NewHandlers(logger *zap.Logger) *Handlers {
 }
 
 func (h *Handlers) PostAction(c *gin.Context) {
+	// Cap the request body so a payer can never stream an unbounded payload
+	// at the paid endpoint.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxActionBodyBytes)
+
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "request body exceeds the 1 MiB limit"})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 		return
 	}
@@ -115,7 +129,17 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	if err != nil {
 		h.Logger.Warn("failed to marshal action event", zap.Error(err))
 	} else {
-		h.Logger.Info("publishing action event", zap.Any("event", event))
+		// The event carries the payer's signed x402 authorization inside
+		// transaction_details.payment_payload — never log it at Info. Log a
+		// redacted summary here; the full event is available at Debug for
+		// local troubleshooting only.
+		h.Logger.Debug("publishing action event", zap.Any("event", event))
+		h.Logger.Info("publishing action event",
+			zap.String("topic", RobotActionTopic),
+			zap.String("timestamp", event["timestamp"].(string)),
+			zap.Bool("payment_payload_present", paymentPayload != nil),
+			zap.Int("event_bytes", len(eventBytes)),
+		)
 		pub, err := getZenohPublisher()
 		if err != nil {
 			h.Logger.Warn("failed to initialize zenoh publisher", zap.Error(err))
