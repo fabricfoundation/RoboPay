@@ -72,6 +72,26 @@ and proves:
 | Replayed success result (already settled) | `Settle`: 0 additional calls |
 | Facilitator-side settlement failure | Recorded as `state=settlement_failed, settled=false` -- never silently upgraded to success |
 
+## Live Base Sepolia payment (real facilitator, real wallet, real settlement)
+
+Full detail: `docs/evidence/base-sepolia/live-payment-e2e.md`.
+
+| Field | Value |
+|---|---|
+| Wallet | `0xE7eB3Ff85Fbe0A4e8ba79e83Be6363F53B3dbbA2` (dedicated testnet wallet) |
+| actionId | `f332a0d7-df3e-4f33-a3f7-9f9318d983aa` |
+| Simulator result | `status=success, distance_to_goal_m=0.2979` (identical to the manual MuJoCo run above) |
+| Final state | `succeeded, settled=true` |
+| On-chain transaction | `0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54` |
+| Verification | `status=1` (SUCCESS), block 45462806, independently re-fetchable via any Base Sepolia RPC |
+
+Ran against `tunnel/cmd/localserver` -- an identical copy of the
+production router (`X402VerifyOnly` + `PostAction` + `GetActionStatus`
++ `ExecutionWatcher`), bound to a real local TCP port instead of the
+Fabric WebSocket proxy this environment cannot reach. Every line of
+payment-gate and settlement code exercised is the same code
+`tunnel/cmd/main.go` runs in production.
+
 ## Limitations
 
 - The K1 base is a geometric proxy (cylinder torso, planar
@@ -85,14 +105,14 @@ and proves:
   interacts differently with the policy's fixed-rate tick, not
   because the trajectories differ. `sim_to_sim_validate.py`
   deliberately does not compare this field.
-- No live Base Sepolia transaction or real EVM-signed
-  `PAYMENT-SIGNATURE` header is included -- this environment does not
-  have wallet/signing credentials. The verify/settle separation --
-  the actual behavior under scrutiny -- is instead proven directly
-  against the production `ExecutionWatcher` and `IdempotencyStore`
-  types using a recording facilitator, which observes and asserts on
-  the exact same code path a real facilitator would exercise, minus
-  the network call itself.
+- A live Base Sepolia transaction backs this submission (see the
+  Payment gate section above and
+  `docs/evidence/base-sepolia/live-payment-e2e.md`). The remaining gap
+  is narrower: the production Fabric WebSocket proxy transport itself
+  is not exercised, since this environment cannot reach the Fabric
+  proxy -- `tunnel/cmd/localserver` substitutes an identical router
+  bound to a real local TCP port instead, so the payment-gate and
+  settlement code under test is byte-for-byte the production code.
 - The bridge-local `replay_guard.py` SQLite store is a secondary,
   single-process dedup layer. The tunnel's file-backed
   `IdempotencyStore` (survives a tunnel restart; see

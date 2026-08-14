@@ -42,13 +42,18 @@ same architecture rather than inventing a robot-local alternative.
   differently with the policy's fixed-rate tick. Spatial metrics agree
   closely; `sim_time_sec` is intentionally excluded from
   `sim_to_sim_validate.py`'s comparison for that reason.
-- No live Base Sepolia transaction or real EVM-signed payment header is
-  included -- this environment does not have wallet/signing credentials.
-  The verify/settle separation is instead proven directly against the
-  production `ExecutionWatcher`/`IdempotencyStore` types using a
-  recording facilitator (`tunnel/cmd/e2e_test.go`), the same testing
-  pattern (fake facilitator, no real network) used elsewhere in this
-  repo's x402 test suites.
+- A live Base Sepolia transaction now backs this submission:
+  `docs/evidence/base-sepolia/live-payment-e2e.md`, real wallet-signed
+  EIP-3009 payment, real x402.org facilitator, real on-chain USDC
+  settlement (tx `0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54`,
+  independently verifiable on Base Sepolia). The remaining gap is
+  narrower: the production Fabric WebSocket proxy transport itself
+  (`tunnel/internal/client.go`) is not exercised, since this
+  environment cannot reach the Fabric proxy --
+  `tunnel/cmd/localserver` substitutes an identical router bound to a
+  real local TCP port instead. The recording-facilitator suite
+  (`tunnel/cmd/e2e_test.go`) remains as fast, deterministic CI
+  coverage of the same verify/settle separation.
 - The bridge-local `replay_guard.py` SQLite store is a secondary,
   belt-and-braces dedup layer scoped to one bridge process; the
   tunnel's file-backed `IdempotencyStore` is the authoritative,
