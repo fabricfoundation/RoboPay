@@ -185,7 +185,10 @@ func (c *Client) dispatchRequest(ctx context.Context, conn *websocket.Conn, requ
 		}
 	}
 
-	c.logger.Info("sending response envelope", zap.String("id", request.ID), zap.String("method", request.Method), zap.String("path", request.Path), zap.Any("headers", response.Headers), zap.Int("status", response.Status))
+	// Response headers may carry credentials (Set-Cookie, authorization
+	// material) relayed from the backend — keep them out of Info logs and
+	// surface them only at Debug for local troubleshooting.
+	c.logger.Debug("sending response envelope", zap.String("id", request.ID), zap.String("method", request.Method), zap.String("path", request.Path), zap.Any("headers", response.Headers), zap.Int("status", response.Status))
 
 	bodyBytes, _ := io.ReadAll(res.Body)
 	response.Body = bodyBytes

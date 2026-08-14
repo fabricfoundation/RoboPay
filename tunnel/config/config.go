@@ -223,7 +223,11 @@ func LoadConfig(path string) (*Config, error) {
 }
 
 func loadAIPConfig(cfg *Config, defaultChainID int) error {
-	cfg.AIPEnabled = getBoolEnv("AIP_ENABLED", false)
+	enabled, err := getBoolEnv("AIP_ENABLED", false)
+	if err != nil {
+		return err
+	}
+	cfg.AIPEnabled = enabled
 
 	cfg.AIPUserID = os.Getenv("AIP_USER_ID")
 	cfg.AIPPrivyToken = getEnvOrDefault("UNIBASE_PROXY_AUTH", os.Getenv("PRIVY_TOKEN"))
@@ -248,14 +252,17 @@ func loadAIPConfig(cfg *Config, defaultChainID int) error {
 	return nil
 }
 
-func getBoolEnv(key string, defaultVal bool) bool {
+// getBoolEnv reads a boolean environment variable. Unlike the silent fallback
+// used before, a malformed value (e.g. AIP_ENABLED=tru) is an error — the
+// operator should never be left wondering why a feature is disabled.
+func getBoolEnv(key string, defaultVal bool) (bool, error) {
 	v := os.Getenv(key)
 	if v == "" {
-		return defaultVal
+		return defaultVal, nil
 	}
 	b, err := strconv.ParseBool(v)
 	if err != nil {
-		return defaultVal
+		return false, fmt.Errorf("invalid boolean value for %s: %q", key, v)
 	}
-	return b
+	return b, nil
 }
