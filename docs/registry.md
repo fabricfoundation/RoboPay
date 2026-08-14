@@ -85,6 +85,11 @@ It also prints a full inventory for reviewers. To validate locally:
 python scripts/validate_registry.py registry
 ```
 
+> **Extensibility.** The CI job also acts as the registry gate's shell: any
+> stricter per-profile validator placed at `scripts/registry/validate_*.py` is
+> auto-discovered and enforced by the same job. Permissive structure checks and
+> strict cross-document checks coexist under one gate instead of diverging.
+
 ## Submission checklist
 
 - [ ] Profile lives under `registry/vendors/<vendor>/<robot>/<profile>.v1/`
