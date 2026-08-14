@@ -13,24 +13,68 @@ claimBoundary:
     call and only after a genuine success result, and zero additional
     Settle calls for a failure result, a facilitator-side settlement
     failure, or a replayed success result.
+    (3) A live, real-money-equivalent proof on Base Sepolia testnet
+    (BK1-LIVE-001): a wallet-signed EIP-3009 payment authorization,
+    verified against the real x402.org facilitator, gating a real
+    MuJoCo dispatch, settled only after that dispatch reported
+    success, with an on-chain USDC transfer independently verifiable
+    on Base Sepolia (tx 0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54).
   notClaimed: >-
-    No live Base Sepolia transaction or real EVM-signed
-    PAYMENT-SIGNATURE header exists in this submission -- this
-    environment has no wallet/signing credentials, and constructing
-    one is out of scope. The recording facilitator in
-    tunnel/cmd/e2e_test.go never touches a real network; it observes
-    and asserts on the exact same ExecutionWatcher/IdempotencyStore
-    code path a real facilitator interaction would exercise, minus
-    the network call itself. BK1-E2E-001 below documents a real Zenoh
-    session, but against an earlier architecture where the bridge
-    itself validated payment fields in the Zenoh payload -- payment
-    verification has since moved entirely into the Go tunnel (see
-    BK1-GO-E2E-001), and the bridge no longer receives payment data at
+    The production WebSocket/Fabric-proxy transport
+    (tunnel/internal/client.go) itself is not exercised end-to-end --
+    this environment cannot reach the Fabric proxy. BK1-LIVE-001
+    below substitutes an identical Gin router bound to a real local
+    TCP port instead. BK1-E2E-001 documents a real Zenoh session
+    against an earlier architecture where the bridge itself validated
+    payment fields in the Zenoh payload -- payment verification has
+    since moved entirely into the Go tunnel (see BK1-GO-E2E-001 and
+    BK1-LIVE-001), and the bridge no longer receives payment data at
     all, so BK1-E2E-001 is retained only as historical evidence of
     the bridge's dispatch/replay behavior, not of the current payment
     gate.
 
 evidence:
+  - evidenceId: BK1-LIVE-001
+    scope: live-base-sepolia-real-facilitator-real-wallet-real-settlement
+    file: base-sepolia/live-payment-e2e.md
+    captureDate: 2026-08-14
+    source:
+      description: >-
+        A real wallet-signed EIP-3009 payment against the real
+        x402.org facilitator, on real Base Sepolia testnet, gating a
+        real MuJoCo dispatch, settled only after a real success
+        result -- run against tunnel/cmd/localserver, which reuses
+        the exact same router construction as tunnel/cmd/main.go
+        (only the transport differs: a real local TCP port instead of
+        the Fabric WebSocket proxy this environment cannot reach).
+      redaction: none -- the wallet is a fresh, dedicated testnet-only wallet.
+    trace:
+      wallet: "0xE7eB3Ff85Fbe0A4e8ba79e83Be6363F53B3dbbA2 (dedicated testnet wallet, funded via the official Base Sepolia bridge and Circle's testnet USDC faucet)"
+      actionId: f332a0d7-df3e-4f33-a3f7-9f9318d983aa
+      flow: "402 -> signed EIP-3009 payment -> 202 accepted -> real MuJoCo dispatch (status=success, distance_to_goal_m=0.2979) -> robot/tunnel/result -> ExecutionWatcher settle -> state=succeeded, settled=true"
+      onChainTransaction: "0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54"
+      explorer: "https://sepolia.basescan.org/tx/0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54"
+      independentlyVerified: "web3.py eth_getTransactionReceipt against https://sepolia.base.org: status=1 (SUCCESS), block 45462806"
+    visibleEvidence:
+      - "GIN log: 402 then 202 on POST /action, both against a real HTTP request"
+      - "settlement_watcher.go log: 'execution watcher: settled' with the real transaction hash"
+      - "GET /action/:id/status returning state=succeeded, settled=true"
+      - "on-chain transaction receipt with status=1, independently re-fetchable by anyone via any Base Sepolia RPC"
+    limitations:
+      - >-
+        Payee and payer are the same wallet (a deliberate
+        simplification to isolate and prove the payment mechanism
+        without needing a second funded wallet); the facilitator
+        interaction and on-chain settlement are identical regardless
+        of whether payer and payee differ.
+      - >-
+        Uses tunnel/cmd/localserver (a real local TCP listener), not
+        the production Fabric WebSocket proxy transport
+        (tunnel/internal/client.go), which this environment cannot
+        reach. The router and all payment-gate/settlement code is
+        byte-for-byte identical to tunnel/cmd/main.go; only the
+        transport differs.
+
   - evidenceId: BK1-GO-E2E-001
     scope: real-go-router-gate-watcher-against-recording-facilitator
     file: ../../../../../../../tunnel/cmd/e2e_test.go
