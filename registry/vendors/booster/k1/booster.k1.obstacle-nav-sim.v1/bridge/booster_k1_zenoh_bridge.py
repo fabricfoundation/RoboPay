@@ -53,6 +53,7 @@ ACTION_TOPIC = "robot/tunnel/action"
 RESULT_TOPIC = "robot/tunnel/result"
 
 SKILL_ID = "k1_navigate_avoid_obstacles"
+ROBOT_ID = "booster-k1-sim-01"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -145,7 +146,7 @@ class BoosterK1Bridge:
 
         fp = Fingerprint(
             action_id=action_id,
-            robot_id="booster-k1-sim-01",
+            robot_id=ROBOT_ID,
             skill_id=event.action,
             params_hash=json.dumps(params, sort_keys=True),
             authorization_id=action_id,  # tunnel owns the real authorizationId; this
@@ -173,7 +174,7 @@ class BoosterK1Bridge:
         self.guard.record_result(action_id, result_status)
         self._publish(make_result(
             action_id, result_status,
-            robotId="booster-k1-sim-01",
+            robotId=ROBOT_ID,
             skillId=event.action,
             simulatorStatus=sim_status,
             metrics={
