@@ -1,198 +1,198 @@
+"""Integration-level tests for bridge/m20_pro_zenoh_bridge.py's
+_on_action handler.
+
+Payment verification/settlement now happens entirely in the Go tunnel
+before an event ever reaches robot/tunnel/action (see
+tunnel/internal/handlers: X402VerifyOnly + ExecutionWatcher). This
+bridge trusts every event it receives already passed that gate; its
+own job is limited to: parse correctly, reject the wrong skill or bad
+params, refuse to dispatch a replayed actionId, and publish a
+truthful terminal result correlated by actionId so the tunnel's
+watcher can decide whether to settle.
 """
-Executable contract tests for the M20 Pro RoboPay bridge.
+import json
+import os
+import sys
+import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 
-These tests use a fake runner (no real MuJoCo dependency needed to run them)
-to validate the fail-closed routing, replay protection, and settlement-gate
-behavior described in execution-mapping.yaml. Physical-motion-equivalent
-(simulator state change) is validated separately via the real runner in
-docs/validation-report.md.
-"""
+import pytest
 
-import time
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(THIS_DIR, "..", "bridge"))
+sys.path.insert(0, os.path.join(THIS_DIR, ".."))
 
-from bridge.m20_pro_zenoh_bridge import (
-    M20ProRoboPayBridge,
-    RejectReason,
-    ReplayStore,
-    canonical_params_hash,
-)
-
-ROBOT_ID = "deep-robotics-m20-pro-sim-01"
-SKILL_ID = "m20_pro_obstacle_navigation"
+from bridge.m20_pro_zenoh_bridge import M20ProBridge, SKILL_ID  # noqa: E402
 
 
-class FakeRunner:
-    def __init__(self, next_result=None):
-        self.next_result = next_result or {
-            "status": "goal_reached",
-            "displacement_m": 8.0,
-            "path_length_m": 8.5,
-            "collisions": 0,
-            "target_distance_remaining_m": 0.1,
-            "sim_steps": 4000,
-            "sim_seconds": 8.0,
-        }
-        self.calls = 0
-        self.stopped = False
-
-    def run_episode(self, params):
-        self.calls += 1
-        return self.next_result
-
-    def stop(self):
-        self.stopped = True
-
-
-def make_action(**overrides):
+def make_event(action=SKILL_ID, action_id="act_test_1", **param_overrides):
     params = {"target_xy": [8.0, 0.0], "max_episode_steps": 50000}
-    base = {
-        "actionId": "action-1",
-        "robotId": ROBOT_ID,
-        "skillId": SKILL_ID,
-        "params": params,
-        "paramsHash": canonical_params_hash(params),
-        "idempotencyKey": "idem-1",
-        "payment": {
-            "status": "verified",
-            "verified": True,
-            "authorizationId": "auth-1",
-            "expiresAt": time.time() + 300,
-        },
+    params.update(param_overrides)
+    return {"actionId": action_id, "action": action, "params": params, "timestamp": "2026-01-01T00:00:00Z"}
+
+
+def make_sample(event: dict):
+    """Fakes a zenoh.Sample enough for _on_action: it only reads
+    sample.payload and calls bytes() on it."""
+    return SimpleNamespace(payload=json.dumps(event).encode("utf-8"))
+
+
+@pytest.fixture
+def bridge():
+    fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    # __init__ constructs a real M20ProMuJoCoRunner (loads the MuJoCo
+    # scene) -- cheap enough to do for real rather than mocking the
+    # constructor, and it means these tests also catch a broken scene path.
+    b = M20ProBridge(db_path=db_path)
+    published = []
+    b._publish = lambda result: published.append(result)
+    b.published = published
+    yield b
+    b.guard.close()
+    os.remove(db_path)
+
+
+def test_valid_event_dispatches_and_publishes_success(bridge):
+    event = make_event()
+    fake_metrics = {
+        "status": "goal_reached", "displacement_m": 7.65, "path_length_m": 7.66,
+        "collisions": 0, "target_distance_remaining_m": 0.35,
+        "sim_steps": 2935, "sim_seconds": 5.87,
     }
-    base.update(overrides)
-    return base
+    with patch.object(bridge.runner, "run_episode", return_value=fake_metrics) as mock_run:
+        bridge._on_action(make_sample(event))
+
+    assert mock_run.called
+    assert len(bridge.published) == 1
+    result = bridge.published[0]
+    assert result["actionId"] == "act_test_1"
+    assert result["status"] == "success"
+    assert result["simulatorStatus"] == "goal_reached"
+    assert result["metrics"]["collisions"] == 0
 
 
-def test_successful_action_settles():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    result = bridge.handle_raw_action(make_action())
-    assert result.status == "success"
-    assert result.settlementEligible is True
-    assert runner.calls == 1
+def test_wrong_skill_rejected_without_dispatch(bridge):
+    """An event for a skill this bridge doesn't serve must never reach
+    the simulator."""
+    event = make_event(action="some_other_skill")
+    with patch.object(bridge.runner, "run_episode") as mock_run:
+        bridge._on_action(make_sample(event))
+
+    assert not mock_run.called
+    assert len(bridge.published) == 1
+    assert bridge.published[0]["status"] == "rejected"
+    assert bridge.published[0]["errorCode"] == "unknown_skill"
 
 
-def test_unpaid_action_is_rejected_before_actuation():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    action = make_action(payment={"status": "unverified", "verified": False})
-    result = bridge.handle_raw_action(action)
-    assert result.status == "rejected"
-    assert result.reason == RejectReason.PAYMENT_UNVERIFIED
-    assert result.settlementEligible is False
-    assert runner.calls == 0  # simulator never touched
+def test_missing_params_rejected_without_dispatch(bridge):
+    event = {"actionId": "act_test_2", "action": SKILL_ID, "params": {}, "timestamp": ""}
+    with patch.object(bridge.runner, "run_episode") as mock_run:
+        bridge._on_action(make_sample(event))
+
+    assert not mock_run.called
+    assert bridge.published[0]["status"] == "rejected"
+    assert bridge.published[0]["errorCode"] == "invalid_params"
 
 
-def test_invalid_params_hash_is_rejected():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    action = make_action(paramsHash="deadbeef")
-    result = bridge.handle_raw_action(action)
-    assert result.status == "rejected"
-    assert result.reason == RejectReason.BAD_PARAMS_HASH
-    assert runner.calls == 0
+def test_malformed_json_is_dropped_silently_no_crash(bridge):
+    """No actionId is parseable from malformed JSON, so nothing is
+    published -- but the bridge must not crash."""
+    sample = SimpleNamespace(payload=b"not valid json {{{")
+    bridge._on_action(sample)  # must not raise
+    assert len(bridge.published) == 0
 
 
-def test_expired_payment_is_rejected():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    action = make_action(
-        payment={
-            "status": "verified",
-            "verified": True,
-            "authorizationId": "auth-1",
-            "expiresAt": time.time() - 10,
-        }
-    )
-    result = bridge.handle_raw_action(action)
-    assert result.status == "rejected"
-    assert result.reason == RejectReason.PAYMENT_EXPIRED
-    assert runner.calls == 0
+def test_event_missing_action_id_is_dropped_silently_no_crash(bridge):
+    """parse_action_event returns None for an event missing actionId --
+    there is nothing to correlate a result against, so it is dropped,
+    not defaulted to some placeholder id."""
+    sample = SimpleNamespace(payload=json.dumps(
+        {"action": SKILL_ID, "params": {"target_xy": [8.0, 0.0]}}
+    ).encode())
+    bridge._on_action(sample)
+    assert len(bridge.published) == 0
 
 
-def test_malformed_envelope_is_rejected():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    result = bridge.handle_raw_action({"actionId": "x"})
-    assert result.status == "rejected"
-    assert result.reason == RejectReason.MALFORMED
-    assert runner.calls == 0
+def test_replayed_action_id_rejected_without_second_dispatch(bridge):
+    """The exact scenario called out in review: replay must not cause a
+    second simulator dispatch."""
+    event = make_event()
+    fake_metrics = {
+        "status": "goal_reached", "displacement_m": 7.65, "path_length_m": 7.66,
+        "collisions": 0, "target_distance_remaining_m": 0.35,
+        "sim_steps": 2935, "sim_seconds": 5.87,
+    }
+    with patch.object(bridge.runner, "run_episode", return_value=fake_metrics) as mock_run:
+        bridge._on_action(make_sample(event))  # first: executes
+        bridge._on_action(make_sample(event))  # replay: must be rejected
+
+    assert mock_run.call_count == 1, "replay must not trigger a second simulator dispatch"
+    assert len(bridge.published) == 2
+    assert bridge.published[0]["status"] == "success"
+    assert bridge.published[1]["status"] == "rejected"
+    assert bridge.published[1]["errorCode"] == "replay_detected"
 
 
-def test_replay_of_same_action_id_causes_no_second_motion():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    action = make_action()
+def test_simulator_failure_yields_error_result(bridge):
+    """If the simulator itself errors out, the published result must be
+    status=error (never success), so the tunnel's execution watcher
+    never settles this action."""
+    event = make_event(action_id="act_test_fail")
+    with patch.object(bridge.runner, "run_episode", side_effect=RuntimeError("boom")):
+        bridge._on_action(make_sample(event))
 
-    first = bridge.handle_raw_action(action)
-    assert first.status == "success"
-    assert runner.calls == 1
-
-    replay = bridge.handle_raw_action(action)  # identical actionId
-    assert replay.status == "rejected"
-    assert replay.reason == RejectReason.DUPLICATE
-    assert replay.settlementEligible is False
-    assert runner.calls == 1  # no second motion
+    assert len(bridge.published) == 1
+    result = bridge.published[0]
+    assert result["status"] == "error"
+    assert result["errorCode"] == "simulator_failure"
 
 
-def test_collision_result_is_never_settlement_eligible():
-    runner = FakeRunner(next_result={
-        "status": "collision",
-        "displacement_m": 2.0,
-        "path_length_m": 2.4,
-        "collisions": 3,
-        "target_distance_remaining_m": 6.0,
-        "sim_steps": 1200,
-        "sim_seconds": 2.4,
-    })
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    result = bridge.handle_raw_action(make_action())
-    assert result.status == "error"
-    assert result.settlementEligible is False
-    assert result.reason == "episode_status:collision"
+def test_simulator_timeout_yields_error_result(bridge):
+    """Simulator ran (no exception) but did not reach the goal in time --
+    result must be status=error even though dispatch itself didn't
+    raise."""
+    event = make_event(action_id="act_test_timeout")
+    fake_metrics = {
+        "status": "timeout", "displacement_m": 0.5, "path_length_m": 0.55,
+        "collisions": 0, "target_distance_remaining_m": 7.6,
+        "sim_steps": 500, "sim_seconds": 1.0,
+    }
+    with patch.object(bridge.runner, "run_episode", return_value=fake_metrics):
+        bridge._on_action(make_sample(event))
+
+    result = bridge.published[0]
+    assert result["status"] == "error"
+    assert result["simulatorStatus"] == "timeout"
 
 
-def test_timeout_result_is_never_settlement_eligible():
-    runner = FakeRunner(next_result={
-        "status": "timeout",
-        "displacement_m": 5.0,
-        "path_length_m": 6.0,
-        "collisions": 0,
-        "target_distance_remaining_m": 3.0,
-        "sim_steps": 50000,
-        "sim_seconds": 100.0,
-    })
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    result = bridge.handle_raw_action(make_action())
-    assert result.status == "error"
-    assert result.settlementEligible is False
-    assert result.reason == "episode_status:timeout"
+def test_simulator_collision_yields_error_result(bridge):
+    """Simulator reports a real collision -- result must be status=error
+    even with status=goal_reached-adjacent metrics, because collisions>0
+    must never settle."""
+    event = make_event(action_id="act_test_collision")
+    fake_metrics = {
+        "status": "goal_reached", "displacement_m": 7.5, "path_length_m": 8.0,
+        "collisions": 2, "target_distance_remaining_m": 0.3,
+        "sim_steps": 3000, "sim_seconds": 6.0,
+    }
+    with patch.object(bridge.runner, "run_episode", return_value=fake_metrics):
+        bridge._on_action(make_sample(event))
+
+    result = bridge.published[0]
+    assert result["status"] == "error"
+    assert result["metrics"]["collisions"] == 2
 
 
-def test_stop_requires_no_payment_and_zeroes_velocity():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    result = bridge.handle_stop("stop-action-1")
-    assert result.status == "success"
-    assert result.settlementEligible is False
-    assert runner.stopped is True
-
-
-def test_wrong_robot_id_is_rejected():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    action = make_action(robotId="some-other-robot")
-    result = bridge.handle_raw_action(action)
-    assert result.status == "rejected"
-    assert result.reason == RejectReason.WRONG_ROBOT
-    assert runner.calls == 0
-
-
-def test_unknown_skill_id_is_rejected():
-    runner = FakeRunner()
-    bridge = M20ProRoboPayBridge(ROBOT_ID, runner, ReplayStore())
-    action = make_action(skillId="not_a_real_skill")
-    result = bridge.handle_raw_action(action)
-    assert result.status == "rejected"
-    assert result.reason == RejectReason.UNKNOWN_SKILL
-    assert runner.calls == 0
+def test_handle_stop_requires_no_payment_and_succeeds():
+    fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    bridge = M20ProBridge(db_path=db_path)
+    with patch.object(bridge.runner, "stop") as mock_stop:
+        result = bridge.handle_stop("stop-action-1")
+    assert mock_stop.called
+    assert result["status"] == "success"
+    assert result["actionId"] == "stop-action-1"
+    bridge.guard.close()
+    os.remove(db_path)

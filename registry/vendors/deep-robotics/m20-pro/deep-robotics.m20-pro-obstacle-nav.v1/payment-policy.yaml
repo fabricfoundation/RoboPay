@@ -6,50 +6,32 @@ asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
 assetSymbol: USDC
 assetDecimals: 6
 amountUnit: smallest
-payeeEnv: ROBOPAY_PAYEE_ADDRESS
+payeeEnv: ROBOT_PAYEE_ADDRESS
 
+# Enforcement note: every field/rule below is enforced entirely by the
+# Go tunnel (tunnel/internal/handlers), not by this registry profile's
+# bridge. See:
+#   - X402VerifyOnly (payment_gate.go): verifies the payment against
+#     this network/asset/amount before ANY ActionEvent is published;
+#     never settles at accept-time.
+#   - ExecutionWatcher (settlement_watcher.go): the only code path
+#     that calls ProcessSettlement, and only after a terminal
+#     robot/tunnel/result with status=success for the matching
+#     actionId.
 policies:
   - skillId: m20_pro_obstacle_navigation
     required: true
     amount: "2000"
-    displayPriceUSDC: "0.002"
+    displayAmount: "0.002 USDC"
     paymentHeader: PAYMENT-SIGNATURE
-    requiredBridgeEvidence:
-      - provider
-      - authorizationId
-      - verified
-      - status
-      - settled
-      - network
-      - asset
-      - amount
-      - payTo
-      - issuedAt
-      - expiresAt
-
-settlement:
-  settleOnResultStatus: success
-  requireSettlementEligible: true
-  pendingStates:
-    - accepted
-    - pending
-  rule: >-
-    The relay may settle only after a correlated robot/tunnel/result message has
-    status=success and settlementEligible=true. Invalid, duplicate, expired,
-    rejected, running-only, timed-out, simulated-but-incomplete, or error results
-    must not settle. A successful settlement receipt and txHash are appended by
-    the relay after execution; they are not required in the pre-execution
-    authorization.
-
-security:
-  paymentVerifiedBy: Fabric relay x402 middleware
-  robotSideVerification: validate the relay-normalized evidence; never charge twice
-  privateKeys: environment or secret manager only; never commit or log
-
-authorizationWindow:
-  defaultMaxTtlSec: 300
-  defaultFutureClockSkewSec: 30
-  maxConfigurableTtlSec: 3600
-  maxConfigurableFutureClockSkewSec: 300
-  maxTtlEnv: ROBOPAY_MAX_AUTH_TTL_SEC
-  futureClockSkewEnv: ROBOPAY_FUTURE_CLOCK_SKEW_SEC
+    executionGate:
+      requiredPaymentState: verified-not-settled
+      enforcedBy: tunnel/internal/handlers/payment_gate.go::X402VerifyOnly
+    settlement:
+      eligibleOnlyAfterResultStatus: success
+      noSettleResultStatuses:
+        - error
+        - pending
+        - timeout
+        - rejected
+      enforcedBy: tunnel/internal/handlers/settlement_watcher.go::ExecutionWatcher

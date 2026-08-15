@@ -1,301 +1,179 @@
+"""Deep Robotics M20 Pro Zenoh bridge -- the RoboPay integration gate.
+
+    Tunnel (x402 verify, fail-closed) -> robot/tunnel/action -> [this bridge]
+        parse (shared action_event.py) -> replay-check -> dispatch to
+        MuJoCo -> robot/tunnel/result
+
+Payment verification and settlement are handled entirely by the Go
+tunnel (tunnel/internal/handlers): it verifies the x402 payment before
+ever publishing to robot/tunnel/action, and it alone calls
+ProcessSettlement, only after this bridge's result confirms success.
+This bridge does not re-verify payment -- it trusts that every event
+on robot/tunnel/action already passed the tunnel's fail-closed gate,
+and its only remaining job is: don't dispatch malformed events, don't
+dispatch replays, and report a truthful terminal result correlated by
+actionId so the tunnel's execution watcher can decide whether to
+settle.
 """
-Deep Robotics M20 Pro — RoboPay Zenoh bridge (Tier 1, simulator-only).
-
-Subscribes to robot/tunnel/action, validates and de-duplicates the envelope,
-drives the MuJoCo M20 Pro obstacle-navigation episode, and publishes a
-correlated terminal result on robot/tunnel/result. Settlement is never
-performed here — this bridge only reports status; the relay decides
-settlement based on the terminal result.
-
-Fail-closed: any malformed/unverified/duplicate action is rejected BEFORE
-the simulator is touched.
-"""
-
-from __future__ import annotations
-
-import hashlib
 import json
 import logging
 import os
-import sqlite3
+import sys
 import time
-from dataclasses import dataclass, field
-from typing import Optional
 
-logger = logging.getLogger("m20_pro_robopay_bridge")
+import zenoh
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, THIS_DIR)
+sys.path.insert(0, os.path.join(THIS_DIR, ".."))
+
+# Import action_event.py directly by file path rather than as
+# `zenoh_bridge.action_event` -- the zenoh_bridge package's __init__.py
+# also imports command_mapper.py, which requires geometry_msgs (a ROS2
+# dependency this simulator-only bridge does not need).
+import importlib.util
+
+_ACTION_EVENT_PATH = os.path.normpath(os.path.join(
+    THIS_DIR, "..", "..", "..", "..", "..", "..",
+    "bridge", "common", "zenoh_bridge", "zenoh_bridge", "action_event.py",
+))
+_spec = importlib.util.spec_from_file_location("action_event", _ACTION_EVENT_PATH)
+_action_event_module = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_action_event_module)
+parse_action_event = _action_event_module.parse_action_event
+
+from replay_guard import ReplayGuard, ReplayDetected, Fingerprint  # noqa: E402
+from simulation.runners.m20_pro_runner import M20ProMuJoCoRunner  # noqa: E402
+
+PROFILE_ROOT = os.path.normpath(os.path.join(THIS_DIR, ".."))
+SCENE_PATH = os.path.join(PROFILE_ROOT, "simulation", "scenes", "m20_pro.xml")
+DEFAULT_DB_PATH = os.path.join(PROFILE_ROOT, "bridge", "replay_guard.db")
 
 ACTION_TOPIC = "robot/tunnel/action"
 RESULT_TOPIC = "robot/tunnel/result"
+
+ROBOT_ID = "deep-robotics-m20-pro-sim-01"
 SKILL_ID = "m20_pro_obstacle_navigation"
 
-REQUIRED_ACTION_FIELDS = [
-    "actionId",
-    "robotId",
-    "skillId",
-    "params",
-    "paramsHash",
-    "idempotencyKey",
-    "payment",
-]
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [m20-pro-bridge] %(levelname)s: %(message)s",
+)
+log = logging.getLogger("m20_pro_bridge")
 
 
-class RejectReason:
-    MALFORMED = "malformed_envelope"
-    WRONG_ROBOT = "wrong_robot_id"
-    UNKNOWN_SKILL = "unknown_skill_id"
-    BAD_PARAMS_HASH = "invalid_params_hash"
-    PAYMENT_UNVERIFIED = "payment_unverified"
-    PAYMENT_EXPIRED = "payment_expired"
-    DUPLICATE = "duplicate_action"
+def make_result(action_id: str, status: str, **extra) -> dict:
+    """Every result carries the originating actionId, so the tunnel's
+    execution watcher can correlate it back to the reserved payment
+    record and decide whether to settle."""
+    result = {
+        "schemaVersion": "robot-action-result.v1",
+        "actionId": action_id,
+        "status": status,
+        "publishedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    result.update(extra)
+    return result
 
 
-@dataclass
-class ActionEnvelope:
-    actionId: str
-    robotId: str
-    skillId: str
-    params: dict
-    paramsHash: str
-    idempotencyKey: str
-    payment: dict
+class M20ProBridge:
+    def __init__(self, db_path: str = DEFAULT_DB_PATH, scene_path: str = SCENE_PATH):
+        self.guard = ReplayGuard(db_path)
+        self.runner = M20ProMuJoCoRunner(scene_path=scene_path)
+        self.session = None
+        self.publisher = None
 
-    @staticmethod
-    def parse(raw: dict) -> "ActionEnvelope":
-        missing = [f for f in REQUIRED_ACTION_FIELDS if f not in raw]
-        if missing:
-            raise ValueError(f"{RejectReason.MALFORMED}: missing {missing}")
-        return ActionEnvelope(
-            actionId=str(raw["actionId"]),
-            robotId=str(raw["robotId"]),
-            skillId=str(raw["skillId"]),
-            params=dict(raw["params"]),
-            paramsHash=str(raw["paramsHash"]),
-            idempotencyKey=str(raw["idempotencyKey"]),
-            payment=dict(raw["payment"]),
+    def start(self):
+        log.info("Opening Zenoh session...")
+        self.session = zenoh.open(zenoh.Config())
+        self.publisher = self.session.declare_publisher(RESULT_TOPIC)
+        self.session.declare_subscriber(ACTION_TOPIC, self._on_action)
+        log.info("Subscribed to %s, publishing results to %s", ACTION_TOPIC, RESULT_TOPIC)
+
+    def stop(self):
+        if self.session is not None:
+            self.session.close()
+        self.guard.close()
+
+    def _publish(self, result: dict):
+        payload = json.dumps(result).encode("utf-8")
+        self.publisher.put(payload)
+        log.info("Published result actionId=%s status=%s", result["actionId"], result["status"])
+
+    def _on_action(self, sample):
+        raw = bytes(sample.payload)
+        event = parse_action_event(raw)
+        if event is None:
+            log.warning("Dropping unparseable/incomplete action event on %s", ACTION_TOPIC)
+            return
+
+        action_id = event.action_id
+
+        if event.action != SKILL_ID:
+            log.warning("Rejected action_id=%s: unknown skill %r (this bridge only serves %r)",
+                         action_id, event.action, SKILL_ID)
+            self._publish(make_result(action_id, "rejected", errorCode="unknown_skill"))
+            return
+
+        params = event.params
+        if "target_xy" not in params:
+            log.warning("Rejected action_id=%s: params missing target_xy", action_id)
+            self._publish(make_result(action_id, "rejected", errorCode="invalid_params"))
+            return
+
+        fp = Fingerprint(
+            action_id=action_id,
+            robot_id=ROBOT_ID,
+            skill_id=event.action,
+            params_hash=json.dumps(params, sort_keys=True),
         )
-
-
-@dataclass
-class ActionResult:
-    actionId: str
-    robotId: str
-    skillId: str
-    idempotencyKey: str
-    paramsHash: str
-    status: str  # "success" | "error" | "rejected"
-    settlementEligible: bool
-    reason: Optional[str] = None
-    metrics: dict = field(default_factory=dict)
-
-    def to_json(self) -> str:
-        return json.dumps(
-            {
-                "actionId": self.actionId,
-                "robotId": self.robotId,
-                "skillId": self.skillId,
-                "idempotencyKey": self.idempotencyKey,
-                "paramsHash": self.paramsHash,
-                "status": self.status,
-                "settlementEligible": self.settlementEligible,
-                "reason": self.reason,
-                "metrics": self.metrics,
-            },
-            sort_keys=True,
-        )
-
-
-def canonical_params_hash(params: dict) -> str:
-    """sha256 of UTF-8 canonical JSON with sorted keys and compact separators."""
-    blob = json.dumps(params, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(blob).hexdigest()
-
-
-class ReplayStore:
-    """SQLite-backed idempotency/replay guard (ROBOPAY_STATE_DB)."""
-
-    def __init__(self, db_path: Optional[str] = None):
-        db_path = db_path or os.environ.get("ROBOPAY_STATE_DB", ":memory:")
-        self._conn = sqlite3.connect(db_path)
-        self._conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS claimed_actions (
-                action_id TEXT PRIMARY KEY,
-                idempotency_key TEXT NOT NULL,
-                authorization_id TEXT,
-                claimed_at REAL NOT NULL
-            )
-            """
-        )
-        self._conn.commit()
-
-    def try_claim(self, action_id: str, idempotency_key: str, authorization_id: str) -> bool:
-        """Atomically claim actionId. Returns False if already claimed (replay)."""
         try:
-            self._conn.execute(
-                "INSERT INTO claimed_actions (action_id, idempotency_key, authorization_id, claimed_at) "
-                "VALUES (?, ?, ?, ?)",
-                (action_id, idempotency_key, authorization_id, time.time()),
-            )
-            self._conn.commit()
-            return True
-        except sqlite3.IntegrityError:
-            return False
+            self.guard.check_and_reserve(fp)
+        except ReplayDetected as e:
+            log.warning("Rejected replay for action_id=%s: %s", action_id, e)
+            self._publish(make_result(action_id, "rejected", errorCode="replay_detected", errorMessage=str(e)))
+            return
 
-    def close(self) -> None:
-        self._conn.close()
-
-
-class M20ProRoboPayBridge:
-    """
-    Fail-closed bridge: robot/tunnel/action -> validate -> MuJoCo episode
-    -> robot/tunnel/result. No settlement logic lives here.
-    """
-
-    def __init__(self, robot_id: str, runner, replay_store: Optional[ReplayStore] = None):
-        self.robot_id = robot_id
-        self.runner = runner  # object exposing .run_episode(params) -> dict metrics
-        self.replay_store = replay_store or ReplayStore()
-
-    # ---- validation (all reject paths run BEFORE any simulator call) ----
-
-    def _validate(self, env: ActionEnvelope) -> Optional[str]:
-        if env.robotId != self.robot_id:
-            return RejectReason.WRONG_ROBOT
-        if env.skillId != SKILL_ID:
-            return RejectReason.UNKNOWN_SKILL
-        if canonical_params_hash(env.params) != env.paramsHash:
-            return RejectReason.BAD_PARAMS_HASH
-
-        payment = env.payment
-        if not payment.get("verified") and payment.get("status") != "verified":
-            return RejectReason.PAYMENT_UNVERIFIED
-        expires_at = payment.get("expiresAt")
-        if expires_at is not None and float(expires_at) < time.time():
-            return RejectReason.PAYMENT_EXPIRED
-
-        authorization_id = payment.get("authorizationId", env.idempotencyKey)
-        claimed = self.replay_store.try_claim(env.actionId, env.idempotencyKey, authorization_id)
-        if not claimed:
-            return RejectReason.DUPLICATE
-
-        return None
-
-    def handle_raw_action(self, raw: dict) -> ActionResult:
+        log.info("Dispatching action_id=%s to MuJoCo simulator with params=%s", action_id, params)
         try:
-            env = ActionEnvelope.parse(raw)
-        except ValueError:
-            return ActionResult(
-                actionId=str(raw.get("actionId", "unknown")),
-                robotId=str(raw.get("robotId", "unknown")),
-                skillId=str(raw.get("skillId", "unknown")),
-                idempotencyKey=str(raw.get("idempotencyKey", "unknown")),
-                paramsHash=str(raw.get("paramsHash", "unknown")),
-                status="rejected",
-                settlementEligible=False,
-                reason=RejectReason.MALFORMED,
-            )
+            metrics = self.runner.run_episode(params)
+        except Exception as e:  # noqa: BLE001
+            log.error("Simulator dispatch failed for action_id=%s: %s", action_id, e)
+            self.guard.record_result(action_id, "error")
+            self._publish(make_result(action_id, "error", errorCode="simulator_failure", errorMessage=str(e)))
+            return
 
-        reject_reason = self._validate(env)
-        if reject_reason is not None:
-            logger.info("rejecting action %s: %s", env.actionId, reject_reason)
-            return ActionResult(
-                actionId=env.actionId,
-                robotId=env.robotId,
-                skillId=env.skillId,
-                idempotencyKey=env.idempotencyKey,
-                paramsHash=env.paramsHash,
-                status="rejected",
-                settlementEligible=False,
-                reason=reject_reason,
-            )
-
-        # Only now — after full validation and successful replay claim — do we
-        # touch the simulator.
-        try:
-            metrics = self.runner.run_episode(env.params)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("simulator episode raised for action %s", env.actionId)
-            return ActionResult(
-                actionId=env.actionId,
-                robotId=env.robotId,
-                skillId=env.skillId,
-                idempotencyKey=env.idempotencyKey,
-                paramsHash=env.paramsHash,
-                status="error",
-                settlementEligible=False,
-                reason=f"simulator_exception:{exc.__class__.__name__}",
-            )
-
-        episode_status = metrics.get("status")
-        if episode_status == "goal_reached" and metrics.get("collisions", 1) == 0:
-            return ActionResult(
-                actionId=env.actionId,
-                robotId=env.robotId,
-                skillId=env.skillId,
-                idempotencyKey=env.idempotencyKey,
-                paramsHash=env.paramsHash,
-                status="success",
-                settlementEligible=True,
-                metrics=metrics,
-            )
-
-        # collision, timeout, running-truncated, invalid_scene, etc. -> never settle
-        return ActionResult(
-            actionId=env.actionId,
-            robotId=env.robotId,
-            skillId=env.skillId,
-            idempotencyKey=env.idempotencyKey,
-            paramsHash=env.paramsHash,
-            status="error",
-            settlementEligible=False,
-            reason=f"episode_status:{episode_status}",
+        sim_status = metrics.get("status")
+        is_success = sim_status == "goal_reached" and metrics.get("collisions", 1) == 0
+        result_status = "success" if is_success else "error"
+        self.guard.record_result(action_id, result_status)
+        self._publish(make_result(
+            action_id, result_status,
+            robotId=ROBOT_ID,
+            skillId=event.action,
+            simulatorStatus=sim_status,
             metrics=metrics,
-        )
+        ))
 
-    def handle_stop(self, action_id: str) -> ActionResult:
-        """Stop/cancel requires no payment and always succeeds immediately."""
+    def handle_stop(self, action_id: str) -> dict:
+        """Stop/cancel requires no payment (the tunnel does not gate this
+        path) and always succeeds immediately."""
         self.runner.stop()
-        return ActionResult(
-            actionId=action_id,
-            robotId=self.robot_id,
-            skillId=SKILL_ID,
-            idempotencyKey=action_id,
-            paramsHash="",
-            status="success",
-            settlementEligible=False,  # stop is never a paid, settleable action
-            reason="stopped",
-        )
+        return make_result(action_id, "success", robotId=ROBOT_ID, skillId=SKILL_ID, reason="stopped")
 
 
-def publish_result(zenoh_session, result: ActionResult) -> None:
-    """Publish the terminal result to robot/tunnel/result."""
-    zenoh_session.put(RESULT_TOPIC, result.to_json())
-
-
-def main() -> None:  # pragma: no cover - wiring only, exercised via tests/mocks
-    import zenoh  # type: ignore
-
-    logging.basicConfig(level=logging.INFO)
-    robot_id = os.environ["ROBOPAY_ROBOT_ID"]
-
-    from simulation.runners.m20_pro_runner import M20ProMuJoCoRunner
-
-    runner = M20ProMuJoCoRunner(scene_path=os.environ.get(
-        "M20_PRO_SCENE", "simulation/scenes/m20_pro.xml"
-    ))
-    bridge = M20ProRoboPayBridge(robot_id=robot_id, runner=runner)
-
-    with zenoh.open(zenoh.Config()) as session:
-        def on_action(sample) -> None:
-            raw = json.loads(bytes(sample.payload).decode("utf-8"))
-            result = bridge.handle_raw_action(raw)
-            publish_result(session, result)
-
-        session.declare_subscriber(ACTION_TOPIC, on_action)
-        logger.info("m20_pro_robopay_bridge listening on %s", ACTION_TOPIC)
+def main():
+    bridge = M20ProBridge()
+    bridge.start()
+    log.info("Bridge running. Press Ctrl+C to stop.")
+    try:
         while True:
-            time.sleep(1.0)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        log.info("Shutting down...")
+    finally:
+        bridge.stop()
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     main()
