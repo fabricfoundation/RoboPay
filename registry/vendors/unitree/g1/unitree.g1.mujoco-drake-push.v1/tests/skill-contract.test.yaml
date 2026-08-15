@@ -1,0 +1,96 @@
+schemaVersion: skill-contract.v1
+profileId: unitree.g1.mujoco-drake-push.v1
+
+# Every case here is executable. The automated equivalents live in
+# bridge/unitree/g1/sim_bridge/tests/ and run with:
+#
+#     pytest bridge/unitree/g1/sim_bridge/tests
+#
+# The end-to-end ones additionally need the bridge running; see docs/README.md.
+
+setup:
+  robotId: g1-sim-001
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  endpoint: tcp/127.0.0.1:7447
+
+cases:
+  - id: discovery
+    intent: A payer can see the skills and prices before buying.
+    when: subscribe to robot/g1/skills
+    expect:
+      skillsInclude: [push_to_target, stop, diagnostic_fail]
+      push_to_target.priceUSDC: "0.01"
+      stop.paymentRequired: false
+
+  - id: unpaid-request-does-not-move-the-robot
+    intent: An unpaid action is refused and nothing actuates.
+    when: submit push_to_target with payment.verified = false
+    expect:
+      status: error
+      error.code: PAYMENT_REQUIRED
+      settle: false
+      puckDisplacementM: 0.0
+
+  - id: tampered-params-rejected
+    intent: >-
+      Parameters altered after the payer signed for them are refused before
+      the simulator sees them.
+    when: submit push_to_target with goal_x shifted +0.05 after hashing
+    expect:
+      status: error
+      error.code: PARAMS_HASH_MISMATCH
+      settle: false
+
+  - id: expired-action-rejected
+    intent: A stale envelope cannot be executed later.
+    when: submit push_to_target with expiresAt five minutes in the past
+    expect:
+      status: error
+      error.code: ACTION_EXPIRED
+      settle: false
+
+  - id: out-of-range-params-rejected
+    intent: Targets outside the reachable workspace are refused up front.
+    when: submit push_to_target with puck_y = -0.90
+    expect:
+      status: error
+      error.code: PARAMS_OUT_OF_RANGE
+      settle: false
+
+  - id: paid-action-succeeds-and-settles
+    intent: The happy path, with the outcome measured from simulator state.
+    when: submit push_to_target puck (0.34, -0.20) goal (0.44, -0.04), paid
+    expect:
+      status: success
+      settle: true
+      metrics.finalDistanceM: "<= 0.040"
+      metrics.displacementM: ">= 0.10"
+      metrics.peakContacts: ">= 1"
+
+  - id: failed-action-does-not-settle
+    intent: >-
+      The property the whole integration exists to protect. A paid action that
+      fails must return an error and must not settle.
+    when: submit diagnostic_fail, paid
+    expect:
+      status: error
+      error.code: ACTION_FAILED
+      settle: false
+
+  - id: replay-does-not-execute-twice
+    intent: Paying once and replaying the message cannot move the robot twice.
+    when: submit the same idempotencyKey twice
+    expect:
+      firstAttempt.settle: true
+      secondAttempt.settle: false
+      secondAttempt.replayed: true
+      secondAttempt.error.code: IDEMPOTENCY_REPLAY
+
+  - id: sim-to-sim-agreement
+    intent: >-
+      The skill is a property of the plan, not of one engine's contact model.
+    when: run the same task in MuJoCo and in Drake
+    expect:
+      verdictMatches: true
+      puckEndGapM: "<= 2 * goalToleranceM"

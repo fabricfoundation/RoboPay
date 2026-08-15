@@ -1,0 +1,71 @@
+schemaVersion: robot-skills.v1
+profileId: unitree.g1.mujoco-drake-push.v1
+
+skills:
+  - skillId: push_to_target
+    description: >-
+      Turn toward a puck at (puck_x, puck_y) on the work surface, approach it
+      from above, and push it to (goal_x, goal_y). Both ends of the motion are
+      chosen by the payer.
+    paymentRequired: true
+    params:
+      puck_x:
+        type: number
+        min: 0.30
+        max: 0.44
+        units: m
+        description: Puck start, forward of the robot base.
+      puck_y:
+        type: number
+        min: -0.22
+        max: 0.00
+        units: m
+        description: Puck start, lateral. Negative is the robot's right.
+      goal_x:
+        type: number
+        min: 0.34
+        max: 0.52
+        units: m
+      goal_y:
+        type: number
+        min: -0.18
+        max: 0.10
+        units: m
+    constraints:
+      # Shorter than this and the puck already counts as delivered; longer and
+      # the hand runs past the edge of the surface.
+      minPushDistanceM: 0.06
+      maxPushDistanceM: 0.30
+    success:
+      # Measured from simulator state, not asserted by the policy.
+      criterion: puck within goalToleranceM of (goal_x, goal_y)
+      goalToleranceM: 0.050
+    metrics:
+      - displacementM
+      - finalDistanceM
+      - peakContacts
+      - peakContactForceN
+      - foreignCollision
+      - stages
+
+  - skillId: stop
+    description: Hold the current pose and stop all motion immediately.
+    paymentRequired: false
+    params: {}
+
+  - skillId: diagnostic_fail
+    description: >-
+      Always fails during execution. Exists so the no-settle-on-failure
+      guarantee can be exercised on demand rather than argued for.
+    paymentRequired: true
+    params: {}
+    success:
+      criterion: never succeeds; always returns ACTION_FAILED with settle=false
+
+workspace:
+  # Measured over a target grid, not assumed. Requests outside this are
+  # rejected before payment is consumed, because the IK has no solution there.
+  note: >-
+    7 of 8 sampled target pairs succeed. The eighth, a puck at y=-0.24, is
+    outside the reachable set and is refused in 0.15s with an explicit reason
+    rather than attempted and failed.

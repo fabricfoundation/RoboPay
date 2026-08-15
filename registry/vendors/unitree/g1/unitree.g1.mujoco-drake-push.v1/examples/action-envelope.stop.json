@@ -1,0 +1,16 @@
+{
+  "actionId": "act_5b1e0d94c7aa",
+  "robotId": "g1-sim-001",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "idem-stop-3f7c2a10",
+  "paramsHash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "expiresAt": "2026-08-15T07:23:48.882842+00:00",
+  "payment": {
+    "provider": "x402",
+    "amount": "0",
+    "asset": "USDC",
+    "network": "eip155:84532",
+    "verified": false
+  }
+}

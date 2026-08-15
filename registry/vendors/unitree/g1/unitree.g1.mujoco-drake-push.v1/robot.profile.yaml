@@ -1,0 +1,52 @@
+schemaVersion: robot-profile.v1
+
+vendor: unitree
+robotModel: g1
+robotType: g1-29dof-with-hand
+profileId: unitree.g1.mujoco-drake-push.v1
+profileVersion: 1.0.0
+
+description: >-
+  Unitree G1 humanoid executing paid manipulation actions in simulation.
+  A payer names where an object is and where it should end up; the robot turns
+  to face it, plans a collision-free path over it with a constrained IK
+  solver, and pushes it to the commanded destination.
+
+scope: simulator-only
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/g1/metrics
+  skillsTopic: robot/g1/skills
+  bridge: sim_bridge
+  # No ROS2. The criteria require Zenoh as the local robot communication
+  # layer; ROS2 is not part of this integration and is not installed. Stating
+  # that plainly is better than listing a cmdVelTopic that nothing publishes.
+  ros2: null
+
+simulation:
+  primaryEngine: mujoco
+  primaryModel: mujoco_menagerie/unitree_g1/g1_with_hands.xml
+  validationEngine: drake
+  validationModel: unitree_ros/robots/g1_description/g1_29dof_with_hand.urdf
+  simToSim: docs/validation-report.md
+  # The pelvis is welded to the world in both engines. The G1 has no balance
+  # controller here, and the IK planner plans against a welded pelvis, so a
+  # floating base meant planning in one frame and executing in another.
+  fixedBase: true
+  planner: constrained-ik-drake
+
+physics:
+  controlRateHz: 100
+  actuatedJoints: 43
+  # Both descriptions agree on all 43 joint names, which is what makes the
+  # sim-to-sim comparison a comparison of physics rather than of models.
+  jointNamesMatchAcrossEngines: true
+
+maintainers:
+  - github: hossein6191
+
+status: experimental
+license: Apache-2.0

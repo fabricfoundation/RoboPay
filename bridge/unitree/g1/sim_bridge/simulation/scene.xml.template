@@ -1,0 +1,85 @@
+<!--
+  Push-to-target scene for the Unitree G1.
+
+  The robot itself comes from mujoco_menagerie unchanged (Apache-2.0); this
+  file only adds the world the task needs: a table, a free puck, and a visual
+  marker for the commanded destination.
+
+  Both the puck's start position and the destination come from the paid
+  action's parameters and are substituted at load time. That is what stops the
+  task from being reducible to a replayed trajectory: the payer picks both
+  ends of the motion, so a canned animation has nothing to replay.
+
+  Why a push and not a grasp: the G1 hand in this model has its index and
+  middle fingers fixed 57mm apart with no motion in that direction, and an
+  opposing thumb 86mm further up the palm. Objects narrower than the split
+  pass between the fingers untouched, and wider ones are crushed by the
+  position-controlled joints -- measured peaks of 60-120N on a 100g object,
+  which ejects it. Controlled contact is reliable here; holding is not.
+
+  Placeholders: {{TARGET_X}} {{TARGET_Y}} {{TARGET_Z}} {{GOAL_X}} {{GOAL_Y}}
+                {{TABLE_TOP}} {{TABLE_HALF}} {{PUCK_R}} {{PUCK_HZ}}
+                {{PUCK_MASS}} {{PUCK_FRICTION}}
+-->
+<mujoco model="g1_push_to_target">
+  <include file="g1_with_hands.xml"/>
+
+  <statistic center="0.35 0 0.9" extent="1.7"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <!-- Offscreen buffer must cover any frame we render; the demo recording
+         is captured at 960x720. -->
+    <global azimuth="140" elevation="-20" offwidth="1280" offheight="960"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0"
+             width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge"
+             rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+             width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true"
+              texrepeat="5 5" reflectance="0.2"/>
+    <material name="table_mat" rgba="0.42 0.40 0.38 1"/>
+    <material name="puck_mat" rgba="0.85 0.35 0.15 1"/>
+    <material name="goal_mat" rgba="0.15 0.75 0.35 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Work surface. Wide enough that the puck can travel without falling
+         off, which a narrow pedestal did not allow. -->
+    <body name="table" pos="0.42 -0.08 {{TABLE_TOP}}">
+      <geom name="table_geom" type="box"
+            size="{{TABLE_HALF}} {{TABLE_HALF}} {{TABLE_TOP}}"
+            material="table_mat" friction="0.6 0.02 0.001"/>
+    </body>
+
+    <!-- Commanded destination. Visual only: it must not perturb the physics,
+         so it carries no collision geometry. -->
+    <body name="goal" pos="{{GOAL_X}} {{GOAL_Y}} {{TABLE_TOP2}}">
+      <geom name="goal_geom" type="cylinder" size="0.035 0.0015"
+            material="goal_mat" contype="0" conaffinity="0" mass="0"/>
+    </body>
+
+    <!-- The puck the policy must move to the destination. -->
+    <body name="puck" pos="{{TARGET_X}} {{TARGET_Y}} {{TARGET_Z}}">
+      <freejoint name="puck_free"/>
+      <geom name="puck_geom" type="cylinder" size="{{PUCK_R}} {{PUCK_HZ}}"
+            material="puck_mat" mass="{{PUCK_MASS}}"
+            friction="{{PUCK_FRICTION}} 0.02 0.001"
+            solimp="0.95 0.99 0.001" solref="0.006 1"/>
+    </body>
+  </worldbody>
+
+<!--
+  No <keyframe> here on purpose. The included menagerie model already ships a
+  'stand' key covering the robot's 50 coordinates; the puck's 7 free-joint
+  coordinates are written by MujocoG1Env.reset() instead, so the start pose
+  cannot silently desynchronise from the joint ordering of the model.
+-->
+</mujoco>

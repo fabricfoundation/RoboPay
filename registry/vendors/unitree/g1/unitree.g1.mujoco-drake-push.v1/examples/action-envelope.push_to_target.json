@@ -1,0 +1,22 @@
+{
+  "actionId": "act_c7f2aca5fa2e",
+  "robotId": "g1-sim-001",
+  "skillId": "push_to_target",
+  "params": {
+    "goal_x": 0.44,
+    "goal_y": -0.04,
+    "puck_x": 0.34,
+    "puck_y": -0.2
+  },
+  "idempotencyKey": "idem-9ebb9c0f8e",
+  "paramsHash": "sha256:2d8aae1f250feef5d2b55ba2c3191db59363ac96862f521b6c6d148831512456",
+  "expiresAt": "2026-08-15T07:23:48.882842+00:00",
+  "payment": {
+    "provider": "x402",
+    "amount": "10000",
+    "asset": "USDC",
+    "network": "eip155:84532",
+    "verified": true,
+    "txHash": "0x9f3c1d5e8a4b7206c1e9f0d3a5b8c2e74f6019ad3b8c5e2f7a1d4906b3e8c5f2"
+  }
+}
