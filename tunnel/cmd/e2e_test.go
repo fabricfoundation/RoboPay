@@ -72,6 +72,30 @@ func (f *recordingFacilitator) counts() (verify, settle int) {
 	return f.verifyCalls, f.settleCalls
 }
 
+// testPaymentData returns matching (payload, requirements) JSON bytes for
+// a fake $0.001 USDC payment, used by every test that needs to attach
+// payment data to a reserved action before simulating a result.
+func testPaymentData(t *testing.T) (payload, requirements []byte) {
+	t.Helper()
+	req := types.PaymentRequirements{
+		Scheme: "exact", Network: "eip155:84532", Asset: "0xTestAsset",
+		Amount: "1000", PayTo: "0xTestPayee", MaxTimeoutSeconds: 60,
+	}
+	p, err := json.Marshal(types.PaymentPayload{
+		X402Version: 2,
+		Payload:     map[string]interface{}{"signature": "0xfaketestsignature"},
+		Accepted:    req,
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal test payment payload: %v", err)
+	}
+	r, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("failed to marshal test payment requirements: %v", err)
+	}
+	return p, r
+}
+
 func testConfig() *config.Config {
 	return &config.Config{
 		RobotID:         "e2e-test-robot",
@@ -81,7 +105,14 @@ func testConfig() *config.Config {
 	}
 }
 
-func buildTestRouter(t *testing.T, facilitator *recordingFacilitator, store *handlers.IdempotencyStore) (http.Handler, *handlers.ExecutionWatcher) {
+// buildTestRouter wires a real X402VerifyOnly gate + PostAction/
+// GetActionStatus handlers against a fake facilitator, mirroring
+// setupRouter's production wiring. Only the HTTP router is under test
+// here (accept-time verification); deferred settlement via
+// ExecutionWatcher is tested separately against watcher.HandleResult
+// directly, since that is the realistic unit boundary (results arrive
+// over Zenoh, not HTTP).
+func buildTestRouter(t *testing.T, facilitator *recordingFacilitator, store *handlers.IdempotencyStore) http.Handler {
 	t.Helper()
 
 	cfg := testConfig()
@@ -106,10 +137,7 @@ func buildTestRouter(t *testing.T, facilitator *recordingFacilitator, store *han
 	}
 
 	h := &handlers.Handlers{Logger: zap.NewNop(), Store: store}
-	watcher := handlers.NewExecutionWatcher(store, server, zap.NewNop())
-
-	router := ginRouterFor(t, h, server)
-	return router, watcher
+	return ginRouterFor(t, h, server)
 }
 
 // ginRouterFor mirrors setupRouter's real wiring (X402VerifyOnly gate,
@@ -132,7 +160,7 @@ func TestE2E_ValidPaidAction_VerifiesOnceDispatchesOnceSettlesOnlyAfterSuccess(t
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	router, watcher := buildTestRouter(t, facilitator, store)
+	router := buildTestRouter(t, facilitator, store)
 
 	// A payload without a valid PAYMENT-SIGNATURE header is treated as
 	// unpaid by the x402 server, which returns 402 -- exercised here only
@@ -151,10 +179,8 @@ func TestE2E_ValidPaidAction_VerifiesOnceDispatchesOnceSettlesOnlyAfterSuccess(t
 	// requires the EVM exact-scheme client-side signer (private key +
 	// EIP-712 signing), which is out of scope for this fail-closed gate
 	// test. The verify/settle separation itself -- the actual point of
-	// this test suite -- is proven directly against ExecutionWatcher
-	// below, using the same recordingFacilitator and the same Store,
-	// which is the realistic unit boundary for this behavior.
-	_ = watcher
+	// this test suite -- is proven directly against ExecutionWatcher in
+	// TestE2E_SettlementOnlyAfterTerminalSuccess below.
 }
 
 // TestE2E_SettlementOnlyAfterTerminalSuccess is the core deferred-settlement
@@ -193,18 +219,7 @@ func TestE2E_SettlementOnlyAfterTerminalSuccess(t *testing.T) {
 		t.Fatal("fresh actionId must not be a replay")
 	}
 
-	payload, _ := json.Marshal(types.PaymentPayload{
-		X402Version: 2,
-		Payload:     map[string]interface{}{"signature": "0xfaketestsignature"},
-		Accepted: types.PaymentRequirements{
-			Scheme: "exact", Network: "eip155:84532", Asset: "0xTestAsset",
-			Amount: "1000", PayTo: "0xTestPayee", MaxTimeoutSeconds: 60,
-		},
-	})
-	requirements, _ := json.Marshal(types.PaymentRequirements{
-		Scheme: "exact", Network: "eip155:84532", Asset: "0xTestAsset",
-		Amount: "1000", PayTo: "0xTestPayee", MaxTimeoutSeconds: 60,
-	})
+	payload, requirements := testPaymentData(t)
 	if err := store.SetPaymentData(actionID, payload, requirements); err != nil {
 		t.Fatalf("failed to attach payment data: %v", err)
 	}
@@ -288,20 +303,13 @@ func TestE2E_SettlementFailure_DoesNotMarkSettled(t *testing.T) {
 	watcher := handlers.NewExecutionWatcher(store, server, zap.NewNop())
 
 	actionID := "e2e-settle-fail-1"
-	store.Reserve(actionID)
-	payload, _ := json.Marshal(types.PaymentPayload{
-		X402Version: 2,
-		Payload:     map[string]interface{}{"signature": "0xfaketestsignature"},
-		Accepted: types.PaymentRequirements{
-			Scheme: "exact", Network: "eip155:84532", Asset: "0xTestAsset",
-			Amount: "1000", PayTo: "0xTestPayee", MaxTimeoutSeconds: 60,
-		},
-	})
-	requirements, _ := json.Marshal(types.PaymentRequirements{
-		Scheme: "exact", Network: "eip155:84532", Asset: "0xTestAsset",
-		Amount: "1000", PayTo: "0xTestPayee", MaxTimeoutSeconds: 60,
-	})
-	store.SetPaymentData(actionID, payload, requirements)
+	if _, replay := store.Reserve(actionID); replay {
+		t.Fatal("fresh actionId must not be a replay")
+	}
+	payload, requirements := testPaymentData(t)
+	if err := store.SetPaymentData(actionID, payload, requirements); err != nil {
+		t.Fatalf("failed to attach payment data: %v", err)
+	}
 
 	successResult, _ := json.Marshal(map[string]string{"actionId": actionID, "status": "success"})
 	watcher.HandleResult(successResult)
