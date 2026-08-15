@@ -390,6 +390,13 @@ def main(argv: list[str] | None = None) -> int:
                 raise RuntimeError(f"Unexpected payment recipient: {accepted.get('payTo')}")
             if accepted.get("network") != NETWORK:
                 raise RuntimeError(f"Unexpected payment network: {accepted.get('network')}")
+            authorization_window = int(accepted.get("maxTimeoutSeconds") or 0)
+            if authorization_window < 300:
+                raise RuntimeError(
+                    "x402 authorization window is too short for deferred simulator settlement: "
+                    f"{authorization_window}s"
+                )
+            print(f"Payment authorization window: {authorization_window}s", flush=True)
             if args.dry_run:
                 print("Dry run complete: no payment was signed or submitted", flush=True)
                 return 0
