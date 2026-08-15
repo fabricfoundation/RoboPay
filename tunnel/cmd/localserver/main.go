@@ -48,7 +48,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to open zenoh session", zap.Error(err))
 	}
-	defer session.Close(nil)
+	defer func() {
+		if err := session.Close(nil); err != nil {
+			logger.Warn("failed to close zenoh session", zap.Error(err))
+		}
+	}()
 
 	facilitatorClient := x402http.NewHTTPFacilitatorClient(&x402http.FacilitatorConfig{
 		URL: *facilitatorURL,
@@ -89,7 +93,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to declare result subscriber", zap.Error(err))
 	}
-	defer resultSub.Undeclare()
+	defer func() {
+		if err := resultSub.Undeclare(); err != nil {
+			logger.Warn("failed to undeclare result subscriber", zap.Error(err))
+		}
+	}()
 
 	gin.SetMode(gin.DebugMode)
 	router := gin.New()
@@ -114,5 +122,7 @@ func main() {
 	logger.Info("shutting down...")
 	shutdownCtx, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel2()
-	srv.Shutdown(shutdownCtx)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("server shutdown error", zap.Error(err))
+	}
 }
