@@ -43,6 +43,14 @@ if (-not (Test-Path -LiteralPath $TunnelBin)) {
     throw "Tunnel binary not found: '$TunnelBin'. Run 'wsl.exe -d Ubuntu-22.04 -- make build' from $repoRoot first."
 }
 
+$staleZenohListener = Get-NetTCPConnection -LocalPort 7447 -State Listen -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if ($staleZenohListener) {
+    $owner = Get-Process -Id $staleZenohListener.OwningProcess -ErrorAction SilentlyContinue
+    $ownerDescription = if ($owner) { "$($owner.ProcessName) PID $($owner.Id)" } else { "PID $($staleZenohListener.OwningProcess)" }
+    throw "Zenoh port 7447 is already occupied by $ownerDescription. Stop the stale router before recording; refusing to send payment into the wrong Zenoh session."
+}
+
 $python = if (-not [string]::IsNullOrWhiteSpace($env:GO2_PYTHON_EXE)) {
     $env:GO2_PYTHON_EXE
 } else {

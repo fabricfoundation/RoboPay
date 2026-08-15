@@ -109,6 +109,11 @@ readable throughout the recording. A ten-second countdown lets the operator
 start capture before the unpaid request; pass `-NoAutoLayout` only when using a
 manually prepared split-screen layout.
 
+The launcher also refuses to proceed while TCP port `7447` is already in use.
+This check runs before signing or submitting payment and prevents a stale
+Zenoh router from accepting the Tunnel connection while the current Go2 bridge
+waits on a different session.
+
 The launcher starts an isolated local Zenoh router, displays Tunnel logs and
 MuJoCo motion, briefly holds the terminal scene, writes the correlated evidence
 JSON under `artifacts/`, and opens the settlement transaction in BaseScan. The
