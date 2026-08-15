@@ -1,0 +1,146 @@
+{
+  "timestamp": "2026-08-15T13:39:57Z",
+  "source_commit": "7404f879621cfc3bd99a365849c05918cad64883",
+  "network": "eip155:84532",
+  "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "payee": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "robot_id": "go2-mujoco-base-sepolia-1786801123",
+  "request_id": "go2-obstacle-nav-1786801123",
+  "unpaid_http_status": 402,
+  "paid_http_status": 202,
+  "discovery": {
+    "robot_id": "go2-mujoco-base-sepolia-1786801123",
+    "skills": [
+      {
+        "aliases": null,
+        "description": "Run the bounded, left-corridor Go2 obstacle course in simulation.",
+        "enabled": true,
+        "params": {
+          "maxDurationSec": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 60
+          },
+          "side": {
+            "type": "string",
+            "values": [
+              "left"
+            ]
+          },
+          "speedScale": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 1
+          }
+        },
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "navigate_obstacles"
+      },
+      {
+        "aliases": null,
+        "description": "Safely interrupt an active Go2 simulation and command neutral controls.",
+        "enabled": true,
+        "params": {},
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "stop"
+      }
+    ]
+  },
+  "terminal_status": {
+    "action_id": "go2-obstacle-nav-1786801123",
+    "idempotency_key": "go2-obstacle-nav-1786801123",
+    "params_hash": "sha256:9ec6b1d8d84550c03decd39a6eba720b8e9d499aca51c62746f88406f08d9e77",
+    "result": {
+      "actuator_adapter": "official_go2_pd_torque_actuators",
+      "completion_reason": "goal_reached",
+      "control_steps": 14081,
+      "controller": "shared_online_footspace_trot_with_pose_feedback",
+      "final_goal_distance_m": 0.32,
+      "final_position": {
+        "x": 2.95,
+        "y": 1.514,
+        "z": 0.26
+      },
+      "final_yaw_rad": 0.698,
+      "goal": {
+        "x": 3.25,
+        "y": 1.625
+      },
+      "heading_change_rad": 0.698,
+      "initial_position": {
+        "x": 0,
+        "y": 0,
+        "z": 0.32
+      },
+      "initial_yaw_rad": 0,
+      "minimum_clearance_m": 0.416,
+      "model_source_commit": "ae6a8403e272733e9996ef59990880330496177f",
+      "obstacle_contact_count": 0,
+      "path_length_m": 3.999,
+      "policy_id": "unitree-go2-online-footspace-trot-v1",
+      "policy_state": {
+        "active_waypoint": 3,
+        "goal_distance": 0.3198377625099407,
+        "heading_error_rad": 0,
+        "parameters": {
+          "gait_frequency_hz": 1.25,
+          "steer_limit": 0.06,
+          "stride_half_length_m": 0.09,
+          "swing_lift_m": 0.09
+        },
+        "phase": "GOAL_REACHED",
+        "policy_id": "unitree-go2-online-footspace-trot-v1",
+        "route": [
+          {
+            "x": 1.2,
+            "y": 0.5
+          },
+          {
+            "x": 1.9,
+            "y": 0.95
+          },
+          {
+            "x": 2.6,
+            "y": 1.35
+          },
+          {
+            "x": 3.25,
+            "y": 1.625
+          }
+        ],
+        "steering": 0
+      },
+      "robot_model": "Unitree Go2 (official unitree_mujoco MJCF)",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 28.162,
+      "simulator_engine": "MuJoCo",
+      "status": "success",
+      "success": true,
+      "task": "navigate_obstacles",
+      "waypoint_count": 4,
+      "waypoints_completed": 3
+    },
+    "robot_id": "go2-mujoco-base-sepolia-1786801123",
+    "settled": true,
+    "settlement": {
+      "network": "eip155:84532",
+      "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+      "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg3ZWE0NDBmNTg3NjZjNzY5NjcxOTk1ODQxYTNkOTc2NmVkYzIyMjJjNDAwMzAwZmQ1OTZmMDUyMTkyOWJkZDkyIiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+      "transaction": "0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92"
+    },
+    "skill_id": "navigate_obstacles",
+    "state": "succeeded",
+    "updated_at": "2026-08-15T10:39:56-03:00"
+  },
+  "settlement": {
+    "network": "eip155:84532",
+    "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+    "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg3ZWE0NDBmNTg3NjZjNzY5NjcxOTk1ODQxYTNkOTc2NmVkYzIyMjJjNDAwMzAwZmQ1OTZmMDUyMTkyOWJkZDkyIiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+    "transaction": "0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92"
+  },
+  "transaction_hash": "0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92",
+  "basescan_url": "https://sepolia.basescan.org/tx/0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92"
+}
+

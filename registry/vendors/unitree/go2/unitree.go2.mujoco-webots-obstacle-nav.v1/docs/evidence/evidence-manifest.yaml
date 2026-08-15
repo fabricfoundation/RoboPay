@@ -15,7 +15,7 @@ claimBoundary:
 
 evidence:
   - evidenceId: GO2-LIVE-X402-CURRENT-HEAD
-    artifact: docs/evidence/base_sepolia_result_1786792455.json
+    artifact: docs/evidence/base_sepolia_result_1786801197.json
     generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
     requiredFields:
       - source_commit
@@ -33,22 +33,22 @@ evidence:
       Sepolia settlement transaction.
     status: captured
     capture:
-      sourceCommit: 0c172aef46844b6f9db4f4cba4b005e858d49e30
-      capturedAt: 2026-08-15T11:14:15Z
-      actionId: go2-obstacle-nav-1786792404
+      sourceCommit: 7404f879621cfc3bd99a365849c05918cad64883
+      capturedAt: 2026-08-15T13:39:57Z
+      actionId: go2-obstacle-nav-1786801123
       unpaidHttpStatus: 402
       paidHttpStatus: 202
       terminalState: succeeded
       settled: true
-      transactionHash: 0xa544308e60b5fca6b4675eae0c48405382ff2fb6255b3e8c19e6fdf1acddd4c1
-      basescanUrl: https://sepolia.basescan.org/tx/0xa544308e60b5fca6b4675eae0c48405382ff2fb6255b3e8c19e6fdf1acddd4c1
+      transactionHash: 0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92
+      basescanUrl: https://sepolia.basescan.org/tx/0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92
       # The runtime emits CRLF on Windows; the versioned documentation copy
       # is normalized to LF by Git. Both digests bind the same JSON object.
-      sourceArtifactSha256: 519b68fdbd97b60c5019c31499011437054b795392a05f18e9190ff0ee55ce01
-      sha256: 7ed8465a6c3308b59ed7e90e36ab15e2c98f00e93da4afe62f7a37018f41d9f3
+      sourceArtifactSha256: ece0d2ea0e42a47231d4e1ad6a2d947d838f53eaa83327c096a7ffa87f3c67f6
+      sha256: 5468bd3995393cf334c9b3065d40389104451cf3af0048d3e7579eae5ede63aa
 
   - evidenceId: GO2-CONTINUOUS-VISUAL-CURRENT-HEAD
-    artifact: 2026-08-15 08-13-17.mp4 (attached to the PR evidence comment)
+    artifact: 2026-08-15 10-38-38.mp4 (attached to the PR evidence comment)
     generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
     requiredVisibleSequence:
       - exact source commit
@@ -65,10 +65,12 @@ evidence:
       - json_artifact_sha256
     status: captured
     capture:
-      sourceCommit: 0c172aef46844b6f9db4f4cba4b005e858d49e30
-      actionId: go2-obstacle-nav-1786792404
-      transactionHash: 0xa544308e60b5fca6b4675eae0c48405382ff2fb6255b3e8c19e6fdf1acddd4c1
-      recordingSha256: 383d9a55957712a85bd57893d90d8ea943539e3799a2bd95a6b1fdc1d64ffa8e
-      recordingBytes: 2850960
-      jsonArtifact: docs/evidence/base_sepolia_result_1786792455.json
-      jsonArtifactSha256: 7ed8465a6c3308b59ed7e90e36ab15e2c98f00e93da4afe62f7a37018f41d9f3
+      sourceCommit: 7404f879621cfc3bd99a365849c05918cad64883
+      actionId: go2-obstacle-nav-1786801123
+      transactionHash: 0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92
+      recordingSha256: 7a202259a52d75d528d17d05aa04a98a42b90e17459dc2f055f24ff456b5373c
+      recordingBytes: 2061177
+      recordingUrl: https://github.com/user-attachments/assets/06f6e665-d6c9-47cf-99d2-664d936450e9
+      jsonArtifact: docs/evidence/base_sepolia_result_1786801197.json
+      jsonArtifactSha256: 5468bd3995393cf334c9b3065d40389104451cf3af0048d3e7579eae5ede63aa
+      supersedes: 2026-08-15 08-13-17.mp4 (partial viewer/terminal continuity)

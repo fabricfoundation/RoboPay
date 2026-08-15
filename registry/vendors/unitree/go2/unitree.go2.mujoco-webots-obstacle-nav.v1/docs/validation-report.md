@@ -11,6 +11,7 @@ Validated locally on 2026-08-10 with the pinned official models.
 | Invalid payment | pass | Real router/x402 middleware receives facilitator HTTP 200 with `isValid:false`; response is HTTP 402, ActionEvents=0, executable commands=0, settlements=0 |
 | Failure/timeout/replay | pass | Real Tunnel + Zenoh test injects terminal failure and silence; settlement calls stay 0; replay remains rejected after restart |
 | Cold-start transport | pass | WebSocket continuation frames are reassembled; the bridge-ready event is emitted only after the action subscription exists, so the first paid action requires no warm-up |
+| Current-HEAD visual evidence | pass | Continuous split-screen run at `7404f879621cfc3bd99a365849c05918cad64883`: unpaid 402, first paid 202/action ID, complete Go2 MuJoCo route and goal hold, correlated success, deferred settlement, and matching BaseScan transaction |
 | Registry drift | pass | Profile, skills, catalog, price, topics and execution mapping validate together |
 
 The negative-payment suite uses a recording facilitator only to deterministically
