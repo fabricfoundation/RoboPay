@@ -50,17 +50,18 @@ def _inspection_params(params: dict) -> tuple[float, tuple[str, ...], float]:
     return float(duration), tuple(raw_targets), float(speed)
 
 
-def _visual_payment_demo() -> tuple[bool, float | None]:
+def _visual_payment_demo() -> tuple[bool, float | None, float]:
     enabled = os.environ.get("BOOSTER_K1_MUJOCO_VIEWER", "").strip().lower() in {"1", "true", "yes"}
     if not enabled:
-        return False, None
+        return False, None, 0.0
     try:
         hold = float(os.environ.get("BOOSTER_K1_MUJOCO_VIEWER_HOLD_SECONDS", "5"))
+        target_hold = float(os.environ.get("BOOSTER_K1_TARGET_HOLD_SECONDS", "0"))
     except ValueError as error:
-        raise ActionContractError("INVALID_VIEWER_CONFIG", "viewer hold must be a non-negative number") from error
-    if not math.isfinite(hold) or hold < 0:
-        raise ActionContractError("INVALID_VIEWER_CONFIG", "viewer hold must be a non-negative number")
-    return True, hold
+        raise ActionContractError("INVALID_VIEWER_CONFIG", "viewer holds must be non-negative numbers") from error
+    if not math.isfinite(hold) or hold < 0 or not math.isfinite(target_hold) or target_hold < 0:
+        raise ActionContractError("INVALID_VIEWER_CONFIG", "viewer holds must be non-negative numbers")
+    return True, hold, target_hold
 
 
 @dataclass(frozen=True)
@@ -131,11 +132,12 @@ class K1ZenohBridge:
         payload = json.dumps(envelope).encode()
         self._metrics.put(payload); self._results.put(payload)
 
-    def _execute(self, event, duration: float, targets: tuple[str, ...], speed: float, viewer: bool, hold: float | None) -> None:
+    def _execute(self, event, duration: float, targets: tuple[str, ...], speed: float, viewer: bool, hold: float | None, target_hold: float) -> None:
         try:
             result = run_inspection(
                 self._model_dir, duration, targets, speed,
-                viewer=viewer, viewer_hold_seconds=hold, stop_requested=self._stop.is_set,
+                viewer=viewer, viewer_hold_seconds=hold,
+                viewer_target_hold_seconds=target_hold, stop_requested=self._stop.is_set,
             )
         except Exception as error:
             LOGGER.exception("K1 simulator execution failed")
@@ -170,7 +172,7 @@ class K1ZenohBridge:
             return
         try:
             duration, targets, speed = _inspection_params(event.params)
-            viewer, hold = _visual_payment_demo()
+            viewer, hold, target_hold = _visual_payment_demo()
         except ActionContractError as error:
             self._publish(event, "failure", {"success": False, "error_code": error.code, "message": str(error)}); return
         with self._lock:
@@ -183,7 +185,7 @@ class K1ZenohBridge:
                 event.robot_id,
                 targets,
             )
-            self._worker = threading.Thread(target=self._execute, args=(event, duration, targets, speed, viewer, hold), daemon=True, name=f"k1-action-{event.action_id}")
+            self._worker = threading.Thread(target=self._execute, args=(event, duration, targets, speed, viewer, hold, target_hold), daemon=True, name=f"k1-action-{event.action_id}")
             self._worker.start()
 
     def spin(self) -> None:

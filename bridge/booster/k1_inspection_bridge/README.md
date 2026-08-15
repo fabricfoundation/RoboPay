@@ -115,6 +115,9 @@ Deployment configuration is environment-only:
 - `ZENOH_ACTION_TOPIC`, `ZENOH_RESULT_TOPIC`, `ZENOH_METRICS_TOPIC`
 - `BOOSTER_K1_MUJOCO_VIEWER=1` and optional
   `BOOSTER_K1_MUJOCO_VIEWER_HOLD_SECONDS=5` for a paid visual recording
+- `BOOSTER_K1_TARGET_HOLD_SECONDS=2` pauses only the live viewer after each
+  measured target confirmation so left, center, and right remain independently
+  visible; it does not change the closed-loop controller or simulator time
 - `ROBO_PAYEE_ADDRESS` for the Tunnel deployment
 - payer `PRIVATE_KEY` only for the explicit live Base Sepolia proof
 
@@ -219,6 +222,12 @@ the first paid action after a clean start without a warm-up action, waits for
 an explicit bridge-subscriber readiness marker before starting the Tunnel,
 waits for the correlated result, and records the Base Sepolia transaction hash
 without writing the private key.
+
+On Windows, `run_live_base_sepolia_visual.ps1` starts an isolated local Zenoh
+router, runs the Linux Tunnel in WSL, keeps the native MuJoCo viewer on Windows,
+prints the exact source commit, and opens the matching BaseScan transaction only
+after correlated success and settlement. Each confirmed target can be held in
+the live viewer for a bounded wall-clock interval without advancing physics.
 
 An unpaid manual request is useful for confirming discovery and the payment
 challenge before spending testnet USDC:

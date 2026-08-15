@@ -13,9 +13,14 @@ if __name__ == "__main__":
     parser.add_argument("--viewer", action="store_true")
     parser.add_argument("--playback-rate", type=float, default=1.0)
     parser.add_argument("--viewer-hold-seconds", type=float)
+    parser.add_argument("--viewer-target-hold-seconds", type=float, default=0.0)
     parser.add_argument("--json-output", type=Path)
     args = parser.parse_args()
-    result = run_inspection(args.model_dir, args.max_duration, tuple(args.targets), args.speed_scale, args.viewer, args.playback_rate, args.viewer_hold_seconds)
+    result = run_inspection(
+        args.model_dir, args.max_duration, tuple(args.targets), args.speed_scale,
+        args.viewer, args.playback_rate, args.viewer_hold_seconds,
+        args.viewer_target_hold_seconds,
+    )
     rendered = json.dumps(result, indent=2)
     print(rendered)
     if args.json_output:

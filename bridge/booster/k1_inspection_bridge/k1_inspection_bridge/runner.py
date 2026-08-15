@@ -21,6 +21,7 @@ def run_inspection(
     viewer: bool = False,
     playback_rate: float = 1.0,
     viewer_hold_seconds: float | None = None,
+    viewer_target_hold_seconds: float = 0.0,
     stop_requested: Callable[[], bool] | None = None,
 ) -> dict:
     environment = K1InspectionEnvironment(model_dir)
@@ -55,7 +56,21 @@ def run_inspection(
             native_viewer.cam.elevation = -12
             started = time.perf_counter()
             while observation["sim_time"] < max_duration_seconds and native_viewer.is_running():
-                if tick():
+                confirmed_before_tick = len(policy.completed_targets)
+                completed = tick()
+                native_viewer.sync()
+                if len(policy.completed_targets) > confirmed_before_tick and viewer_target_hold_seconds > 0:
+                    target_deadline = time.perf_counter() + viewer_target_hold_seconds
+                    while native_viewer.is_running() and time.perf_counter() < target_deadline:
+                        if should_stop():
+                            torque = policy.safe_stop_control(observation["joint_positions"], observation["joint_velocities"])
+                            observation = environment.safe_stop(torque)
+                            safe_stopped = True
+                            native_viewer.sync()
+                            break
+                        native_viewer.sync()
+                        time.sleep(0.05)
+                if completed or safe_stopped:
                     native_viewer.sync()
                     deadline = None if viewer_hold_seconds is None else time.perf_counter() + viewer_hold_seconds
                     while native_viewer.is_running() and (deadline is None or time.perf_counter() < deadline):
@@ -67,8 +82,8 @@ def run_inspection(
                             break
                         native_viewer.sync()
                         time.sleep(0.05)
+                    native_viewer.close()
                     break
-                native_viewer.sync()
                 delay = observation["sim_time"] / playback_rate - (time.perf_counter() - started)
                 if delay > 0:
                     time.sleep(delay)
