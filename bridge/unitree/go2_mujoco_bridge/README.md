@@ -102,6 +102,13 @@ Use `-PauseAfter` while recording to keep the concise settlement summary and
 transaction hash visible until Enter is pressed; credentials are removed from
 the child process environment before that pause.
 
+On Windows, the launcher automatically places the terminal in the left 45% of
+the primary work area and moves the native MuJoCo viewer into the right 55%.
+This keeps both the correlated payment/result stream and the complete course
+readable throughout the recording. A ten-second countdown lets the operator
+start capture before the unpaid request; pass `-NoAutoLayout` only when using a
+manually prepared split-screen layout.
+
 The launcher starts an isolated local Zenoh router, displays Tunnel logs and
 MuJoCo motion, briefly holds the terminal scene, writes the correlated evidence
 JSON under `artifacts/`, and opens the settlement transaction in BaseScan. The
