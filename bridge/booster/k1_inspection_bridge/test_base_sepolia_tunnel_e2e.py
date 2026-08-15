@@ -198,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
             "BOOSTER_K1_MUJOCO_VIEWER": "true" if args.visual else "false",
             "BOOSTER_K1_MUJOCO_VIEWER_HOLD_SECONDS": os.environ.get("BOOSTER_K1_MUJOCO_VIEWER_HOLD_SECONDS", "3"),
             "BOOSTER_K1_TARGET_HOLD_SECONDS": os.environ.get("BOOSTER_K1_TARGET_HOLD_SECONDS", "2"),
+            "BOOSTER_K1_VIEWER_START_HOLD_SECONDS": os.environ.get("BOOSTER_K1_VIEWER_START_HOLD_SECONDS", "8"),
         })
         bridge = subprocess.Popen(
             [sys.executable, "-m", "k1_inspection_bridge.bridge"], cwd=PACKAGE_ROOT,
@@ -261,6 +262,7 @@ def main(argv: list[str] | None = None) -> int:
                 "cold_start": True, "warmup_action": False,
                 "visual_target_hold_seconds": float(bridge_env["BOOSTER_K1_TARGET_HOLD_SECONDS"]) if args.visual else 0.0,
                 "visual_final_hold_seconds": float(bridge_env["BOOSTER_K1_MUJOCO_VIEWER_HOLD_SECONDS"]) if args.visual else 0.0,
+                "visual_start_hold_seconds": float(bridge_env["BOOSTER_K1_VIEWER_START_HOLD_SECONDS"]) if args.visual else 0.0,
                 "discovery": discovery, "terminal_status": terminal, "settlement": settlement,
                 "transaction_hash": tx_hash, "basescan_url": f"https://sepolia.basescan.org/tx/{tx_hash}",
             }

@@ -22,6 +22,7 @@ def run_inspection(
     playback_rate: float = 1.0,
     viewer_hold_seconds: float | None = None,
     viewer_target_hold_seconds: float = 0.0,
+    viewer_start_hold_seconds: float = 0.0,
     stop_requested: Callable[[], bool] | None = None,
 ) -> dict:
     environment = K1InspectionEnvironment(model_dir)
@@ -54,6 +55,10 @@ def run_inspection(
             native_viewer.cam.distance = 2.5
             native_viewer.cam.azimuth = 145
             native_viewer.cam.elevation = -12
+            start_deadline = time.perf_counter() + viewer_start_hold_seconds
+            while native_viewer.is_running() and time.perf_counter() < start_deadline:
+                native_viewer.sync()
+                time.sleep(0.05)
             started = time.perf_counter()
             while observation["sim_time"] < max_duration_seconds and native_viewer.is_running():
                 confirmed_before_tick = len(policy.completed_targets)

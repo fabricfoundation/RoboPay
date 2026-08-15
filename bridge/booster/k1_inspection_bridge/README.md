@@ -118,6 +118,8 @@ Deployment configuration is environment-only:
 - `BOOSTER_K1_TARGET_HOLD_SECONDS=2` pauses only the live viewer after each
   measured target confirmation so left, center, and right remain independently
   visible; it does not change the closed-loop controller or simulator time
+- `BOOSTER_K1_VIEWER_START_HOLD_SECONDS=8` keeps the neutral start visible long
+  enough to place the viewer beside the recording terminal
 - `ROBO_PAYEE_ADDRESS` for the Tunnel deployment
 - payer `PRIVATE_KEY` only for the explicit live Base Sepolia proof
 

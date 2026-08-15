@@ -2,6 +2,7 @@
 param(
     [ValidateRange(0, 20)][int]$FinalHoldSeconds = 3,
     [ValidateRange(0, 10)][int]$TargetHoldSeconds = 2,
+    [ValidateRange(0, 20)][int]$ViewerStartSeconds = 8,
     [switch]$DryRun,
     [switch]$NoOpenBaseScan,
     [switch]$PauseAfter,
@@ -55,13 +56,19 @@ $env:TUNNEL_BIN = (Resolve-Path -LiteralPath $TunnelBin).Path
 $env:PYTHONPATH = $PSScriptRoot
 $env:BOOSTER_K1_MUJOCO_VIEWER_HOLD_SECONDS = [string]$FinalHoldSeconds
 $env:BOOSTER_K1_TARGET_HOLD_SECONDS = [string]$TargetHoldSeconds
+$env:BOOSTER_K1_VIEWER_START_HOLD_SECONDS = [string]$ViewerStartSeconds
 $env:ROBO_PAY_COMMIT_SHA = $commitSha
 
 Write-Host 'Arrange this terminal beside the MuJoCo viewer, then keep both visible for the complete run.'
 Write-Host 'OBS sequence: bridge ready -> discovery -> unpaid 402 -> first paid 202 -> left -> center -> right -> correlated result -> settlement -> BaseScan'
 Write-Host "Evidence commit: $commitSha"
 Write-Host "Each target pose is held for $TargetHoldSeconds seconds; the final pose is held for $FinalHoldSeconds additional seconds."
+Write-Host "The viewer holds its neutral start for $ViewerStartSeconds seconds so it can be positioned without losing the left target."
 Write-Host 'Secrets are loaded from the current process and will not be printed or written.'
+
+if (-not $DryRun) {
+    [void](Read-Host 'Start OBS, keep this terminal visible, then press Enter to begin')
+}
 
 $arguments = @(
     (Join-Path $PSScriptRoot 'test_base_sepolia_tunnel_e2e.py'),
