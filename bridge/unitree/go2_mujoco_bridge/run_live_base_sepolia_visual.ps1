@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateRange(0, 20)][int]$HoldSeconds = 5,
-    [ValidateRange(0, 30)][int]$PreflightSeconds = 10,
+    [ValidateRange(0, 30)][int]$PreflightSeconds = 0,
     [switch]$DryRun,
     [switch]$NoOpenBaseScan,
     [switch]$NoAutoLayout,
@@ -131,6 +131,8 @@ Write-Host "Evidence commit: $commitSha"
 Write-Host "The terminal goal pose is held for $HoldSeconds seconds before the correlated result is published."
 Write-Host 'Automatic layout: readable terminal on the left; complete MuJoCo course on the right.'
 Write-Host 'Secrets are loaded from the current process and will not be printed or written.'
+Write-Host ''
+Read-Host 'Arrange this terminal beside the MuJoCo viewer, start OBS, then press Enter to begin the current-head recording'
 for ($remaining = $PreflightSeconds; $remaining -gt 0; $remaining--) {
     Write-Host "Starting in $remaining..."
     Start-Sleep -Seconds 1

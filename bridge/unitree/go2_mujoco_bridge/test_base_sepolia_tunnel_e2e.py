@@ -123,6 +123,7 @@ def _stream_tunnel_output(
                     for marker in (
                         "ws connected to proxy",
                         "action settled after successful execution",
+                        "deferred settlement failed",
                     )
                 ):
                     print(f"[tunnel] {line}", end="", flush=True)
@@ -420,6 +421,15 @@ def main(argv: list[str] | None = None) -> int:
             if terminal is None:
                 raise RuntimeError("Action never reached a terminal status")
             if terminal.get("state") != "succeeded" or not terminal.get("settled"):
+                tunnel_log = tunnel_log_path.read_text(encoding="utf-8", errors="replace")
+                settlement_lines = [
+                    line
+                    for line in tunnel_log.splitlines()
+                    if "settlement" in line.lower() or "facilitator" in line.lower()
+                ]
+                if settlement_lines:
+                    print("Tunnel settlement diagnostics:", flush=True)
+                    print("\n".join(settlement_lines[-10:]), flush=True)
                 raise RuntimeError(f"Action or settlement failed: {terminal}")
             settlement = terminal.get("settlement") or {}
             tx_hash = settlement.get("transaction") or settlement.get("txHash")
