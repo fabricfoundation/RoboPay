@@ -66,11 +66,20 @@ The mandatory workflow covers:
   transaction [`0x8629549e...f440c`](https://sepolia.basescan.org/tx/0x8629549e3e7907ae61cd10480144220cc03b4e9d52c08044959aa1f6bc4f440c)
 - [x] CI evidence artifacts: MuJoCo, Sim-to-Sim, and Base Sepolia JSON uploaded
   by [workflow run 31418321557](https://github.com/RobotDeveloper1/RoboPay/actions/runs/31418321557)
-- [ ] Paid-action simulator screen recording paired with the terminal evidence
+- [x] Paid-action simulator screen recording paired with the terminal evidence:
+  stable simultaneous layout, exact source commit `34b3106`, unpaid HTTP 402,
+  first paid HTTP 202, visibly distinct left/center/right poses, correlated
+  `succeeded`, post-success settlement, and the matching BaseScan success page.
+  The [evidence manifest](evidence/evidence-manifest.yaml) binds action
+  `k1-active-inspection-1786793529`, transaction `0xf0ffd8d9...ad95a`, recording
+  SHA-256 `92c1ae57...d791f0`, and the committed trusted JSON artifact.
 
 Commands and machine-readable outputs are documented in the bridge README.
-The workflow artifact is authoritative for the submitted commit; generated
-JSON, private configuration, and downloaded third-party assets are ignored.
+The workflow artifact remains authoritative for automated CI. The final visual
+run is separately bound to its executed source commit in
+`docs/evidence/evidence-manifest.yaml`; its trusted JSON result is committed in
+the same directory. Private configuration and downloaded third-party assets
+remain ignored.
 
 ## Safety and limitations
 

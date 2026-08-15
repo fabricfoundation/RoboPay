@@ -14,3 +14,8 @@ for clean-checkout, visual recording, payment, and validation commands.
 Price is 0.001 USDC on Base Sepolia (`eip155:84532`). The deployment payee is
 supplied by `ROBO_PAYEE_ADDRESS`; no identity or payment private key is stored
 in this profile.
+
+The final continuous paid-action recording and its trusted JSON result are
+bound in [`evidence/evidence-manifest.yaml`](evidence/evidence-manifest.yaml).
+That manifest distinguishes the executed source revision from the subsequent
+evidence-only documentation commit.
