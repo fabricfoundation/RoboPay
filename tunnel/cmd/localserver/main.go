@@ -59,7 +59,7 @@ func main() {
 			Accepts: x402http.PaymentOptions{
 				{Scheme: "exact", Price: *price, Network: x402.Network(*network), PayTo: *payTo},
 			},
-			Description: "Booster K1 obstacle-navigation action (live E2E test)",
+			Description: "Deep Robotics M20 Pro obstacle-navigation action (live E2E test)",
 			MimeType:    "application/json",
 		},
 	}
