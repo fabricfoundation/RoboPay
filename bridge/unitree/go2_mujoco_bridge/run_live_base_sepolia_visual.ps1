@@ -30,6 +30,10 @@ if ([string]::IsNullOrWhiteSpace($payee)) {
 }
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
+$commitSha = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $commitSha -notmatch '^[0-9a-f]{40}$') {
+    throw 'Unable to resolve the exact Git commit for the visual evidence run.'
+}
 if ([string]::IsNullOrWhiteSpace($TunnelBin)) {
     $TunnelBin = Join-Path $repoRoot 'bin/tunnel'
 }
@@ -49,8 +53,10 @@ $env:ROBO_PAYEE_ADDRESS = $payee
 $env:TUNNEL_BIN = (Resolve-Path -LiteralPath $TunnelBin).Path
 $env:PYTHONPATH = $PSScriptRoot
 $env:GO2_MUJOCO_VIEWER_HOLD_SECONDS = [string]$HoldSeconds
+$env:ROBO_PAY_COMMIT_SHA = $commitSha
 
 Write-Host 'OBS sequence: bridge ready -> discovery -> unpaid 402 -> first paid 202 -> Go2 MuJoCo motion -> settlement -> BaseScan'
+Write-Host "Evidence commit: $commitSha"
 Write-Host "The terminal goal pose is held for $HoldSeconds seconds before the correlated result is published."
 Write-Host 'Secrets are loaded from the current process and will not be printed or written.'
 
@@ -71,6 +77,7 @@ if ($DryRun) {
 $exitCode = $LASTEXITCODE
 Remove-Item Env:PRIVATE_KEY -ErrorAction SilentlyContinue
 Remove-Item Env:BASE_SEPOLIA_PRIVATE_KEY -ErrorAction SilentlyContinue
+Remove-Item Env:ROBO_PAY_COMMIT_SHA -ErrorAction SilentlyContinue
 if ($PauseAfter) {
     [void](Read-Host 'Recording complete. Press Enter to close this window')
 }

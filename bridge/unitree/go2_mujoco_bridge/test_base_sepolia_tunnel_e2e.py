@@ -57,6 +57,21 @@ def _required_env(name: str) -> str:
     return value
 
 
+def _source_commit_sha() -> str:
+    """Return the source revision that must be visible in visual evidence."""
+
+    configured = os.environ.get("ROBO_PAY_COMMIT_SHA", "").strip()
+    if configured:
+        return configured
+    completed = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
+
+
 def _decode_header(value: str | None) -> dict:
     if not value:
         return {}
@@ -214,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     private_key = None if args.dry_run else _required_env("PRIVATE_KEY")
     payee = _required_env("ROBO_PAYEE_ADDRESS")
+    commit_sha = _source_commit_sha()
     if private_key and not private_key.startswith("0x"):
         private_key = "0x" + private_key
     if not TUNNEL_BINARY.is_file():
@@ -234,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
             "speedScale": 1.0,
         },
     }
+    print(f"Evidence commit: {commit_sha}", flush=True)
 
     with tempfile.TemporaryDirectory(prefix="robopay_go2_base_sepolia_") as temp_dir:
         temp = Path(temp_dir)
@@ -414,11 +431,13 @@ def main(argv: list[str] | None = None) -> int:
 
             evidence = {
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "source_commit": commit_sha,
                 "network": NETWORK,
                 "payer": account.address,
                 "payee": payee,
                 "robot_id": robot_id,
                 "request_id": request_id,
+                "unpaid_http_status": unpaid.status_code,
                 "paid_http_status": paid.status_code,
                 "discovery": discovery,
                 "terminal_status": terminal,

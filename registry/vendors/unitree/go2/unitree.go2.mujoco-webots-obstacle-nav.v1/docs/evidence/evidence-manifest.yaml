@@ -1,0 +1,52 @@
+schemaVersion: evidence-manifest.v1
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+
+claimBoundary:
+  scope: simulator-only Tier 1
+  claimed: >-
+    The shared Tunnel validates x402 evidence before publishing an ActionEvent;
+    the official-model MuJoCo bridge executes navigate_obstacles and returns a
+    correlated terminal result; settlement is deferred until that result is a
+    matching success.
+  notClaimed: >-
+    This profile does not claim physical Go2 hardware execution. A visual
+    recording proves only the exact live run it identifies and does not replace
+    the required Tunnel, simulator, payment-gate, and Sim-to-Sim test suites.
+
+evidence:
+  - evidenceId: GO2-LIVE-X402-CURRENT-HEAD
+    artifact: docs/evidence/base_sepolia_result_<timestamp>.json
+    generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    requiredFields:
+      - source_commit
+      - unpaid_http_status
+      - request_id
+      - paid_http_status
+      - terminal_status.action_id
+      - terminal_status.state
+      - terminal_status.settled
+      - transaction_hash
+      - basescan_url
+    proves: >-
+      One current-source run observed unpaid 402, first paid 202, a terminal
+      Go2 simulator success correlated by action ID, and the resulting Base
+      Sepolia settlement transaction.
+    status: pending-current-head-capture
+
+  - evidenceId: GO2-CONTINUOUS-VISUAL-CURRENT-HEAD
+    artifact: docs/evidence/go2-current-head-continuous.mp4
+    generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    requiredVisibleSequence:
+      - exact source commit
+      - unpaid HTTP 402 with no MuJoCo actuation
+      - first paid HTTP 202 and action ID
+      - all four route points and final goal hold in the unobstructed viewer
+      - correlated terminal result with the same action ID
+      - settlement and matching BaseScan transaction
+    requiredBindings:
+      - source_commit
+      - action_id
+      - transaction_hash
+      - recording_sha256
+      - json_artifact_sha256
+    status: pending-operator-recording

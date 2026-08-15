@@ -28,3 +28,13 @@ unsettled.
 Model provenance and exact commits are in
 `bridge/unitree/go2_mujoco_bridge/models/model.lock.json`. Reproduction and
 graphical commands are in `bridge/unitree/go2_mujoco_bridge/README.md`.
+
+## Current-head visual evidence
+
+The visual launcher prints the exact Git commit before discovery and writes the
+same value as `source_commit` into its trusted JSON result. A recording must
+keep the terminal and native MuJoCo viewer visible together from the unpaid
+`402` through every route point, the short final-state hold, the correlated
+result, and BaseScan. The required action, transaction, recording, and JSON
+integrity bindings are tracked in `docs/evidence/evidence-manifest.yaml`; it
+intentionally remains pending until the MP4 and SHA-256 exist.
