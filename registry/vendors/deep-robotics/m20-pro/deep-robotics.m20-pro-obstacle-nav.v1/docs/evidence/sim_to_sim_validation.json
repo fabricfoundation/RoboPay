@@ -1,13 +1,13 @@
 {
   "mujoco_metrics": {
-    "avoidance_events": 1,
-    "collisions": 0,
+    "status": "goal_reached",
     "displacement_m": 7.6507,
     "path_length_m": 7.6511,
-    "sim_seconds": 5.868,
+    "collisions": 0,
+    "target_distance_remaining_m": 0.3493,
     "sim_steps": 2935,
-    "status": "goal_reached",
-    "target_distance_remaining_m": 0.3493
+    "sim_seconds": 5.868,
+    "avoidance_events": 1
   },
   "webots_metrics": {
     "engine": "webots",

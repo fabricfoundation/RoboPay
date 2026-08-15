@@ -1,84 +1,73 @@
 """
-End-to-end demo for the Deep Robotics M20 Pro Tier 1 RoboPay skill.
+End-to-end demo for the Deep Robotics M20 Pro Tier 1 RoboPay bridge.
 
-Simulates the full contract locally without a live Tunnel/relay:
-  1. unpaid action -> rejected (no simulator call)
-  2. paid action -> M20 Pro MuJoCo episode -> success + settlementEligible
-  3. replay of the same actionId -> rejected, no second motion
-  4. stop action -> immediate success, no payment, not settlement-eligible
+Payment verification and settlement now happen entirely in the Go
+tunnel before an event ever reaches robot/tunnel/action -- see
+tunnel/pay_m20_pro.py and docs/evidence/base-sepolia/live-payment-e2e.md
+for the full paid flow against a real facilitator and real Base Sepolia
+settlement.
 
-Prints real metrics captured from the MuJoCo M20 Pro scene, and writes them
-to docs/evidence/m20_pro_metrics.json for the validation report.
+This script demonstrates what's left at the bridge layer once an event
+has already passed the tunnel's fail-closed gate:
+  1. a well-formed, allowlisted action -> real MuJoCo M20 Pro episode -> success
+  2. replay of the same actionId -> rejected, no second motion
+  3. stop -> immediate success
+
+Prints real metrics captured from the MuJoCo M20 Pro scene, and writes
+them to docs/evidence/m20_pro_metrics.json for the validation report.
 """
 
 import json
 import os
 import sys
+import tempfile
 import time
+from types import SimpleNamespace
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from bridge.m20_pro_zenoh_bridge import (
-    M20ProRoboPayBridge,
-    ReplayStore,
-    canonical_params_hash,
-)
-from simulation.runners.m20_pro_runner import M20ProMuJoCoRunner
-
-ROBOT_ID = "deep-robotics-m20-pro-sim-01"
-SKILL_ID = "m20_pro_obstacle_navigation"
+from bridge.m20_pro_zenoh_bridge import M20ProBridge, SKILL_ID  # noqa: E402
 
 
-def make_action(action_id: str, idem_key: str, params: dict, verified: bool = True):
-    return {
+def make_sample(action_id: str, params: dict):
+    event = {
         "actionId": action_id,
-        "robotId": ROBOT_ID,
-        "skillId": SKILL_ID,
+        "action": SKILL_ID,
         "params": params,
-        "paramsHash": canonical_params_hash(params),
-        "idempotencyKey": idem_key,
-        "payment": {
-            "status": "verified" if verified else "unverified",
-            "verified": verified,
-            "authorizationId": f"auth-{action_id}",
-            "expiresAt": time.time() + 300,
-        },
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+    return SimpleNamespace(payload=json.dumps(event).encode("utf-8"))
 
 
 def main():
-    scene_path = os.path.join(
-        os.path.dirname(__file__), "..", "simulation", "scenes", "m20_pro.xml"
-    )
-    runner = M20ProMuJoCoRunner(scene_path=scene_path)
-    bridge = M20ProRoboPayBridge(robot_id=ROBOT_ID, runner=runner, replay_store=ReplayStore())
+    fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+
+    bridge = M20ProBridge(db_path=db_path)
+    published = []
+    bridge._publish = lambda result: published.append(result)
 
     params = {"target_xy": [8.0, 0.0], "max_episode_steps": 50000}
 
-    print("=== Step 1: unpaid request ===")
-    unpaid = make_action("demo-action-001", "demo-idem-001", params, verified=False)
-    r1 = bridge.handle_raw_action(unpaid)
-    print(r1.to_json())
-    assert r1.status == "rejected" and r1.settlementEligible is False
-
-    print("\n=== Step 2: paid request -> real MuJoCo M20 Pro episode ===")
-    paid = make_action("demo-action-002", "demo-idem-002", params, verified=True)
+    print("=== Step 1: well-formed action -> real MuJoCo M20 Pro episode ===")
     t0 = time.time()
-    r2 = bridge.handle_raw_action(paid)
+    bridge._on_action(make_sample("demo-action-001", params))
     wall_time = time.time() - t0
-    print(r2.to_json())
+    r1 = published[-1]
+    print(json.dumps(r1))
     print(f"[wall clock] episode took {wall_time:.2f}s")
+    assert r1["status"] == "success"
 
-    print("\n=== Step 3: replay same actionId -> must reject, no second motion ===")
-    replay = make_action("demo-action-002", "demo-idem-002", params, verified=True)
-    r3 = bridge.handle_raw_action(replay)
-    print(r3.to_json())
-    assert r3.status == "rejected" and r3.settlementEligible is False
+    print("\n=== Step 2: replay same actionId -> must reject, no second motion ===")
+    bridge._on_action(make_sample("demo-action-001", params))
+    r2 = published[-1]
+    print(json.dumps(r2))
+    assert r2["status"] == "rejected" and r2["errorCode"] == "replay_detected"
 
-    print("\n=== Step 4: stop action -> no payment required ===")
-    r4 = bridge.handle_stop("demo-action-003")
-    print(r4.to_json())
-    assert r4.status == "success" and r4.settlementEligible is False
+    print("\n=== Step 3: stop action -> immediate success ===")
+    r3 = bridge.handle_stop("demo-action-002")
+    print(json.dumps(r3))
+    assert r3["status"] == "success"
 
     results_dir = os.path.join(os.path.dirname(__file__), "..", "docs", "evidence")
     os.makedirs(results_dir, exist_ok=True)
@@ -86,16 +75,18 @@ def main():
     with open(out_path, "w") as f:
         json.dump(
             {
-                "unpaid_rejected": json.loads(r1.to_json()),
-                "paid_success": json.loads(r2.to_json()),
-                "replay_rejected": json.loads(r3.to_json()),
-                "stop": json.loads(r4.to_json()),
+                "paid_success": r1,
+                "replay_rejected": r2,
+                "stop": r3,
                 "wall_clock_episode_seconds": round(wall_time, 3),
             },
             f,
             indent=2,
         )
     print(f"\nMetrics written to {out_path}")
+
+    bridge.guard.close()
+    os.remove(db_path)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,116 @@
+name: deep-robotics-m20-pro-tier1 tests
+
+on:
+  pull_request:
+    paths:
+      - 'registry/vendors/deep-robotics/m20-pro/deep-robotics.m20-pro-obstacle-nav.v1/**'
+      - 'bridge/common/zenoh_bridge/zenoh_bridge/action_event.py'
+      - 'tunnel/**'
+  push:
+    branches:
+      - deep-robotics-m20-pro-tier-1
+    paths:
+      - 'registry/vendors/deep-robotics/m20-pro/deep-robotics.m20-pro-obstacle-nav.v1/**'
+      - 'bridge/common/zenoh_bridge/zenoh_bridge/action_event.py'
+      - 'tunnel/**'
+
+jobs:
+  python-simulation-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: registry/vendors/deep-robotics/m20-pro/deep-robotics.m20-pro-obstacle-nav.v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install mujoco numpy eclipse-zenoh pytest
+
+      - name: Run unit + integration tests
+        run: python3 -m pytest tests/ -v
+
+      - name: Run MuJoCo simulation
+        run: |
+          python3 -c "
+          import sys
+          sys.path.insert(0, 'simulation/runners')
+          from m20_pro_runner import M20ProMuJoCoRunner
+          runner = M20ProMuJoCoRunner(scene_path='simulation/scenes/m20_pro.xml')
+          result = runner.run_episode({'target_xy': [8.0, 0.0], 'max_episode_steps': 20000})
+          import json
+          print(json.dumps(result, indent=2))
+          assert result['status'] == 'goal_reached', f\"MuJoCo run did not succeed: {result['status']}\"
+          assert result['collisions'] == 0
+          print('MuJoCo run OK:', result['status'], result['displacement_m'])
+          "
+
+      - name: Sim-to-sim comparison against committed Webots baseline
+        run: |
+          python3 demo/run_demo.py
+          python3 simulation/validation/validate_sim_to_sim.py
+        # Note: Webots itself is not re-run in CI -- it requires a
+        # GUI/extern-controller session not well suited to a standard
+        # Ubuntu runner. This step compares the freshly-generated MuJoCo
+        # metrics against the Webots metrics.json committed to the repo
+        # from the last manual run (simulation/webots/results/webots_metrics.json).
+
+  tunnel-payment-gate-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tunnel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tunnel/go.mod
+
+      - name: Install zenoh-c (Cgo dependency of zenoh-go)
+        run: |
+          curl -fsSL -o /tmp/zc.zip \
+            "https://github.com/eclipse-zenoh/zenoh-c/releases/download/1.9.0/zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip"
+          unzip -q /tmp/zc.zip -d /tmp/zenoh-c
+
+      - name: Build
+        env:
+          CGO_CFLAGS: "-I/tmp/zenoh-c/include"
+          CGO_LDFLAGS: "-L/tmp/zenoh-c/lib -lzenohc"
+          LD_LIBRARY_PATH: "/tmp/zenoh-c/lib"
+        run: go build ./...
+
+      - name: Vet
+        env:
+          CGO_CFLAGS: "-I/tmp/zenoh-c/include"
+          CGO_LDFLAGS: "-L/tmp/zenoh-c/lib -lzenohc"
+          LD_LIBRARY_PATH: "/tmp/zenoh-c/lib"
+        run: go vet ./...
+
+      - name: gofmt check
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not gofmt-formatted:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
+      - name: Test (fail-closed gate, idempotency, deferred settlement, e2e)
+        env:
+          CGO_CFLAGS: "-I/tmp/zenoh-c/include"
+          CGO_LDFLAGS: "-L/tmp/zenoh-c/lib -lzenohc"
+          LD_LIBRARY_PATH: "/tmp/zenoh-c/lib"
+        run: go test ./... -v
+        # Covers internal/handlers (fail-closed allowlist, async
+        # 202/status contract, durable restart-surviving idempotency,
+        # verify-only x402 gate, deferred-settlement execution watcher)
+        # and cmd (end-to-end wiring against a recording facilitator,
+        # proving settlement happens exactly once and only after a
+        # genuine success result).
