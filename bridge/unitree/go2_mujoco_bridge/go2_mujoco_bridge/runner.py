@@ -111,6 +111,14 @@ def run_obstacle_nav(
                                 break
                             native_viewer.sync()
                             time.sleep(0.05)
+                    # ``launch_passive`` owns a separate viewer thread on
+                    # Windows.  Leaving its context alone can leave that
+                    # window visible until the operator closes it manually,
+                    # which delays the terminal result and settlement proof.
+                    # Close it explicitly after the documented final-state
+                    # hold, then return the correlated result.
+                    if native_viewer.is_running():
+                        native_viewer.close()
                     break
                 native_viewer.sync()
                 # Make the default view watchable. The command can be sped up
