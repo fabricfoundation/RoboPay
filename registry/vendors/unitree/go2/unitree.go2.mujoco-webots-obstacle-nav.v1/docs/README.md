@@ -36,5 +36,4 @@ same value as `source_commit` into its trusted JSON result. A recording must
 keep the terminal and native MuJoCo viewer visible together from the unpaid
 `402` through every route point, the short final-state hold, the correlated
 result, and BaseScan. The required action, transaction, recording, and JSON
-integrity bindings are tracked in `docs/evidence/evidence-manifest.yaml`; it
-intentionally remains pending until the MP4 and SHA-256 exist.
+integrity bindings are tracked in `docs/evidence/evidence-manifest.yaml`.

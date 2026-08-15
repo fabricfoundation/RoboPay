@@ -15,7 +15,7 @@ claimBoundary:
 
 evidence:
   - evidenceId: GO2-LIVE-X402-CURRENT-HEAD
-    artifact: docs/evidence/base_sepolia_result_<timestamp>.json
+    artifact: docs/evidence/base_sepolia_result_1786792455.json
     generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
     requiredFields:
       - source_commit
@@ -31,10 +31,24 @@ evidence:
       One current-source run observed unpaid 402, first paid 202, a terminal
       Go2 simulator success correlated by action ID, and the resulting Base
       Sepolia settlement transaction.
-    status: pending-current-head-capture
+    status: captured
+    capture:
+      sourceCommit: 0c172aef46844b6f9db4f4cba4b005e858d49e30
+      capturedAt: 2026-08-15T11:14:15Z
+      actionId: go2-obstacle-nav-1786792404
+      unpaidHttpStatus: 402
+      paidHttpStatus: 202
+      terminalState: succeeded
+      settled: true
+      transactionHash: 0xa544308e60b5fca6b4675eae0c48405382ff2fb6255b3e8c19e6fdf1acddd4c1
+      basescanUrl: https://sepolia.basescan.org/tx/0xa544308e60b5fca6b4675eae0c48405382ff2fb6255b3e8c19e6fdf1acddd4c1
+      # The runtime emits CRLF on Windows; the versioned documentation copy
+      # is normalized to LF by Git. Both digests bind the same JSON object.
+      sourceArtifactSha256: 519b68fdbd97b60c5019c31499011437054b795392a05f18e9190ff0ee55ce01
+      sha256: 7ed8465a6c3308b59ed7e90e36ab15e2c98f00e93da4afe62f7a37018f41d9f3
 
   - evidenceId: GO2-CONTINUOUS-VISUAL-CURRENT-HEAD
-    artifact: docs/evidence/go2-current-head-continuous.mp4
+    artifact: 2026-08-15 08-13-17.mp4 (attached to the PR evidence comment)
     generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
     requiredVisibleSequence:
       - exact source commit
@@ -49,4 +63,12 @@ evidence:
       - transaction_hash
       - recording_sha256
       - json_artifact_sha256
-    status: pending-operator-recording
+    status: captured
+    capture:
+      sourceCommit: 0c172aef46844b6f9db4f4cba4b005e858d49e30
+      actionId: go2-obstacle-nav-1786792404
+      transactionHash: 0xa544308e60b5fca6b4675eae0c48405382ff2fb6255b3e8c19e6fdf1acddd4c1
+      recordingSha256: 383d9a55957712a85bd57893d90d8ea943539e3799a2bd95a6b1fdc1d64ffa8e
+      recordingBytes: 2850960
+      jsonArtifact: docs/evidence/base_sepolia_result_1786792455.json
+      jsonArtifactSha256: 7ed8465a6c3308b59ed7e90e36ab15e2c98f00e93da4afe62f7a37018f41d9f3
