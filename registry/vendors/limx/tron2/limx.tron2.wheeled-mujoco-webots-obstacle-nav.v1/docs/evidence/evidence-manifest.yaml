@@ -17,10 +17,23 @@ evidence:
     generatedBy: bridge/run_live_base_sepolia_e2e.py --ci
     proves: unpaid 402, first paid action, terminal simulator success and Base Sepolia settlement transaction
     availability: trusted fork push or workflow_dispatch only
+  - artifact: artifacts/base_sepolia_result_1786907925.json
+    generatedBy: run-live-base-sepolia-visual.ps1
+    proves: current-source cold start through the public Fabric Gateway, unpaid 402, first paid 202, 10/10 MuJoCo waypoints, three detected obstacles, correlated success and execution-gated Base Sepolia settlement
+    sourceCommit: d11ab49fdb051c8eb9fa73fb216b2b46f2c638ab
+    actionId: limx-tron2-navigation-1786907880
+    transactionHash: 0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39
+    basescanUrl: https://sepolia.basescan.org/tx/0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39
   - artifact: GitHub Actions tunnel-and-contract logs
     generatedBy: tests/test_x402_invalid_payment_gate.py
     proves: isValid false blocks before publication; failure/timeout/replay have zero settlement or repeat dispatch
-  - artifact: operator visual recording
+  - artifact: 2026-08-16 16-17-56.mp4
     generatedBy: run-live-base-sepolia-visual.ps1
-    proves: visible real Tunnel, x402 payment, MuJoCo motion, terminal result and settlement
-    status: pending-operator-recording
+    proves: continuous split-screen public-Gateway run with readable terminal, full TRON 2 MuJoCo course, final goal hold, correlated result, settlement and matching BaseScan page
+    sourceCommit: d11ab49fdb051c8eb9fa73fb216b2b46f2c638ab
+    actionId: limx-tron2-navigation-1786907880
+    transactionHash: 0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39
+    recordingSha256: 4b7bce1d7e963d3cb71183cfd894dfbaf051ef452e23f24e6d79a89f32dec47b
+    durationSeconds: 59.47
+    recordingUrl: https://github.com/user-attachments/assets/16a4a1bc-0fdb-4387-b47f-11701149ae4d
+    status: captured-and-verified

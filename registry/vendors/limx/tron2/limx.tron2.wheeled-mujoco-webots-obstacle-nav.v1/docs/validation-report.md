@@ -6,7 +6,7 @@ Tier 1 simulator-only integration of the official `WF_TRON2A` model for the
 fixed `navigate_obstacle_course` and `stop` skills. Payment price is `$0.001`
 USDC on Base Sepolia.
 
-- Revalidated: 2026-08-11
+- Revalidated: 2026-08-16
 - Simulator host: Windows, MuJoCo 3.3.0, Webots R2025a, Python 3.12
 - Tunnel contract host: Ubuntu 22.04 under WSL2, Go 1.25, Zenoh/zenoh-c 1.9.0,
   Python 3.10
@@ -87,6 +87,24 @@ all Go Tunnel packages passing. The Sim-to-Sim report returned score `1.0`.
 The workflow passes `actionlint` 1.7.7. Python dependencies are exact-pinned;
 in particular `requests==2.33.0`, avoiding the older Reachy Mini pin conflict.
 
+## Current visual and live-chain evidence
+
+The continuous 59.47-second operator recording is bound to source commit
+`d11ab49fdb051c8eb9fa73fb216b2b46f2c638ab`, action ID
+`limx-tron2-navigation-1786907880`, and trusted artifact
+`artifacts/base_sepolia_result_1786907925.json`. It shows the terminal and
+MuJoCo viewer together from the unpaid `HTTP 402` and first paid `HTTP 202`
+through all 10 waypoints, all three obstacles, the final goal hold, correlated
+`succeeded` result, execution-gated `settled: true`, and the matching BaseScan
+page.
+
+- Base Sepolia transaction:
+  `0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39`
+- Recording SHA-256:
+  `4b7bce1d7e963d3cb71183cfd894dfbaf051ef452e23f24e6d79a89f32dec47b`
+- Recording:
+  https://github.com/user-attachments/assets/16a4a1bc-0fdb-4387-b47f-11701149ae4d
+
 ## Deliberate boundaries
 
 MuJoCo provides actuator-level validation with the pinned LimX reinforcement-
@@ -104,6 +122,6 @@ asynchronous cancellation mechanism for an already-running episode.
 
 The live Base Sepolia job requires fork secrets and therefore runs only on a
 trusted push to `limx-tron2-tier-1` or through `workflow_dispatch`; it is
-expected to be skipped on an external upstream pull request. A reviewer-facing
-screen recording is still operator-supplied evidence and must not be marked
-complete until it has actually been recorded and linked.
+expected to be skipped on an external upstream pull request. The current
+operator recording and its matching trusted JSON artifact are captured and
+linked above and in `docs/evidence/evidence-manifest.yaml`.
