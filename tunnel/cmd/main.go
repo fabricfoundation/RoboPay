@@ -312,10 +312,11 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		"POST /action": {
 			Accepts: x402http.PaymentOptions{
 				{
-					Scheme:  "exact",
-					Price:   cfg.Price,
-					Network: x402.Network(cfg.Network),
-					PayTo:   cfg.EVMPayeeAddress,
+					Scheme:            "exact",
+					Price:             cfg.Price,
+					Network:           x402.Network(cfg.Network),
+					PayTo:             cfg.EVMPayeeAddress,
+					MaxTimeoutSeconds: 300,
 				},
 			},
 			Description: "Run a paid robot action",

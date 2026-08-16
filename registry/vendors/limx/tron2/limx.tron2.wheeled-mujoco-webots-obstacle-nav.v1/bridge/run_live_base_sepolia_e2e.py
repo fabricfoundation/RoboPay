@@ -2,9 +2,8 @@
 
 This operator-only command uses a funded testnet payer supplied at run time.
 It never writes the private key, payee address, or generated receipt into a
-tracked file.  The Tunnel, x402 client/facilitator, Zenoh transport, and TRON 2
-MuJoCo episode are real implementations; the local proxy merely exposes the
-Tunnel's WebSocket HTTP boundary for an OBS-friendly localhost URL.
+tracked file. The Tunnel, public Fabric Gateway, x402 client/facilitator,
+Zenoh transport, and TRON 2 MuJoCo episode are real implementations.
 """
 
 from __future__ import annotations
@@ -33,7 +32,6 @@ from x402.mechanisms.evm.signers import EthAccountSigner
 
 from limx_tron2_sim.contracts import NAVIGATION_SKILL, ROBOT_ID
 from limx_tron2_sim.bridge import READY_TOPIC
-from limx_tron2_sim.visual_proxy import LocalTunnelProxy
 
 
 PROFILE_ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +48,21 @@ def _required(name: str) -> str:
     if not value:
         raise SystemExit(f"Missing {name}. Supply it through the current process environment; never put it in this repository.")
     return value
+
+
+def _source_commit_sha() -> str:
+    """Return the exact source revision bound into the evidence artifact."""
+
+    configured = os.environ.get("ROBO_PAY_COMMIT_SHA", "").strip()
+    if configured:
+        return configured
+    completed = subprocess.run(
+        ["git", "-C", str(PROFILE_ROOT), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
 
 
 def _wsl_path(path: Path) -> str:
@@ -83,26 +96,31 @@ def _tunnel_binary() -> Path:
     return path
 
 
-def _stream_output(process: subprocess.Popen[str], *, prefix: str, enabled: bool) -> threading.Thread | None:
+def _stream_output(
+    process: subprocess.Popen[str], *, log_path: Path, prefix: str, enabled: bool
+) -> threading.Thread | None:
     if process.stdout is None:
         return None
+    log_path.touch()
 
     def mirror() -> None:
-        for line in iter(process.stdout.readline, ""):
-            if enabled:
-                print(f"[{prefix}] {line}", end="", flush=True)
+        with log_path.open("w", encoding="utf-8") as log:
+            for line in iter(process.stdout.readline, ""):
+                log.write(line)
+                log.flush()
+                if enabled and any(
+                    marker in line
+                    for marker in (
+                        "ws connected to proxy",
+                        "action settled after successful execution",
+                        "deferred settlement failed",
+                    )
+                ):
+                    print(f"[{prefix}] {line}", end="", flush=True)
 
     worker = threading.Thread(target=mirror, name=f"{prefix}-output", daemon=True)
     worker.start()
     return worker
-
-
-def _wait_for_tunnel(proxy: LocalTunnelProxy, tunnel: subprocess.Popen[str]) -> None:
-    if proxy.wait_for_connection(30) is not None:
-        return
-    if tunnel.poll() is not None:
-        raise RuntimeError(f"Tunnel exited before connecting (exit={tunnel.returncode})")
-    raise RuntimeError("Tunnel did not connect to the local visual proxy")
 
 
 def _wait_for_public_tunnel(
@@ -260,11 +278,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--open-basescan", action="store_true", help="open the actual settlement transaction after success")
     parser.add_argument("--dry-run", action="store_true", help="perform discovery plus an unpaid 402 only; never sign or settle")
     parser.add_argument("--ci", action="store_true", help="run natively without WSL or desktop viewers (GitHub Actions)")
+    parser.add_argument(
+        "--local-zenoh-router",
+        action="store_true",
+        help="start an isolated local Zenoh peer on tcp/0.0.0.0:7447 for the recording",
+    )
     args = parser.parse_args(argv)
 
     payee = os.environ.get("ROBO_PAYEE_ADDRESS") or _required("ROBOT_PAYEE_ADDRESS")
     private_key = "" if args.dry_run else (os.environ.get("PRIVATE_KEY") or _required("BASE_SEPOLIA_PRIVATE_KEY"))
     binary = _tunnel_binary()
+    commit_sha = _source_commit_sha()
     action_id = f"limx-tron2-navigation-{int(time.time())}"
     action_body = {
         "action": NAVIGATION_SKILL,
@@ -283,6 +307,26 @@ def main(argv: list[str] | None = None) -> int:
         )
         zenoh_config = temp / "zenoh-client.json5"
         zenoh_config.write_text('{"mode":"client","connect":{"endpoints":["tcp/127.0.0.1:7447"]}}', encoding="utf-8")
+        tunnel_zenoh_config = zenoh_config
+        if not args.ci:
+            tunnel_zenoh_config = temp / "zenoh-wsl-client.json5"
+            tunnel_zenoh_config.write_text(
+                json.dumps(
+                    {
+                        "mode": "client",
+                        "connect": {"endpoints": [f"tcp/{_wsl_host_address()}:7447"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+        router_session = None
+        if args.local_zenoh_router:
+            router_session = zenoh.open(
+                zenoh.Config.from_json5(
+                    '{"mode":"peer","scouting":{"multicast":{"enabled":false}},'
+                    '"listen":{"endpoints":["tcp/0.0.0.0:7447"]}}'
+                )
+            )
         ready = threading.Event()
         ready_session = zenoh.open(zenoh.Config.from_file(str(zenoh_config)))
 
@@ -306,7 +350,9 @@ def main(argv: list[str] | None = None) -> int:
                 # Keep the terminal pose visible briefly for the recording, then
                 # close the viewer so the bridge can publish ActionResult and let
                 # Tunnel settle without operator interaction.
-                "LIMX_TRON2_MUJOCO_VIEWER_HOLD_SECONDS": "1.5",
+                "LIMX_TRON2_MUJOCO_VIEWER_HOLD_SECONDS": os.environ.get(
+                    "LIMX_TRON2_MUJOCO_VIEWER_HOLD_SECONDS", "5"
+                ),
             }
         )
         bridge = subprocess.Popen(
@@ -317,45 +363,47 @@ def main(argv: list[str] | None = None) -> int:
             stderr=None if args.visual else subprocess.STDOUT,
             text=True,
         )
-        # The OBS launcher intentionally uses localhost so the operator can
-        # show every request.  CI instead connects the real Tunnel to the
-        # hosted Fabric proxy, matching the trusted-branch evidence workflow.
-        proxy: LocalTunnelProxy | None = None
+        # Both CI and the operator recording traverse the hosted Fabric
+        # Gateway. Only the process host differs: CI runs Tunnel natively,
+        # while the Windows visual runner keeps the Linux binary in WSL.
+        proxy_url = FABRIC_PROXY_WS
+        base_url = f"{FABRIC_API_BASE}/robots/{ROBOT_ID}"
         if args.ci:
             start_tunnel = _start_native_tunnel
-            proxy_url = FABRIC_PROXY_WS
-            base_url = f"{FABRIC_API_BASE}/robots/{ROBOT_ID}"
         else:
-            proxy = LocalTunnelProxy(verbose=args.visual)
-            proxy.start()
             start_tunnel = _start_wsl_tunnel
-            proxy_url = f"ws://{_wsl_host_address()}:{proxy.port}/ws"
-            base_url = f"http://127.0.0.1:{proxy.port}/robots/{ROBOT_ID}"
         tunnel = start_tunnel(
             binary=binary,
             config=config,
-            zenoh_config=zenoh_config,
+            zenoh_config=tunnel_zenoh_config,
             proxy_ws_url=proxy_url,
             payee=payee,
             idempotency_path=temp / "idempotency.json",
         )
-        output_thread = _stream_output(tunnel, prefix="tunnel", enabled=args.visual or args.ci)
+        tunnel_log_path = temp / "tunnel.log"
+        output_thread = _stream_output(
+            tunnel,
+            log_path=tunnel_log_path,
+            prefix="tunnel",
+            enabled=args.visual or args.ci,
+        )
         try:
+            print(f"Evidence commit: {commit_sha}", flush=True)
             _wait_for_bridge_ready(ready, bridge)
-            if proxy is None:
-                # Fabric maps /robots/{id}/skills to Tunnel's supported
-                # internal /skills route.  The robot root maps to `/`, which
-                # intentionally returns 404 and therefore is not a readiness
-                # endpoint (the approved Spot E2E follows the same contract).
-                _wait_for_public_tunnel(tunnel, base_url + "/skills")
-            else:
-                _wait_for_tunnel(proxy, tunnel)
+            print("Bridge ready: action subscription declared; no warm-up action used", flush=True)
+            # Fabric maps /robots/{id}/skills to Tunnel's supported internal
+            # /skills route. The robot root maps to `/`, which intentionally
+            # returns 404 and is therefore not a readiness endpoint.
+            _wait_for_public_tunnel(tunnel, base_url + "/skills")
+            print("Tunnel connected to Fabric Gateway", flush=True)
             discovery = requests.get(base_url + "/skills", timeout=30)
             discovery.raise_for_status()
-            print("[client] skill discovery", json.dumps(discovery.json(), indent=2), flush=True)
+            discovery_body = discovery.json()
+            print("Robot discovery: LimX TRON 2 simulator-only", flush=True)
+            print("Skill discovery:", json.dumps(discovery_body, indent=2), flush=True)
 
             unpaid = requests.post(base_url + "/action", json=action_body, timeout=45)
-            print(f"[client] unpaid action -> HTTP {unpaid.status_code}", flush=True)
+            print(f"Unpaid action: HTTP {unpaid.status_code}", flush=True)
             if unpaid.status_code != 402:
                 raise RuntimeError(f"expected unpaid 402, got {unpaid.status_code}: {unpaid.text}")
             payment_required = unpaid.headers.get("PAYMENT-REQUIRED") or unpaid.headers.get("Payment-Required")
@@ -364,29 +412,48 @@ def main(argv: list[str] | None = None) -> int:
             requirement = json.loads(base64.b64decode(payment_required))["accepts"][0]
             if requirement.get("network") != NETWORK or requirement.get("payTo", "").lower() != payee.lower():
                 raise RuntimeError(f"payment requirement drift: {requirement}")
-            print("[client] payment requirement", json.dumps(requirement, indent=2), flush=True)
+            authorization_window = int(requirement.get("maxTimeoutSeconds") or 0)
+            if authorization_window < 300:
+                raise RuntimeError(
+                    "x402 authorization window is too short for deferred simulator settlement: "
+                    f"{authorization_window}s"
+                )
+            print(f"Payment authorization window: {authorization_window}s", flush=True)
             if args.dry_run:
-                print("[client] dry run complete: no signature, settlement, or chain transaction was created.", flush=True)
+                print("Dry run complete: no payment was signed or submitted", flush=True)
                 return 0
 
             account = Account.from_key(private_key if private_key.startswith("0x") else "0x" + private_key)
             client = x402ClientSync()
             register_exact_evm_client(client, EthAccountSigner(account), networks=NETWORK)
-            print(f"[client] sending first paid action from {account.address}", flush=True)
+            print(f"Sending first paid action after clean start: {action_id}", flush=True)
             paid = x402_requests(client).post(base_url + "/action", json=action_body, timeout=120)
-            print(f"[client] paid action -> HTTP {paid.status_code}: {paid.text}", flush=True)
             if paid.status_code != 202 or paid.json().get("action_id") != action_id:
                 raise RuntimeError("first paid action was not accepted with the requested action_id")
+            print(f"Paid action: HTTP 202 accepted ({action_id})", flush=True)
             terminal = _wait_for_terminal(base_url + f"/action/{action_id}/status")
-            print("[client] terminal status", json.dumps(terminal, indent=2), flush=True)
             if terminal.get("state") != "succeeded" or terminal.get("settled") is not True:
+                tunnel_log = tunnel_log_path.read_text(encoding="utf-8", errors="replace")
+                settlement_lines = [
+                    line
+                    for line in tunnel_log.splitlines()
+                    if "settlement" in line.lower() or "facilitator" in line.lower()
+                ]
+                if settlement_lines:
+                    print("Tunnel settlement diagnostics:", flush=True)
+                    print("\n".join(settlement_lines[-10:]), flush=True)
                 raise RuntimeError("simulator success or deferred settlement did not complete")
             settlement = terminal.get("settlement") or {}
             transaction = settlement.get("transaction") or settlement.get("txHash")
             if not transaction:
                 raise RuntimeError("successful terminal status omitted settlement transaction")
+            print("Correlated terminal result:", json.dumps(terminal, indent=2), flush=True)
+            print("Settlement settled: true", flush=True)
+            print(f"Settlement transaction: {transaction}", flush=True)
+            print(f"BaseScan: https://sepolia.basescan.org/tx/{transaction}", flush=True)
             evidence = {
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "source_commit": commit_sha,
                 "network": NETWORK,
                 "payer": account.address,
                 "payee": payee,
@@ -401,7 +468,7 @@ def main(argv: list[str] | None = None) -> int:
             output = PROFILE_ROOT / "artifacts" / f"base_sepolia_result_{int(time.time())}.json"
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
-            print("[client] live evidence", json.dumps(evidence, indent=2), flush=True)
+            print(f"Evidence artifact: {output}", flush=True)
             if args.open_basescan:
                 webbrowser.open(evidence["basescan_url"])
             return 0
@@ -414,10 +481,10 @@ def main(argv: list[str] | None = None) -> int:
                 bridge.wait(timeout=15)
             ready_subscriber.undeclare()
             ready_session.close()
+            if router_session is not None:
+                router_session.close()
             if output_thread is not None:
                 output_thread.join(timeout=2)
-            if proxy is not None:
-                proxy.close()
 
 
 if __name__ == "__main__":
