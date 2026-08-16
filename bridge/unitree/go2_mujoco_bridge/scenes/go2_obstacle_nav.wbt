@@ -1,0 +1,65 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "../models/Go2Official.proto"
+
+WorldInfo {
+  basicTimeStep 16
+  title "RoboPay official Unitree Go2 obstacle navigation"
+  info ["Online controller; measured task metrics; no base-pose writes."]
+}
+Viewpoint {
+  orientation 0.12 0.25 0.96 2.75
+  position 4.4 -5.0 3.1
+}
+Background { skyColor [ 0.08 0.12 0.18 ] }
+DirectionalLight {
+  direction -0.35 -0.45 -1
+  color 1 0.96 0.86
+  intensity 2.4
+  ambientIntensity 0.55
+  castShadows TRUE
+}
+PointLight {
+  location 1.8 -0.8 3.5
+  color 0.75 0.86 1
+  intensity 1.5
+  radius 8
+}
+DEF FLOOR Solid {
+  translation 1.6 0 0
+  children [ Shape {
+    appearance PBRAppearance { baseColor 0.16 0.21 0.25 roughness 0.8 }
+    geometry Box { size 7 4.5 0.1 }
+  } ]
+  boundingObject Box { size 7 4.5 0.1 }
+}
+DEF RIGHT_BLOCK Solid {
+  translation 1.35 -0.45 0.325
+  children [ Shape {
+    appearance PBRAppearance { baseColor 0.82 0.16 0.08 roughness 0.7 }
+    geometry Box { size 0.36 0.36 0.55 }
+  } ]
+  boundingObject Box { size 0.36 0.36 0.55 }
+}
+DEF LEFT_BLOCK Solid {
+  translation 2.15 1.85 0.325
+  children [ Shape {
+    appearance PBRAppearance { baseColor 0.08 0.48 0.85 roughness 0.7 }
+    geometry Box { size 0.36 0.36 0.55 }
+  } ]
+  boundingObject Box { size 0.36 0.36 0.55 }
+}
+DEF GOAL_MARKER Solid {
+  translation 3.25 1.625 0.065
+  children [ Shape {
+    appearance PBRAppearance { baseColor 0.10 0.80 0.25 transparency 0.25 }
+    geometry Cylinder { radius 0.22 height 0.03 }
+  } ]
+}
+DEF GO2 Go2Official {
+  translation 0 0 0.37
+  rotation 0 0 1 0
+  controller "go2_obstacle_controller"
+  supervisor TRUE
+  selfCollision TRUE
+}

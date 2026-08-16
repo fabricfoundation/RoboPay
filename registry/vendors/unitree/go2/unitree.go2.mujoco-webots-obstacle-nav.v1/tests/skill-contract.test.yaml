@@ -1,0 +1,53 @@
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+cases:
+  - name: navigation_accepts_bounded_duration
+    action: navigate_obstacles
+    params: {maxDurationSec: 48, side: left}
+    expect: {accepted: true}
+  - name: navigation_rejects_excess_duration
+    action: navigate_obstacles
+    params: {maxDurationSec: 61, side: left}
+    expect: {accepted: false, error: INVALID_DURATION}
+  - name: navigation_rejects_unknown_side
+    action: navigate_obstacles
+    params: {maxDurationSec: 48, side: north}
+    expect: {accepted: false, error: INVALID_SIDE}
+  - name: navigation_rejects_excess_speed
+    action: navigate_obstacles
+    params: {maxDurationSec: 48, side: left, speedScale: 1.01}
+    expect: {accepted: false, error: INVALID_SPEED}
+  - name: navigation_rejects_unvalidated_right_route
+    action: navigate_obstacles
+    params: {maxDurationSec: 48, side: right}
+    expect: {accepted: false, error: INVALID_SIDE}
+  - name: unknown_action_is_fail_closed
+    action: sprint_through_wall
+    params: {}
+    expect: {accepted: false, error: UNREGISTERED_ACTION}
+  - name: profile_envelope_skill_id_is_parsed
+    runner: bridge/unitree/go2_mujoco_bridge/tests/test_bridge_contract.py
+    action: navigate_obstacles
+    expect: {accepted: true, preserves: [action_id, robot_id, skill_id, idempotency_key, params_hash, transaction_details]}
+  - name: safe_stop_interrupts_navigation
+    runner: bridge/unitree/go2_mujoco_bridge/tests/test_bridge_contract.py
+    action: stop
+    expect: {status: success, safeStopApplied: true, navigationStatus: failure, navigationSettled: false}
+  - name: robot_and_skill_discovery_precedes_payment
+    runner: tunnel/internal/handlers/handlers_test.go
+    expect: {robotStatus: 200, skillsStatus: 200, skills: [navigate_obstacles, stop], priceUSDC: "0.001"}
+  - name: unpaid_action_requires_x402_payment
+    runner: bridge/unitree/go2_mujoco_bridge/tests/test_payment_gate.py
+    action: navigate_obstacles
+    expect: {status: 402, settled: false, header: PAYMENT-REQUIRED}
+  - name: paid_success_settles_on_base_sepolia
+    runner: bridge/unitree/go2_mujoco_bridge/test_base_sepolia_tunnel_e2e.py
+    action: navigate_obstacles
+    expect: {status: 202, terminalState: succeeded, settled: true, transaction: BaseScan}
+  - name: failed_or_timed_out_action_never_settles
+    runner: bridge/unitree/go2_mujoco_bridge/tests/test_x402_no_settlement.py
+    action: navigate_obstacles
+    expect: {terminalStates: [failed, timeout], settled: false, settleCalls: 0, durableReplay: 409}
+settlementInvariant: >-
+  The Tunnel verifies the x402 payment before accepting the action, then waits
+  for the correlated Go2 execution result. Settlement is performed only for
+  status success; failure, timeout, and replay cases make zero /settle calls.

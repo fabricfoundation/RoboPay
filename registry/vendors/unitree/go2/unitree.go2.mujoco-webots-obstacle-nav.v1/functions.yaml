@@ -1,0 +1,47 @@
+schemaVersion: agent-functions.v1
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+functions:
+  - name: get_robot_profile
+    method: GET
+    url: /robot
+    returns:
+      "200": robot_id and skills_url
+  - name: list_robot_skills
+    method: GET
+    url: /skills
+    returns:
+      "200": registered skill IDs, enabled state, and USDC price
+  - name: request_robot_action
+    method: POST
+    url: /action
+    body:
+      action: string
+      robot_id: string
+      params: object          # bounded duration, left route, speedScale 0.5..1.0
+      action_id: string
+      idempotency_key: string
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+  - name: submit_paid_robot_action
+    method: POST
+    url: /action
+    headers:
+      PAYMENT-SIGNATURE: string
+    body: same as request_robot_action
+    returns:
+      "202": accepted/pending; terminal simulator result is correlated by action_id
+      "400": invalid action parameters; no simulator actuation
+      "402": payment required
+      "403": skill not allowed or wrong robot
+      "409": replay detected
+      "429": rate limited
+      "503": allowlist, idempotency store, or result channel unavailable
+    settlement: >-
+      Payment is verified before the 202 accepted/pending response, but the
+      x402 facilitator settles only after the correlated Go2 result reports
+      status success. The local no-settlement integration test injects failure,
+      timeout, and replay scenarios and observes zero /settle calls.
+  - name: get_robot_action_status
+    method: GET
+    url: /action/{action_id}/status
