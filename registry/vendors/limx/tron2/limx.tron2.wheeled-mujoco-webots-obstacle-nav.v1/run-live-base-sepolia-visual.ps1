@@ -4,6 +4,7 @@ param(
   [switch]$DryRun,
   [switch]$NoOpenBaseScan,
   [switch]$NoAutoLayout,
+  [switch]$StartImmediately,
   [switch]$PauseAfter,
   [Parameter(Mandatory = $false)][string]$TunnelBin = $env:TUNNEL_BIN
 )
@@ -120,7 +121,9 @@ Write-Host "The terminal goal pose is held for $HoldSeconds seconds before the c
 Write-Host 'Automatic layout: readable terminal on the left; complete MuJoCo course on the right.'
 Write-Host 'Secrets are loaded from the current process and will not be printed or written.'
 Write-Host ''
-Read-Host 'Start OBS, then press Enter to begin the current-head recording'
+if (-not $StartImmediately) {
+  Read-Host 'Start OBS, then press Enter to begin the current-head recording'
+}
 
 $arguments = @(
   (Join-Path $profileRoot 'bridge\run_live_base_sepolia_e2e.py'),
