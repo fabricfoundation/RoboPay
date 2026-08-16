@@ -54,7 +54,9 @@ func TestExecutionWatcher_NonSuccessResult_NeverSettles(t *testing.T) {
 	settler := &fakeSettlementProcessor{result: &x402http.ProcessSettleResult{Success: true, Transaction: "0xshouldnotbecalled"}}
 	watcher, store := newTestWatcher(t, settler)
 
-	store.Reserve("action-1")
+	if _, _, err := store.Reserve("action-1"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if err := store.SetPaymentData("action-1", json.RawMessage(`{}`), json.RawMessage(`{}`)); err != nil {
 		t.Fatalf("failed to seed payment data: %v", err)
 	}
@@ -82,7 +84,9 @@ func TestExecutionWatcher_SuccessWithoutStoredPaymentData_NeverSettles(t *testin
 
 	// Reserved but SetPaymentData was never called -- simulates a bug or
 	// race where a result arrives before payment data was persisted.
-	store.Reserve("action-2")
+	if _, _, err := store.Reserve("action-2"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 
 	watcher.HandleResult([]byte(`{"actionId":"action-2","status":"success"}`))
 
@@ -102,7 +106,9 @@ func TestExecutionWatcher_SuccessWithPaymentData_SettlesExactlyOnce(t *testing.T
 	settler := &fakeSettlementProcessor{result: &x402http.ProcessSettleResult{Success: true, Transaction: "0xabc"}}
 	watcher, store := newTestWatcher(t, settler)
 
-	store.Reserve("action-3")
+	if _, _, err := store.Reserve("action-3"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if err := store.SetPaymentData("action-3", json.RawMessage(`{}`), json.RawMessage(`{}`)); err != nil {
 		t.Fatalf("failed to seed payment data: %v", err)
 	}
@@ -127,7 +133,9 @@ func TestExecutionWatcher_DuplicateSuccessResult_SettlesOnlyOnce(t *testing.T) {
 	settler := &fakeSettlementProcessor{result: &x402http.ProcessSettleResult{Success: true, Transaction: "0xabc"}}
 	watcher, store := newTestWatcher(t, settler)
 
-	store.Reserve("action-4")
+	if _, _, err := store.Reserve("action-4"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if err := store.SetPaymentData("action-4", json.RawMessage(`{}`), json.RawMessage(`{}`)); err != nil {
 		t.Fatalf("failed to seed payment data: %v", err)
 	}
@@ -144,7 +152,9 @@ func TestExecutionWatcher_SettlementFailure_RecordsSettlementFailedState(t *test
 	settler := &fakeSettlementProcessor{result: &x402http.ProcessSettleResult{Success: false, ErrorReason: "INSUFFICIENT_FUNDS"}}
 	watcher, store := newTestWatcher(t, settler)
 
-	store.Reserve("action-5")
+	if _, _, err := store.Reserve("action-5"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if err := store.SetPaymentData("action-5", json.RawMessage(`{}`), json.RawMessage(`{}`)); err != nil {
 		t.Fatalf("failed to seed payment data: %v", err)
 	}

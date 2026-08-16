@@ -134,7 +134,10 @@ func TestGetActionStatus_UnknownIdReturns404(t *testing.T) {
 
 func TestGetActionStatus_ReturnsReservedPendingState(t *testing.T) {
 	h := newTestHandlers(t)
-	status, replay := h.Store.Reserve("test-action-1")
+	status, replay, err := h.Store.Reserve("test-action-1")
+	if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if replay {
 		t.Fatal("expected first reservation to not be a replay")
 	}
@@ -166,12 +169,18 @@ func TestGetActionStatus_ReturnsReservedPendingState(t *testing.T) {
 func TestIdempotencyStore_ReserveTwiceIsReplay(t *testing.T) {
 	h := newTestHandlers(t)
 
-	first, replay1 := h.Store.Reserve("dup-action")
+	first, replay1, err := h.Store.Reserve("dup-action")
+	if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if replay1 {
 		t.Fatal("first reservation should not be a replay")
 	}
 
-	second, replay2 := h.Store.Reserve("dup-action")
+	second, replay2, err := h.Store.Reserve("dup-action")
+	if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if !replay2 {
 		t.Fatal("second reservation of the same actionId must be flagged as a replay")
 	}
@@ -184,7 +193,9 @@ func TestIdempotencyStore_ReserveTwiceIsReplay(t *testing.T) {
 // silently reported as settled.
 func TestIdempotencyStore_UpdateResult_FailureIsNotSettled(t *testing.T) {
 	h := newTestHandlers(t)
-	h.Store.Reserve("fail-action")
+	if _, _, err := h.Store.Reserve("fail-action"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 
 	if err := h.Store.UpdateResult("fail-action", StateFailed, "SIMULATOR_ERROR", false); err != nil {
 		t.Fatalf("UpdateResult failed: %v", err)
@@ -212,7 +223,9 @@ func TestIdempotencyStore_PersistsAcrossReopen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	store1.Reserve("restart-action")
+	if _, _, err := store1.Reserve("restart-action"); err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	_ = store1.UpdateResult("restart-action", StateSucceeded, "", true)
 
 	store2, err := NewIdempotencyStore(storePath)
@@ -227,7 +240,10 @@ func TestIdempotencyStore_PersistsAcrossReopen(t *testing.T) {
 		t.Fatalf("expected persisted succeeded+settled state, got %+v", status)
 	}
 
-	_, replay := store2.Reserve("restart-action")
+	_, replay, err := store2.Reserve("restart-action")
+	if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
+	}
 	if !replay {
 		t.Fatal("reserving the same actionId after a simulated restart must be flagged as a replay")
 	}

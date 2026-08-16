@@ -215,8 +215,10 @@ func TestE2E_SettlementOnlyAfterTerminalSuccess(t *testing.T) {
 	// already have done at accept time: reserve the actionId and attach
 	// real payment data, before any result has arrived.
 	actionID := "e2e-action-1"
-	if _, replay := store.Reserve(actionID); replay {
+	if _, replay, err := store.Reserve(actionID); replay {
 		t.Fatal("fresh actionId must not be a replay")
+	} else if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
 	}
 
 	payload, requirements := testPaymentData(t)
@@ -241,8 +243,10 @@ func TestE2E_SettlementOnlyAfterTerminalSuccess(t *testing.T) {
 	// real behavior (one actionId, one terminal outcome). To test the
 	// success path we use a second, independent actionId.
 	actionID2 := "e2e-action-2"
-	if _, replay := store.Reserve(actionID2); replay {
+	if _, replay, err := store.Reserve(actionID2); replay {
 		t.Fatal("fresh actionId must not be a replay")
+	} else if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
 	}
 	if err := store.SetPaymentData(actionID2, payload, requirements); err != nil {
 		t.Fatalf("failed to attach payment data: %v", err)
@@ -303,8 +307,10 @@ func TestE2E_SettlementFailure_DoesNotMarkSettled(t *testing.T) {
 	watcher := handlers.NewExecutionWatcher(store, server, zap.NewNop())
 
 	actionID := "e2e-settle-fail-1"
-	if _, replay := store.Reserve(actionID); replay {
+	if _, replay, err := store.Reserve(actionID); replay {
 		t.Fatal("fresh actionId must not be a replay")
+	} else if err != nil {
+		t.Fatalf("Reserve failed: %v", err)
 	}
 	payload, requirements := testPaymentData(t)
 	if err := store.SetPaymentData(actionID, payload, requirements); err != nil {

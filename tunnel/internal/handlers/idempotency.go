@@ -80,14 +80,18 @@ func (s *IdempotencyStore) persist() error {
 }
 
 // Reserve creates a new pending record for actionID. Returns
-// (existing status, true) if actionID was already reserved -- the caller
-// must treat this as a replay and must NOT dispatch a second action.
-func (s *IdempotencyStore) Reserve(actionID string) (*ActionStatus, bool) {
+// (existing status, true, nil) if actionID was already reserved -- the
+// caller must treat this as a replay and must NOT dispatch a second
+// action. A non-nil error means the new record could not be persisted
+// to disk (the in-memory reservation still holds for this process, but
+// callers that need a durability guarantee should treat this as fatal
+// for the request).
+func (s *IdempotencyStore) Reserve(actionID string) (*ActionStatus, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if existing, ok := s.data[actionID]; ok {
-		return existing, true
+		return existing, true, nil
 	}
 
 	now := time.Now().UTC()
@@ -98,8 +102,8 @@ func (s *IdempotencyStore) Reserve(actionID string) (*ActionStatus, bool) {
 		UpdatedAt: now,
 	}
 	s.data[actionID] = status
-	_ = s.persist()
-	return status, false
+	err := s.persist()
+	return status, false, err
 }
 
 // UpdateResult records the terminal (or settlement) state for actionID.

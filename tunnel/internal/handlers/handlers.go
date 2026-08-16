@@ -143,10 +143,16 @@ func (h *Handlers) PostAction(c *gin.Context) {
 
 	actionID := uuid.NewString()
 
-	if _, replay := h.Store.Reserve(actionID); replay {
+	_, replay, err := h.Store.Reserve(actionID)
+	if replay {
 		// uuid collision is astronomically unlikely, but fail closed anyway
 		// rather than silently reusing another action's slot.
 		c.JSON(http.StatusConflict, gin.H{"error": "ACTION_ID_COLLISION"})
+		return
+	}
+	if err != nil {
+		h.Logger.Error("failed to persist action reservation", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "RESERVATION_PERSIST_FAILED"})
 		return
 	}
 
