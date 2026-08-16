@@ -1,0 +1,20 @@
+schemaVersion: evidence-manifest.v1
+profileId: deep-robotics.lynx-m20-pro.mujoco-webots-obstacle-nav.v1
+evidence:
+  - artifact: bridge/deep_robotics/m20_pro_mujoco_bridge/artifacts/base_sepolia_result_1786908768.json
+    generatedBy: bridge/deep_robotics/m20_pro_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    proves: current-source cold start through the public Fabric Gateway, unpaid 402, first paid 202, physical obstacle yield/resume, measured MuJoCo success and execution-gated Base Sepolia settlement
+    sourceCommit: 7928cdbc149ea9b3581ffa19b276ebaf9158b54f
+    actionId: m20-drive-1786908727
+    transactionHash: 0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213
+    basescanUrl: https://sepolia.basescan.org/tx/0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213
+  - artifact: 2026-08-16 16-32-03.mp4
+    generatedBy: bridge/deep_robotics/m20_pro_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    proves: continuous split-screen run with readable terminal, complete M20 MuJoCo action, final goal hold, correlated result, settlement and matching BaseScan page
+    sourceCommit: 7928cdbc149ea9b3581ffa19b276ebaf9158b54f
+    actionId: m20-drive-1786908727
+    transactionHash: 0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213
+    recordingSha256: d4656640f02defdb7618aed37582b988f2401977afaadfb9d72c52eff1095318
+    durationSeconds: 52.47
+    recordingUrl: https://github.com/user-attachments/assets/99bb9334-c775-436a-88a7-d2825eb6a1d8
+    status: captured-and-verified
