@@ -21,6 +21,7 @@ LOGGER = logging.getLogger("robopay.deep_robotics_m20")
 ACTION_TOPIC = "robot/tunnel/action"
 RESULT_TOPIC = "robot/tunnel/result"
 METRICS_TOPIC = "robot/deep_robotics_m20/metrics"
+READY_TOPIC = "robot/deep_robotics_m20/ready"
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class BridgeSettings:
     action_topic: str
     result_topic: str
     metrics_topic: str
+    ready_topic: str = READY_TOPIC
 
     @classmethod
     def from_env(cls) -> "BridgeSettings":
@@ -44,6 +46,7 @@ class BridgeSettings:
             action_topic=configured("ZENOH_ACTION_TOPIC", ACTION_TOPIC),
             result_topic=configured("ZENOH_RESULT_TOPIC", RESULT_TOPIC),
             metrics_topic=configured("ZENOH_METRICS_TOPIC", METRICS_TOPIC),
+            ready_topic=configured("ZENOH_READY_TOPIC", READY_TOPIC),
         )
 
 
@@ -107,6 +110,19 @@ class M20ZenohBridge:
         self._worker_lock = threading.Lock()
         self._worker: threading.Thread | None = None
         self._subscriber = self._session.declare_subscriber(self.settings.action_topic, self._on_action)
+        self._ready_publisher = self._session.declare_publisher(self.settings.ready_topic)
+        self._ready_publisher.put(
+            json.dumps(
+                {
+                    "status": "ready",
+                    "profile_id": PROFILE_ID,
+                    "robot_id": ROBOT_ID,
+                    "action_topic": self.settings.action_topic,
+                    "result_topic": self.settings.result_topic,
+                },
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
 
     def _publish(self, event, status: str, result: dict) -> None:
         envelope = {
@@ -130,6 +146,9 @@ class M20ZenohBridge:
                 model_dir=self._model_dir,
                 stop_event=self._stop_event,
                 viewer=os.environ.get("M20_MUJOCO_VIEWER", "").strip().lower() in {"1", "true", "yes"},
+                viewer_hold_seconds=max(
+                    0.0, float(os.environ.get("M20_MUJOCO_VIEWER_HOLD_SECONDS", "5"))
+                ),
             )
         except Exception as error:
             LOGGER.exception("M20 simulator execution failed")
@@ -197,6 +216,7 @@ class M20ZenohBridge:
         self._subscriber.undeclare()
         self._result_publisher.undeclare()
         self._metrics_publisher.undeclare()
+        self._ready_publisher.undeclare()
         self._session.close()
 
     def spin(self) -> None:  # pragma: no cover - process entry point
