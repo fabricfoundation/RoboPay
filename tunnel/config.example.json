@@ -1,9 +1,0 @@
-{
-  "robot_id": "my-robot",
-  "evm_payee_address": "0xReplaceWithYourPayeeAddress",
-  "price": "1",
-  "network": "eip155:91342",
-  "token_address": "0xReplaceWithYourTokenAddress",
-  "token_decimals": 18,
-  "token_transfer_method": "permit2"
-}
