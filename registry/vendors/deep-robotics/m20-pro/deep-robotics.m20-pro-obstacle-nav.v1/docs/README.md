@@ -17,13 +17,17 @@ Zenoh tunnel transport.
 | `bridge/m20_pro_zenoh_bridge.py` | Fail-closed Zenoh/MuJoCo robot adapter |
 | `simulation/scenes/m20_pro.xml` | M20 Pro MuJoCo scene (real actuators, obstacles, goal) |
 | `simulation/runners/m20_pro_runner.py` | Episode runner: navigation policy + real trot gait + collision detection |
-| `demo/run_demo.py` | End-to-end demo: unpaid → paid/success → replay-blocked → stop |
+| `demo/run_demo.py` | Bridge-layer demo: well-formed action → success → replay-blocked → stop |
 | `demo/run_failure_demo.py` | Deliberate-failure demo: timeout → no settlement |
 | `tests/skill-contract.test.yaml` | Human-readable contract cases |
 | `tests/test_bridge.py` | Executable parser, replay, result, and settlement-gate tests |
 | `simulation/webots/worlds/m20_pro_obstacle_nav.wbt` | Webots world (proxy robot, same obstacle/goal layout) for Sim-to-Sim validation |
 | `simulation/webots/controllers/m20_pro_navigation/m20_pro_navigation.py` | Webots controller running the identical navigation policy |
 | `simulation/validation/validate_sim_to_sim.py` | Compares MuJoCo vs Webots outcome and writes a PASS/FAIL report |
+| `bridge/replay_guard.py` | SQLite-backed replay guard, keyed by `actionId` -- a secondary check at the bridge layer |
+| `docs/task-traceability.md` | Maps each bounty requirement to concrete evidence in this repo |
+| `docs/evidence/base-sepolia/live-payment-e2e.md` | Live, on-chain, wallet-signed payment proof against a real facilitator |
+| `tunnel/pay_m20_pro.py` | Signs and sends a real x402 payment against a running tunnel, for reproducing the live payment test |
 
 ## End-to-end architecture
 
@@ -31,30 +35,36 @@ Zenoh tunnel transport.
 sequenceDiagram
     autonumber
     participant P as Payer / agent
-    participant F as Fabric relay + x402
-    participant R as robotsdk tunnel bridge
+    participant T as Go tunnel (X402VerifyOnly)
     participant Z as Zenoh
-    participant A as M20 Pro RoboPay bridge
+    participant A as M20 Pro bridge
     participant S as MuJoCo M20 Pro simulator
+    participant W as ExecutionWatcher
 
-    P->>F: Discover robot, skill, and 0.002 USDC price
-    P->>F: POST paid action
-    F-->>P: accepted / pending + actionId
-    F->>R: Verified, unsettled action envelope
-    R->>Z: robot/tunnel/action
-    Z->>A: Full normalized envelope
-    A->>A: Validate + atomically claim replay key
+    P->>T: POST /action {action, params}
+    T->>T: Verify x402 payment against facilitator (never settle here)
+    T-->>P: 202 accepted + actionId (or 402 if unverified)
+    T->>Z: robot/tunnel/action {actionId, action, params}
+    Z->>A: parse_action_event
+    A->>A: reject wrong skill / bad params / replayed actionId
     A->>S: run_episode(target_xy, max_episode_steps)
     S-->>A: episode metrics (status, displacement, path length, collisions)
     A->>Z: robot/tunnel/result correlated by actionId
-    Z->>R: success / error
-    R->>F: Structured result
-    alt explicit success (goal_reached, zero collisions)
-        F->>F: May settle
-    else timeout, collision, invalid, duplicate, or unpaid
-        F->>F: No settlement
+    Z->>W: HandleResult
+    alt status == success
+        W->>W: ProcessSettlement (real facilitator settle call)
+    else error, timeout, rejected
+        W->>W: No settlement
     end
+    P->>T: GET /action/:id/status
+    T-->>P: state, settled
 ```
+
+Payment verification and settlement now live entirely in the Go tunnel
+(`tunnel/internal/handlers`), not in this bridge -- see
+`docs/task-traceability.md` for how each requirement maps to the code
+that enforces it, and `docs/evidence/base-sepolia/live-payment-e2e.md`
+for a real, on-chain proof of this flow.
 
 ## Robot spec
 
@@ -115,9 +125,35 @@ python demo/run_failure_demo.py
 
 ## Result-gated settlement contract
 
-Settlement is only eligible when:
+Settlement (`tunnel/internal/handlers/settlement_watcher.go::ExecutionWatcher`)
+is only eligible when a terminal `robot/tunnel/result` reports
+`status=success`, which this bridge only publishes when:
 - the episode status is `goal_reached`, and
 - the collision count (real MuJoCo contacts against obstacles) is `0`.
 
-Timeout, collision, unpaid, expired, malformed, and duplicate/replayed
-actions never produce `settlementEligible: true`.
+Timeout, collision, unpaid/unverified payment, malformed events, and
+duplicate/replayed actionIds never produce a settlement call --
+enforced independently at both the tunnel (`payment_gate.go`,
+`settlement_watcher.go`) and the bridge (`replay_guard.py`, this
+file's `_on_action`).
+
+## Live payment proof
+
+`docs/evidence/base-sepolia/live-payment-e2e.md` documents a real,
+wallet-signed, on-chain Base Sepolia payment gating a real MuJoCo
+dispatch, settled only after a genuine success result. To reproduce:
+
+```bash
+# terminal 1: bridge
+python bridge/m20_pro_zenoh_bridge.py
+
+# terminal 2: tunnel (standalone, real local port)
+cd tunnel && go build -o /tmp/localserver ./cmd/localserver
+export $(cat .env.local | grep -v '^#' | xargs)
+/tmp/localserver --port=$LOCALSERVER_PORT --payto=$PAYEE_ADDRESS \
+  --network=$NETWORK --price=\$$PRICE --facilitator=$FACILITATOR_URL \
+  --allowed-actions=$ALLOWED_ACTIONS
+
+# terminal 3: sign and send a real payment
+cd tunnel && python pay_m20_pro.py
+```

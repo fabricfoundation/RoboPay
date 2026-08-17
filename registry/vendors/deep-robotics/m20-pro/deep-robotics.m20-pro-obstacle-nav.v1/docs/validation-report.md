@@ -9,22 +9,37 @@ demo scripts against the real MuJoCo scene at
 robot's profile.
 
 ## Test suite
+
+**Bridge (Python):**
 $ python -m pytest tests/test_bridge.py -v
-11 passed
-Covers: successful settlement, unpaid rejection, invalid params-hash
-rejection, expired-payment rejection, malformed envelope rejection, replay
-rejection (no second motion), collision → no settlement, timeout → no
-settlement, stop with no payment required, wrong robotId rejection, unknown
-skillId rejection.
+10 passed
+Covers: valid event dispatch, wrong-skill rejection, missing-params
+rejection, malformed/incomplete event handling (dropped silently, no
+crash), replay rejection (no second motion), simulator failure/timeout/
+collision all yielding `status=error`, and stop.
+
+**Tunnel (Go):**
+$ cd tunnel && go test ./... -v
+24 passed
+Covers the fail-closed action gate (`TestPostAction_*`), the durable
+idempotency store surviving a simulated restart
+(`TestIdempotencyStore_PersistsAcrossReopen`), the verify-only x402
+payment gate (`TestX402VerifyOnly_*`), the deferred-settlement execution
+watcher (`TestExecutionWatcher_*`), and an end-to-end proof against a
+recording facilitator (`TestE2E_*`) that settlement happens exactly once,
+only after a genuine success result. See `docs/task-traceability.md` for
+the full requirement-to-test mapping.
 
 ## Success run (`demo/run_demo.py`)
 
-One `actionId` traced end-to-end: unpaid rejected (no simulator call) →
-paid request runs the real M20 Pro MuJoCo episode → replay of the same
-`actionId` rejected with no second motion → stop action succeeds with no
-payment required.
+Payment verification now happens entirely in the Go tunnel before an
+event ever reaches this bridge (see "Live Base Sepolia payment" below
+for that proof). This demo exercises what remains at the bridge layer:
+one `actionId` traced through a well-formed action → real M20 Pro
+MuJoCo episode → replay of the same `actionId` rejected with no second
+motion → stop action succeeds immediately.
 
-Real simulator metrics from the paid run:
+Real simulator metrics from the dispatched run:
 
 | Metric | Value |
 |--------|-------|
@@ -82,13 +97,17 @@ Before accepting this Tier 1 simulation submission, reviewers should confirm:
 
 - the action targets the published `m20_pro_obstacle_navigation` skill at
   its listed `0.002 USDC` price;
-- the envelope preserves `actionId`, `robotId`, `skillId`,
-  `idempotencyKey`, `paramsHash`, and payment evidence;
-- unpaid, invalid, expired, and replayed requests produce no simulator
-  actuation (see `test_unpaid_action_is_rejected_before_actuation`,
-  `test_invalid_params_hash_is_rejected`,
-  `test_expired_payment_is_rejected`,
-  `test_replay_of_same_action_id_causes_no_second_motion`);
+- the envelope published by the tunnel to `robot/tunnel/action`
+  carries `actionId`, `action`, and `params` -- no payment fields,
+  since verification already happened in the tunnel before publish
+  (see `execution-mapping.yaml`'s `envelope` section);
+- unverified payment, malformed events, and replayed actionIds produce
+  no simulator actuation -- unverified payment is rejected in the
+  tunnel before any event is published (`TestX402VerifyOnly_*`,
+  `TestE2E_ValidPaidAction_*`), and malformed/replayed events are
+  rejected at the bridge (`test_malformed_json_is_dropped_silently_no_crash`,
+  `test_event_missing_action_id_is_dropped_silently_no_crash`,
+  `test_replayed_action_id_rejected_without_second_dispatch`);
 - the bridge subscribes to `robot/tunnel/action` and publishes to
   `robot/tunnel/result` (not `robot/action`), preserving `actionId`
   end-to-end;
@@ -106,11 +125,33 @@ Before accepting this Tier 1 simulation submission, reviewers should confirm:
   explicit `goal_reached` terminal state with zero real (contact-detected)
   collisions — not on a mid-episode/running state;
 - replaying the same `actionId` causes no second simulator episode (see
-  `test_replay_of_same_action_id_causes_no_second_motion` and Step 3 of
+  `test_replayed_action_id_rejected_without_second_dispatch` and Step 3 of
   `demo/run_demo.py`'s terminal log);
 - the gait applied to the legs each step is computed live from simulation
   time (`_apply_leg_gait`), not a pre-recorded/replayed trajectory;
 - public evidence contains no wallet secrets or complete payment payloads.
+
+## Live Base Sepolia payment
+
+A real, wallet-signed, on-chain payment backs this submission --
+`docs/evidence/base-sepolia/live-payment-e2e.md`:
+
+| Field | Value |
+|-------|-------|
+| Transaction hash | `0x36000cc766fc95f7f1cfe8f2500a31cc98d236e98d050738553de555f1439587` |
+| Status | SUCCESS |
+| Block | 45531604 |
+| Network | Base Sepolia (eip155:84532) |
+| Amount | 2000 (smallest unit) = $0.002 USDC |
+
+Verified independently via a Base Sepolia RPC (`receipt.status == 1`),
+not just from the local terminal logs. Flow: `402` unsigned request →
+client signs a real EIP-3009 `transferWithAuthorization` → tunnel
+verifies against the real `x402.org` facilitator → `202 Accepted` →
+real MuJoCo M20 Pro dispatch (`status=success`) →
+`ExecutionWatcher` settles only after that success → real on-chain
+USDC transfer. See `docs/task-traceability.md` for the full
+requirement-to-code mapping.
 
 ## Known simplification (disclosed)
 
