@@ -1,0 +1,14 @@
+{
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "amount_usdc": 0.1,
+  "resource": "robopay://unitree-g1-arm-001/pick_and_carry",
+  "settledAt": "2026-08-17T06:38:48Z",
+  "txs": [
+    "0x08950fc43caa6939975086dc795b5ebab6f452e6a8454c615b4e0165267aacb3"
+  ],
+  "actionId": "eb7a81f3-1e9e-4215-a157-a92ddac0c06a"
+}

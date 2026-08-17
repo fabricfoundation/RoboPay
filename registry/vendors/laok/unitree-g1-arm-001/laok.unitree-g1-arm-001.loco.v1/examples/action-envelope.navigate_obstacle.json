@@ -1,0 +1,21 @@
+{
+  "actionId": "act_laok_unitree-g1-arm-001_example_002",
+  "robotId": "unitree-g1",
+  "skillId": "navigate_obstacle",
+  "params": {"goal_x": 2.0, "speed": 0.6},
+  "paramsHash": "a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef",
+  "idempotencyKey": "laok-unitree-g1-arm-001-example-002",
+  "payment": {
+    "provider": "x402",
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "100000",
+    "payTo": "${ROBOT_PAYEE_ADDRESS}",
+    "authorizationId": "auth_example_redacted",
+    "verified": true,
+    "status": "authorized",
+    "settled": false,
+    "issuedAt": "2099-01-01T00:00:00Z",
+    "expiresAt": "2099-01-01T00:05:00Z"
+  }
+}

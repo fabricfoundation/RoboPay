@@ -1,0 +1,67 @@
+name: unitree-g1 Tier 1 bridge
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1/requirements.txt
+      - run: python -m flake8 bridge/unitree-g1 --max-line-length=100
+      - run: python -m mypy bridge/unitree-g1 --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1/requirements.txt
+      - run: pytest -q bridge/unitree-g1/tests/
+
+  tunnel-integration:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1/requirements.txt
+      - run: pytest -q bridge/unitree-g1/tests/test_x402.py
+
+  sim2sim:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1/requirements.txt
+      - run: pytest -q bridge/unitree-g1/tests/test_sim2sim.py
+
+  evidence:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1/requirements.txt
+      - run: pip install pillow                 # render_evidence.py needs PIL
+      - run: python -m flow.demo --all
+        working-directory: bridge/unitree-g1
+      - run: python docs/evidence/render_evidence.py
+        working-directory: bridge/unitree-g1
+      - name: independently verify the Base Sepolia settlement receipt
+        run: python verify_settlement.py
+        env:
+          X402_EVIDENCE: bridge/unitree-g1/docs/evidence/x402-evidence.json

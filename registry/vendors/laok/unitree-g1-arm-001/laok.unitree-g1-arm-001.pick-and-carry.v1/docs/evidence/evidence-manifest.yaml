@@ -1,0 +1,35 @@
+files:
+- path: x402-evidence.json
+  sha256: 3ff28009d8e109a245af615f533ca639124878a5b52bb8b5b0e8bc5cc3ab6647
+  description: x402 payment evidence
+  size: 441
+- path: settle.png
+  sha256: 44995ec45b11ebbe983c6e8f72cce1211b2b723baecd8e190ffdbf91cd0d8ccc
+  description: Settlement proof
+  size: 76996
+- path: demo.mp4
+  sha256: df31a39c7c811bee46efa53fbe29c1c70930f703d58ec07a195fb671c69d37de
+  description: Demo video
+  size: 85075
+- path: terminal/output.txt
+  sha256: 441aaa939a986a31005e2c6a3c3f3c9acc4e176c66d9b6575bcf0673ad836aee
+  description: Terminal output
+  size: 1458
+- path: metrics.json
+  sha256: 6d3205bd149297dc4af9b6dc0730f10190fb71b26c28ebe1b6c5b4082cc5c193
+  description: Test+onchain metrics
+  size: 3719
+- path: sim_to_sim_validation.json
+  sha256: ef2471b7ef8c52c5e80ca1592ad37efa94251dfb8ef37ec5f470186168fcf265
+  description: Sim-to-sim validation
+  size: 1673
+metrics:
+  totalTransactions: 1
+  successfulSettlements: 1
+  failedSettlements: 0
+  totalAmountUSDC: '0.10'
+  engine: mujoco
+  realOnChain: true
+  verifiedTx: '0xcb9cab548125ddf34980bf14a5bbb57d8a86d9896348a46d63f9178f34470cc4'
+  verifiedBlock: 45415117
+generated: '2026-08-14T10:25:00Z'

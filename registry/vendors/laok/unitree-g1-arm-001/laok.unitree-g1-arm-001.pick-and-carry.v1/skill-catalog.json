@@ -1,0 +1,20 @@
+[
+  {
+    "skill_id": "pick_and_carry",
+    "description": "Walk forward to a pickup zone, acquire a carried object (modelled as co-located with the torso on this planar biped), then carry it to a drop zone. Success when the torso reaches the drop zone within the step budget after passing the pickup zone.",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {
+      "pickupDistance": {"type": "number", "minimum": 0.1, "maximum": 6.0, "default": 1.0},
+      "dropDistance": {"type": "number", "minimum": 0.2, "maximum": 8.0, "default": 2.0},
+      "speed": {"type": "number", "minimum": 0.0, "maximum": 1.5, "default": 0.6}
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Hold the current pose; no forward motion. Always succeeds when paid, and proves the bounded / interruptible policy (the run terminates cleanly and never settles a failed action).",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {}
+  }
+]

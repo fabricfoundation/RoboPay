@@ -1,0 +1,21 @@
+{
+  "actionId": "act_laok_unitree-g1-arm-001_example_001",
+  "robotId": "unitree-g1",
+  "skillId": "move_forward",
+  "params": {"goalDistance": 1.0, "speed": 0.6},
+  "paramsHash": "f7f57394c16c30c2c3e0d3b4a9e1f5c2e1b9d7a8c6f4e2d0b8a6c4e2d0f8a6c4e2",
+  "idempotencyKey": "laok-unitree-g1-arm-001-example-001",
+  "payment": {
+    "provider": "x402",
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "100000",
+    "payTo": "${ROBOT_PAYEE_ADDRESS}",
+    "authorizationId": "auth_example_redacted",
+    "verified": true,
+    "status": "authorized",
+    "settled": false,
+    "issuedAt": "2099-01-01T00:00:00Z",
+    "expiresAt": "2099-01-01T00:05:00Z"
+  }
+}
