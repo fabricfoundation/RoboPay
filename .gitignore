@@ -1,3 +1,10 @@
+
+# Local toolchain and generated assets (not part of the submission)
+.venv/
+assets/g1_description_obj/
+__pycache__/
+*.pyc
+env.sh
 *.exe
 *.exe~
 *.dll

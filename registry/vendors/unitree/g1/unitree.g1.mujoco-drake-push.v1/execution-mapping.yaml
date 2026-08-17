@@ -1,0 +1,71 @@
+schemaVersion: execution-mapping.v1
+profileId: unitree.g1.mujoco-drake-push.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/g1/metrics
+  endpoint: tcp/127.0.0.1:7447
+  # Explicit rather than multicast scouting: peer discovery by multicast does
+  # not work in every environment, and when it fails it looks like a hung
+  # bridge rather than a networking problem.
+  discovery: explicit-endpoint
+
+mappings:
+  push_to_target:
+    output: joint_position_targets
+    # Not a trajectory. Each waypoint is solved at run time against the puck's
+    # measured pose by a constrained IK solver, so the same skill serves any
+    # target pair inside the workspace.
+    planner: constrained-ik-drake
+    plan:
+      - stage: turn
+        goal: waist yaw to the observed bearing of the puck
+        advanceOn: measured yaw within 0.05 rad
+      - stage: raise
+        goal: hover 0.14m above the contact pose
+        advanceOn: hand within 0.03m of the waypoint
+      - stage: approach
+        goal: contact pose behind the puck on the puck-to-goal line
+        advanceOn: hand within 0.03m of the waypoint
+      - stage: push
+        goal: swept end pose behind the destination
+        advanceOn: puck within 0.04m of the destination
+    ikConstraints:
+      position: grasp reference point, +/-0.004m per axis
+      fingerAxis: world -Z, within 0.12 rad
+      paddleFace: along the push direction, within 0.45 rad
+      posture: quadratic cost toward the current pose, weight 6.0
+      jointLimits: hard constraints, from the URDF
+    failureModes:
+      - unreachable waypoint -> ACTION_FAILED, no settlement
+      - stage timeout -> ACTION_FAILED, no settlement
+      - puck leaves the work surface -> ACTION_FAILED, no settlement
+
+  stop:
+    output: joint_position_targets
+    plan:
+      - stage: hold
+        goal: freeze the current commanded pose
+    durationSec: 0
+
+  diagnostic_fail:
+    output: none
+    plan: []
+    note: returns ACTION_FAILED without actuating anything
+
+safety:
+  # The policy clamps every command to the joint limits before it leaves,
+  # rather than relying on the engine to saturate it, so both engines receive
+  # identical targets.
+  jointLimitClamp: policy-side
+  emergencyStop: the free `stop` skill, and SIGINT on the bridge process
+  maxCommandRateHz: 100
+  # A stalled stage cannot spin forever; each has a budget and a reason
+  # string that reaches the payer.
+  stageTimeouts:
+    turn: 3.0
+    raise: 10.0
+    approach: 14.0
+    push: 25.0

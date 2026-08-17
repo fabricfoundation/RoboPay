@@ -1,0 +1,61 @@
+schemaVersion: payment-policy.v1
+profileId: unitree.g1.mujoco-drake-push.v1
+
+provider: x402
+network: eip155:84532          # Base Sepolia
+asset: USDC
+amountUnit: smallest
+
+policies:
+  - skillId: push_to_target
+    required: true
+    amount: "10000"            # 0.01 USDC at 6 decimals
+    paymentHeader: X-PAYMENT
+  - skillId: stop
+    required: false
+    amount: "0"
+  - skillId: diagnostic_fail
+    required: true
+    amount: "10000"
+    paymentHeader: X-PAYMENT
+
+settlement:
+  # The rule the whole integration is built around: the relay may settle only
+  # when the robot reported success. Everything else -- failure, timeout,
+  # rejection, an exception inside the simulator, or a replayed idempotency
+  # key -- returns settle=false.
+  settleOn: success-only
+  settleFlagField: settle
+  neverSettleOn:
+    - ACTION_FAILED
+    - ACTION_EXPIRED
+    - PAYMENT_REQUIRED
+    - PARAMS_HASH_MISMATCH
+    - PARAMS_OUT_OF_RANGE
+    - IDEMPOTENCY_REPLAY
+    - UNKNOWN_ROBOT
+    - UNKNOWN_SKILL
+  evidence: docs/validation-report.md
+
+integrity:
+  # Defences the robot applies itself, so it does not have to trust that the
+  # routing layer left the envelope alone.
+  paramsHash:
+    algorithm: sha256
+    encoding: canonical-json-sorted-keys
+    onMismatch: PARAMS_HASH_MISMATCH
+  idempotency:
+    scope: idempotencyKey
+    ttlSeconds: 900
+    onRepeat: return the first outcome, do not re-execute, do not settle
+  expiry:
+    field: expiresAt
+    onExpired: ACTION_EXPIRED
+
+identity:
+  robotIdField: robotId
+  onMismatch: UNKNOWN_ROBOT
+  # Keys are read from the environment by the tunnel; the bridge never sees
+  # them and never logs payment payloads.
+  keySource: environment
+  keysInRepository: false

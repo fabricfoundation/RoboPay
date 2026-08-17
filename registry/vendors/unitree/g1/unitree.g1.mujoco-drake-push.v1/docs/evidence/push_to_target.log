@@ -1,0 +1,23 @@
+2026-08-15 13:55:41,893 INFO    robopay.g1: skill catalogue published: ['push_to_target', 'stop', 'diagnostic_fail']
+2026-08-15 13:55:41,893 INFO    robopay.g1: UNPAID request act_8ceafc6596c7 skill=push_to_target
+2026-08-15 13:55:41,893 WARNING robopay.g1: refused: code=PAYMENT_REQUIRED settle=False -- payment has not been verified by the tunnel
+2026-08-15 13:55:41,893 INFO    robopay.g1: PAID request act_82de56f752c8 skill=push_to_target params={"goal_x": 0.44, "goal_y": -0.04, "puck_x": 0.34, "puck_y": -0.2}
+2026-08-15 13:55:41,894 INFO    robopay.g1: payment verified=True txHash=0xcf42dba4e08f4398a31a1ca256dde194be7099f4b3f645219708a6a030e492bf
+2026-08-15 13:55:41,894 INFO    robopay.g1: zenoh robot/tunnel/action <- {"actionId": "act_82de56f752c8", "idempotencyKey": "idem-779013507c", "params": {"goal_x": 0.44, "goal_y": -0.04, "puck_x": 0.34, "puck_y": -0.2}, "paramsHash":...
+2026-08-15 13:55:46,502 INFO    robopay.g1: zenoh robot/tunnel/result -> status=success settle=True
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric engine             mujoco
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric success            True
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric reason             None
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric puckStart          [0.34, -0.2]
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric puckEnd            [0.4357, -0.0897]
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric goal               [0.44, -0.04]
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric displacementM      0.146
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric finalDistanceM     0.05
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric toleranceM         0.05
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric peakContacts       3
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric peakContactForceN  119.37
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric foreignCollision   False
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric simSeconds         11.96
+2026-08-15 13:55:46,502 INFO    robopay.g1:   metric wallSeconds        4.6
+2026-08-15 13:55:46,711 INFO    robopay.g1: recorded 151 frames -> ../../../registry/vendors/unitree/g1/unitree.g1.mujoco-drake-push.v1/docs/evidence/push_to_target.mp4
+2026-08-15 13:55:46,712 INFO    robopay.g1: log -> ../../../registry/vendors/unitree/g1/unitree.g1.mujoco-drake-push.v1/docs/evidence/push_to_target.log
