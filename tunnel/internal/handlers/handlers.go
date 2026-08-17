@@ -174,6 +174,12 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		reqBytes, errR := json.Marshal(paymentRequirements)
 		if errP == nil && errR == nil {
 			if err := h.Store.SetPaymentData(actionID, payloadBytes, reqBytes); err != nil {
+				// Not fail-closed here: the action still dispatches. If
+				// payment data never made it to the store, ExecutionWatcher
+				// will find MISSING_PAYMENT_DATA on the success result and
+				// mark settlement_failed rather than settle -- so the
+				// fail-closed guarantee holds downstream, at the one place
+				// that actually calls ProcessSettlement.
 				h.Logger.Warn("failed to persist payment data for later settlement", zap.Error(err))
 			}
 		} else {
