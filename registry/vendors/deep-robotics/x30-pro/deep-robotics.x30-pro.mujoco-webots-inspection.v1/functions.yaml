@@ -1,0 +1,22 @@
+schemaVersion: agent-functions.v1
+profileId: deep-robotics.x30-pro.mujoco-webots-inspection.v1
+functions:
+  - name: list_robot_skills
+    method: GET
+    url: /robots/{robotId}/skills
+  - name: request_robot_action
+    method: POST
+    url: /robots/{robotId}/action
+    body:
+      action: string
+      robot_id: string
+      action_id: string
+      idempotency_key: string
+      params: object
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+  - name: get_action_status
+    method: GET
+    url: /action/{actionId}/status
+    resultCorrelation: [action_id, robot_id, skill_id, params_hash, idempotency_key]

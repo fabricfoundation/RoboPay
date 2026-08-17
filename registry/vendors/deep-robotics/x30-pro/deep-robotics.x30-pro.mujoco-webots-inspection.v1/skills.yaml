@@ -1,0 +1,17 @@
+schemaVersion: robot-skills.v1
+profileId: deep-robotics.x30-pro.mujoco-webots-inspection.v1
+skills:
+  - skillId: perform_inspection_gait
+    description: >-
+      Traverse the fixed, profile-owned inspection lane using the vendor
+      model's twelve leg joints. The paid route has no caller-controlled
+      motion parameters.
+    parameters: {}
+    terminalState:
+      success: >-
+        measured lane progress reaches the final inspection marker while
+        simulator base height, orientation, joint state, and contacts remain safe.
+      failure: [insufficient_course_completion, course_obstacle_collision, unsafe_simulator_state, task_goal_timeout, simulator_execution_error, safe_stopped]
+  - skillId: stop
+    description: Safely hold the X30 standing target and reject further motion.
+    parameters: {}

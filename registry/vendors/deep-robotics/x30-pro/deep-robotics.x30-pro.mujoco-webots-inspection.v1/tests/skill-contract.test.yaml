@@ -1,0 +1,22 @@
+profileId: deep-robotics.x30-pro.mujoco-webots-inspection.v1
+tests:
+  - name: fixed_inspection_lane_contract
+    runner: bridge/deep_robotics/x30_pro_mujoco_bridge/tests/test_contract.py
+    action: perform_inspection_gait
+    expect: {accepted: true}
+  - name: unknown_action_rejected_before_simulation
+    runner: bridge/deep_robotics/x30_pro_mujoco_bridge/tests/test_contract.py
+    action: sprint_through_wall
+    expect: {accepted: false, actionEvents: 0}
+  - name: safe_stop_is_parameterless
+    runner: bridge/deep_robotics/x30_pro_mujoco_bridge/tests/test_contract.py
+    action: stop
+    expect: {accepted: true}
+  - name: real_mujoco_inspection_lane
+    runner: bridge/deep_robotics/x30_pro_mujoco_bridge/tests/test_mujoco_runtime.py
+    action: perform_inspection_gait
+    expect: {success: true, simulator: MuJoCo, stateAuthority: measured_torso_pose, bodyForwardProgressM: '>=0.85', blockerContacts: 0}
+  - name: sim_to_sim
+    runner: bridge/deep_robotics/x30_pro_mujoco_bridge/run_sim2sim_validation.py
+    action: perform_inspection_gait
+    expect: {success: true, simulators: [MuJoCo, Webots]}

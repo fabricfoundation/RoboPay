@@ -1,0 +1,26 @@
+schemaVersion: evidence-manifest.v1
+profileId: deep-robotics.x30-pro.mujoco-webots-inspection.v1
+evidence:
+  - artifact: bridge/deep_robotics/x30_pro_mujoco_bridge/artifacts/sim2sim_result.json
+    generatedBy: bridge/deep_robotics/x30_pro_mujoco_bridge/run_sim2sim_validation.py
+    proves: independent MuJoCo and Webots execution of the canonical two-obstacle course with engine-owned state, finish crossing, physical-course approach, safe base state and zero blocker contact
+    courseId: x30-pro-two-obstacle-slow-slalom-v5
+    courseHash: 6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78
+    status: generated-by-required-ci
+  - artifact: bridge/deep_robotics/x30_pro_mujoco_bridge/artifacts/base_sepolia_result_<timestamp>.json
+    generatedBy: bridge/deep_robotics/x30_pro_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    proves: current-source cold start through the public Fabric Gateway, unpaid 402, first paid 202, measured MuJoCo success and execution-gated Base Sepolia settlement
+    sourceCommit: pending-current-head-recording
+    actionId: pending-current-head-recording
+    transactionHash: pending-current-head-recording
+    basescanUrl: pending-current-head-recording
+    status: pending-current-head-recording
+  - artifact: pending-current-head-recording.mp4
+    generatedBy: bridge/deep_robotics/x30_pro_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    proves: continuous split-screen run with readable terminal, complete X30 Pro MuJoCo course, final goal hold, correlated result, settlement and matching BaseScan page
+    sourceCommit: pending-current-head-recording
+    actionId: pending-current-head-recording
+    transactionHash: pending-current-head-recording
+    recordingSha256: pending-current-head-recording
+    recordingUrl: pending-current-head-recording
+    status: pending-current-head-recording

@@ -1,0 +1,9 @@
+models/deep_robotics_x30/
+artifacts/
+scenes/generated/
+scenes/*.generated.wbt
+scenes/*_config.json
+scenes/*_result.json
+scenes/.*.wbproj
+__pycache__/
+*.pyc

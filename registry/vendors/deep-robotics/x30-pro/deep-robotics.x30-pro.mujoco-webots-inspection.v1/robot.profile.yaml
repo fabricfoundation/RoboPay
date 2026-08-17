@@ -1,0 +1,28 @@
+schemaVersion: robot-profile.v1
+vendor: deep-robotics
+robotModel: x30-pro
+robotType: quadruped-simulator
+profileId: deep-robotics.x30-pro.mujoco-webots-inspection.v1
+profileVersion: 1.0.0
+scope: simulator-only
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/deep_robotics_x30/metrics
+  bridge: bridge/deep_robotics/x30_pro_mujoco_bridge
+simulators:
+  - MuJoCo 3.3.0
+  - Webots R2025a
+modelIdentity:
+  label: DeepRobotics X30 vendor 12-actuated-joint quadruped model
+  source: https://github.com/DeepRoboticsLab/deep_robotics_model
+  limitation: >-
+    The vendor repository names this shared mechanical model X30. It matches
+    an X30 quadruped mechanical base with twelve actuated leg joints. It does
+    not establish X30 Pro-specific compute, LiDAR, cameras, or optional
+    payloads. The Webots PROTO is generated from the locked vendor URDF and
+    is not vendor supplied.
+maintainers:
+  - github: RobotDeveloper1
+status: experimental

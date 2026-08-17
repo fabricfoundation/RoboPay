@@ -1,0 +1,16 @@
+{
+  "robot": "DeepRobotics X30 shared kinematic base (official vendor model, used for X30 Pro simulation)",
+  "source": "https://github.com/DeepRoboticsLab/deep_robotics_model.git",
+  "commit": "9f8b97ca57e79f2e82771cf934c4fc975ee2887c",
+  "directory": "X30",
+  "mjcf": "mjcf/X30.xml",
+  "mjcf_sha256": "6a34cf2a5583d37de4116b32dbc9b9beed28b6f4c86225b90a1fe09d8f7a217f",
+  "urdf": "urdf/X30.urdf",
+  "urdf_sha256": "b1a343481cb206b67ae3aeb10f216aa47f0a9b3c3170232d134c5774c80104eb",
+  "verified_asset": {
+    "path": "mjcf/meshes/torso.STL",
+    "sha256": "d44d38c10db3d8c8c0e8b4fa341a0718c7bf34ca8512016892af70ed4756e6f4"
+  },
+  "license": "BSD-3-Clause (DeepRoboticsLab/deep_robotics_model)",
+  "limitations": "The official repository calls this shared 12-actuated-joint X30 model. It ships joints without free-base or actuator definitions, so this profile adds bounded force motors, a free base, and a position-PD controller only in memory. X30 Pro-specific compute, LiDAR, cameras, thermal payloads, and optional RTK are not represented."
+}
