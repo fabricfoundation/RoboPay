@@ -37,10 +37,11 @@ WEBOTS_EXE=/usr/local/bin/webots python bridge/deep_robotics/x30_pro_mujoco_brid
 - [x] Webots engine-owned result generated.
 - [x] Real Sim-to-Sim report generated from the two independent executions.
 - [x] Invalid-payment, failure, timeout, replay and cold-start positive paths covered by mandatory tests.
-- [ ] Trusted Base Sepolia receipt captured from the final submitted commit.
-- [ ] Continuous split-screen operator recording captured from that same commit.
-- [ ] Commit SHA, action ID, transaction hash, recording SHA-256, artifact and URL bound in `docs/evidence/evidence-manifest.yaml`.
+- [x] Trusted Base Sepolia receipt captured from source commit `3919acb5a430a240d7b6c50c7a0ec906d1d82265`.
+- [x] Continuous split-screen operator recording captured from that same runtime source.
+- [x] Commit SHA, action ID, transaction hash, recording SHA-256, trusted JSON artifact and stable URLs bound in `docs/evidence/evidence-manifest.yaml`.
 
-The final three items remain intentionally unchecked until the operator records
-the current-head live run. No transaction or visual-evidence claim is inferred
-from local contract tests.
+The live run used action `x30-drive-1786994629` and settled in Base Sepolia
+transaction `0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6`.
+The evidence-only follow-up commit adds the byte-identical recording and JSON;
+it does not modify the recorded runtime source.

@@ -1,0 +1,1617 @@
+{
+  "timestamp": "2026-08-17T19:24:49Z",
+  "source_commit": "3919acb5a430a240d7b6c50c7a0ec906d1d82265",
+  "network": "eip155:84532",
+  "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "payee": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "robot_id": "x30-pro-sim-01",
+  "action_id": "x30-drive-1786994629",
+  "unpaid_http_status": 402,
+  "paid_http_status": 202,
+  "discovery": {
+    "robot_id": "x30-pro-sim-01",
+    "skills": [
+      {
+        "aliases": null,
+        "description": "Traverse the profile-owned bounded inspection lane with the twelve official X30 leg joints and measured simulator state.",
+        "enabled": true,
+        "params": {},
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "perform_inspection_gait"
+      },
+      {
+        "aliases": null,
+        "description": "Safely stop the active X30 Pro simulator action.",
+        "enabled": true,
+        "params": {},
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "stop"
+      }
+    ]
+  },
+  "terminal_status": {
+    "action_id": "x30-drive-1786994629",
+    "idempotency_key": "x30-drive-1786994629",
+    "params_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "result": {
+      "body_forward_progress_m": 1.12128,
+      "body_forward_world": [
+        -1,
+        0
+      ],
+      "body_heading_course_alignment": 1,
+      "body_left_world": [
+        0,
+        -1.00001
+      ],
+      "body_yaw_rad": -3.14159,
+      "completion_reason": "inspection_lane_complete",
+      "controller": "measured_state_two_obstacle_slalom_controller_with_bounded_joint_gaits",
+      "controller_phase_transitions": [
+        {
+          "phase": "settle",
+          "time_seconds": 0
+        },
+        {
+          "phase": "evade_first",
+          "time_seconds": 1
+        },
+        {
+          "phase": "pass_first",
+          "time_seconds": 6.798
+        },
+        {
+          "phase": "evade_second",
+          "time_seconds": 12.37
+        },
+        {
+          "phase": "pass_second",
+          "time_seconds": 12.372
+        },
+        {
+          "phase": "goal_hold",
+          "time_seconds": 19.59
+        }
+      ],
+      "course": {
+        "blocker_centers_m": [
+          [
+            -1.05,
+            0
+          ],
+          [
+            -1,
+            0.45
+          ]
+        ],
+        "course_hash": "6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78",
+        "course_id": "x30-pro-two-obstacle-slow-slalom-v5",
+        "finish_line_x_m": -1,
+        "minimum_approach_clearance_m": 0.79497,
+        "obstacle_approached": true,
+        "obstacle_collision_observed": false,
+        "physical_blockers": [
+          "course_blocker_1_collision",
+          "course_blocker_2_collision"
+        ],
+        "success_requires": "body-forward travel, two measured widening-arc evasion gates, finish-line crossing, physical-course approach, and no blocker contact"
+      },
+      "course_hash": "6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78",
+      "course_id": "x30-pro-two-obstacle-slow-slalom-v5",
+      "final_body_forward_world": [
+        -0.70337,
+        -0.71083
+      ],
+      "final_body_left_world": [
+        0.70739,
+        -0.70381
+      ],
+      "final_body_yaw_rad": -2.35092,
+      "final_joint_positions_rad": [
+        -0.00055,
+        -0.74181,
+        1.45935,
+        -0.00808,
+        -0.72441,
+        1.386,
+        0.01078,
+        -0.6455,
+        1.51406,
+        0.05555,
+        -0.71855,
+        1.39851
+      ],
+      "final_torso_position_m": [
+        -1.1039,
+        1.22235,
+        0.48428
+      ],
+      "finish_line_crossed": true,
+      "finite_state": true,
+      "floor_contact_observed": true,
+      "max_positive_route_side_offset_m": 1.42127,
+      "max_tilt_rad": 0.49346,
+      "measured_hip_sweep_rad": 0.93182,
+      "measured_lane_displacement_m": [
+        -1.12128,
+        1.22235,
+        -0.00595
+      ],
+      "measured_lane_progress_m": 1.12128,
+      "measured_lateral_drift_m": 1.22235,
+      "measured_trajectory": [
+        {
+          "base_position_m": [
+            0,
+            0,
+            0.50996
+          ],
+          "time_seconds": 0
+        },
+        {
+          "base_position_m": [
+            0.0172,
+            0,
+            0.49123
+          ],
+          "time_seconds": 0.25
+        },
+        {
+          "base_position_m": [
+            0.02572,
+            0,
+            0.48971
+          ],
+          "time_seconds": 0.5
+        },
+        {
+          "base_position_m": [
+            0.01902,
+            0,
+            0.49033
+          ],
+          "time_seconds": 0.75
+        },
+        {
+          "base_position_m": [
+            0.0174,
+            0,
+            0.49022
+          ],
+          "time_seconds": 1
+        },
+        {
+          "base_position_m": [
+            0.03954,
+            0.00613,
+            0.46743
+          ],
+          "time_seconds": 1.25
+        },
+        {
+          "base_position_m": [
+            0.09414,
+            0.07154,
+            0.45201
+          ],
+          "time_seconds": 1.5
+        },
+        {
+          "base_position_m": [
+            0.14985,
+            0.14636,
+            0.46117
+          ],
+          "time_seconds": 1.75
+        },
+        {
+          "base_position_m": [
+            0.14974,
+            0.15409,
+            0.4515
+          ],
+          "time_seconds": 2
+        },
+        {
+          "base_position_m": [
+            0.13398,
+            0.19063,
+            0.45326
+          ],
+          "time_seconds": 2.252
+        },
+        {
+          "base_position_m": [
+            0.1128,
+            0.27035,
+            0.48015
+          ],
+          "time_seconds": 2.502
+        },
+        {
+          "base_position_m": [
+            0.05696,
+            0.2792,
+            0.48085
+          ],
+          "time_seconds": 2.752
+        },
+        {
+          "base_position_m": [
+            0.0584,
+            0.25957,
+            0.45621
+          ],
+          "time_seconds": 3.002
+        },
+        {
+          "base_position_m": [
+            0.11115,
+            0.27561,
+            0.46472
+          ],
+          "time_seconds": 3.252
+        },
+        {
+          "base_position_m": [
+            0.08683,
+            0.2808,
+            0.46728
+          ],
+          "time_seconds": 3.502
+        },
+        {
+          "base_position_m": [
+            0.05054,
+            0.32332,
+            0.46564
+          ],
+          "time_seconds": 3.752
+        },
+        {
+          "base_position_m": [
+            0.03377,
+            0.37884,
+            0.47502
+          ],
+          "time_seconds": 4.002
+        },
+        {
+          "base_position_m": [
+            0.01792,
+            0.35145,
+            0.47662
+          ],
+          "time_seconds": 4.252
+        },
+        {
+          "base_position_m": [
+            0.069,
+            0.34039,
+            0.45285
+          ],
+          "time_seconds": 4.502
+        },
+        {
+          "base_position_m": [
+            0.15846,
+            0.38806,
+            0.45849
+          ],
+          "time_seconds": 4.752
+        },
+        {
+          "base_position_m": [
+            0.17624,
+            0.41154,
+            0.47328
+          ],
+          "time_seconds": 5.002
+        },
+        {
+          "base_position_m": [
+            0.13718,
+            0.46484,
+            0.45736
+          ],
+          "time_seconds": 5.252
+        },
+        {
+          "base_position_m": [
+            0.09966,
+            0.53393,
+            0.47257
+          ],
+          "time_seconds": 5.502
+        },
+        {
+          "base_position_m": [
+            0.06901,
+            0.51455,
+            0.48237
+          ],
+          "time_seconds": 5.752
+        },
+        {
+          "base_position_m": [
+            0.11913,
+            0.47934,
+            0.4534
+          ],
+          "time_seconds": 6.002
+        },
+        {
+          "base_position_m": [
+            0.21832,
+            0.51568,
+            0.45535
+          ],
+          "time_seconds": 6.252
+        },
+        {
+          "base_position_m": [
+            0.25895,
+            0.54633,
+            0.47696
+          ],
+          "time_seconds": 6.502
+        },
+        {
+          "base_position_m": [
+            0.23126,
+            0.60564,
+            0.45595
+          ],
+          "time_seconds": 6.752
+        },
+        {
+          "base_position_m": [
+            0.17863,
+            0.67351,
+            0.47184
+          ],
+          "time_seconds": 7.002
+        },
+        {
+          "base_position_m": [
+            0.10943,
+            0.63746,
+            0.47985
+          ],
+          "time_seconds": 7.252
+        },
+        {
+          "base_position_m": [
+            0.12726,
+            0.59312,
+            0.45708
+          ],
+          "time_seconds": 7.502
+        },
+        {
+          "base_position_m": [
+            0.15222,
+            0.66279,
+            0.4723
+          ],
+          "time_seconds": 7.752
+        },
+        {
+          "base_position_m": [
+            0.11497,
+            0.74021,
+            0.4647
+          ],
+          "time_seconds": 8.002
+        },
+        {
+          "base_position_m": [
+            0.05648,
+            0.73484,
+            0.45723
+          ],
+          "time_seconds": 8.252
+        },
+        {
+          "base_position_m": [
+            -0.03386,
+            0.73406,
+            0.48624
+          ],
+          "time_seconds": 8.502
+        },
+        {
+          "base_position_m": [
+            -0.05066,
+            0.78296,
+            0.45664
+          ],
+          "time_seconds": 8.752
+        },
+        {
+          "base_position_m": [
+            -0.02341,
+            0.86536,
+            0.46905
+          ],
+          "time_seconds": 9.002
+        },
+        {
+          "base_position_m": [
+            -0.03028,
+            0.94515,
+            0.47369
+          ],
+          "time_seconds": 9.252
+        },
+        {
+          "base_position_m": [
+            -0.08898,
+            0.95251,
+            0.44956
+          ],
+          "time_seconds": 9.502
+        },
+        {
+          "base_position_m": [
+            -0.19786,
+            0.94314,
+            0.48216
+          ],
+          "time_seconds": 9.752
+        },
+        {
+          "base_position_m": [
+            -0.25579,
+            0.97974,
+            0.46647
+          ],
+          "time_seconds": 10
+        },
+        {
+          "base_position_m": [
+            -0.23793,
+            1.05246,
+            0.45707
+          ],
+          "time_seconds": 10.25
+        },
+        {
+          "base_position_m": [
+            -0.22925,
+            1.15164,
+            0.4873
+          ],
+          "time_seconds": 10.5
+        },
+        {
+          "base_position_m": [
+            -0.27592,
+            1.17402,
+            0.45322
+          ],
+          "time_seconds": 10.75
+        },
+        {
+          "base_position_m": [
+            -0.36648,
+            1.1566,
+            0.47127
+          ],
+          "time_seconds": 11
+        },
+        {
+          "base_position_m": [
+            -0.44803,
+            1.17349,
+            0.47494
+          ],
+          "time_seconds": 11.25
+        },
+        {
+          "base_position_m": [
+            -0.46449,
+            1.23275,
+            0.44873
+          ],
+          "time_seconds": 11.5
+        },
+        {
+          "base_position_m": [
+            -0.46438,
+            1.34399,
+            0.48357
+          ],
+          "time_seconds": 11.75
+        },
+        {
+          "base_position_m": [
+            -0.51178,
+            1.39689,
+            0.46425
+          ],
+          "time_seconds": 12
+        },
+        {
+          "base_position_m": [
+            -0.58675,
+            1.37048,
+            0.46166
+          ],
+          "time_seconds": 12.25
+        },
+        {
+          "base_position_m": [
+            -0.66788,
+            1.33962,
+            0.47521
+          ],
+          "time_seconds": 12.5
+        },
+        {
+          "base_position_m": [
+            -0.66455,
+            1.28475,
+            0.47332
+          ],
+          "time_seconds": 12.75
+        },
+        {
+          "base_position_m": [
+            -0.61267,
+            1.25569,
+            0.41247
+          ],
+          "time_seconds": 13
+        },
+        {
+          "base_position_m": [
+            -0.52124,
+            1.20807,
+            0.39988
+          ],
+          "time_seconds": 13.25
+        },
+        {
+          "base_position_m": [
+            -0.51674,
+            1.2145,
+            0.43312
+          ],
+          "time_seconds": 13.5
+        },
+        {
+          "base_position_m": [
+            -0.60781,
+            1.28637,
+            0.43883
+          ],
+          "time_seconds": 13.75
+        },
+        {
+          "base_position_m": [
+            -0.6844,
+            1.31046,
+            0.46513
+          ],
+          "time_seconds": 14
+        },
+        {
+          "base_position_m": [
+            -0.712,
+            1.31494,
+            0.44895
+          ],
+          "time_seconds": 14.25
+        },
+        {
+          "base_position_m": [
+            -0.65378,
+            1.3388,
+            0.42255
+          ],
+          "time_seconds": 14.5
+        },
+        {
+          "base_position_m": [
+            -0.55198,
+            1.31299,
+            0.41779
+          ],
+          "time_seconds": 14.75
+        },
+        {
+          "base_position_m": [
+            -0.54319,
+            1.33156,
+            0.46942
+          ],
+          "time_seconds": 15
+        },
+        {
+          "base_position_m": [
+            -0.58958,
+            1.33541,
+            0.44055
+          ],
+          "time_seconds": 15.25
+        },
+        {
+          "base_position_m": [
+            -0.66605,
+            1.31991,
+            0.46699
+          ],
+          "time_seconds": 15.5
+        },
+        {
+          "base_position_m": [
+            -0.69582,
+            1.33017,
+            0.39828
+          ],
+          "time_seconds": 15.75
+        },
+        {
+          "base_position_m": [
+            -0.63839,
+            1.35302,
+            0.41164
+          ],
+          "time_seconds": 16
+        },
+        {
+          "base_position_m": [
+            -0.65991,
+            1.35604,
+            0.44884
+          ],
+          "time_seconds": 16.25
+        },
+        {
+          "base_position_m": [
+            -0.76779,
+            1.34667,
+            0.44244
+          ],
+          "time_seconds": 16.5
+        },
+        {
+          "base_position_m": [
+            -0.82071,
+            1.31206,
+            0.47281
+          ],
+          "time_seconds": 16.75
+        },
+        {
+          "base_position_m": [
+            -0.83647,
+            1.31202,
+            0.43084
+          ],
+          "time_seconds": 17
+        },
+        {
+          "base_position_m": [
+            -0.77435,
+            1.38019,
+            0.41554
+          ],
+          "time_seconds": 17.25
+        },
+        {
+          "base_position_m": [
+            -0.70695,
+            1.40389,
+            0.4309
+          ],
+          "time_seconds": 17.5
+        },
+        {
+          "base_position_m": [
+            -0.77613,
+            1.40253,
+            0.46286
+          ],
+          "time_seconds": 17.75
+        },
+        {
+          "base_position_m": [
+            -0.83688,
+            1.3355,
+            0.45775
+          ],
+          "time_seconds": 18
+        },
+        {
+          "base_position_m": [
+            -0.87647,
+            1.26671,
+            0.44054
+          ],
+          "time_seconds": 18.25
+        },
+        {
+          "base_position_m": [
+            -0.87489,
+            1.2999,
+            0.42442
+          ],
+          "time_seconds": 18.5
+        },
+        {
+          "base_position_m": [
+            -0.83544,
+            1.40587,
+            0.42433
+          ],
+          "time_seconds": 18.75
+        },
+        {
+          "base_position_m": [
+            -0.89889,
+            1.41308,
+            0.46617
+          ],
+          "time_seconds": 19
+        },
+        {
+          "base_position_m": [
+            -0.94806,
+            1.35823,
+            0.44258
+          ],
+          "time_seconds": 19.25
+        },
+        {
+          "base_position_m": [
+            -0.97807,
+            1.27923,
+            0.46685
+          ],
+          "time_seconds": 19.5
+        }
+      ],
+      "min_base_height_m": 0.39734,
+      "min_negative_route_side_offset_m": -0.00027,
+      "peak_actuator_force_nm": 150,
+      "requested_gait_cycles": 34,
+      "requested_hip_sweep_rad": 0.1,
+      "requested_max_duration_sec": 45,
+      "robot_model": "DeepRobotics X30 official MJCF with documented profile-owned free-base and joint-actuation overlay (X30 Pro kinematic simulation)",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 19.94,
+      "simulator_engine": "MuJoCo",
+      "state_authority": "MuJoCo official-joint qpos, actuator force, torso pose, contact state, and finite dynamic state",
+      "status": "success",
+      "success": true,
+      "task": "perform_inspection_gait",
+      "task_goal_reached": true,
+      "viewer_enabled": true
+    },
+    "robot_id": "x30-pro-sim-01",
+    "settled": true,
+    "settlement": {
+      "network": "eip155:84532",
+      "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+      "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg1MmMxYmNkNDY2MDI1ZDQ3NTc0MGE3MmQ3YjkyMzdmZjE1YmVmNGZlZjk0M2ZmMzhiZTNiOTFhZWY4ZjQyZmY2IiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+      "transaction": "0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6"
+    },
+    "skill_id": "perform_inspection_gait",
+    "state": "succeeded",
+    "updated_at": "2026-08-17T16:24:48-03:00"
+  },
+  "robot_result_envelope": {
+    "action_id": "x30-drive-1786994629",
+    "robot_id": "x30-pro-sim-01",
+    "skill_id": "perform_inspection_gait",
+    "params_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "idempotency_key": "x30-drive-1786994629",
+    "profile_id": "deep-robotics.x30-pro.mujoco-webots-inspection.v1",
+    "status": "success",
+    "result": {
+      "simulator_engine": "MuJoCo",
+      "robot_model": "DeepRobotics X30 official MJCF with documented profile-owned free-base and joint-actuation overlay (X30 Pro kinematic simulation)",
+      "task": "perform_inspection_gait",
+      "course_id": "x30-pro-two-obstacle-slow-slalom-v5",
+      "course_hash": "6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78",
+      "status": "success",
+      "success": true,
+      "completion_reason": "inspection_lane_complete",
+      "task_goal_reached": true,
+      "controller_phase_transitions": [
+        {
+          "phase": "settle",
+          "time_seconds": 0.0
+        },
+        {
+          "phase": "evade_first",
+          "time_seconds": 1.0
+        },
+        {
+          "phase": "pass_first",
+          "time_seconds": 6.798
+        },
+        {
+          "phase": "evade_second",
+          "time_seconds": 12.37
+        },
+        {
+          "phase": "pass_second",
+          "time_seconds": 12.372
+        },
+        {
+          "phase": "goal_hold",
+          "time_seconds": 19.59
+        }
+      ],
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 19.94,
+      "requested_gait_cycles": 34,
+      "requested_hip_sweep_rad": 0.1,
+      "requested_max_duration_sec": 45.0,
+      "measured_hip_sweep_rad": 0.93182,
+      "final_torso_position_m": [
+        -1.1039,
+        1.22235,
+        0.48428
+      ],
+      "measured_lane_displacement_m": [
+        -1.12128,
+        1.22235,
+        -0.00595
+      ],
+      "measured_lane_progress_m": 1.12128,
+      "measured_lateral_drift_m": 1.22235,
+      "max_positive_route_side_offset_m": 1.42127,
+      "min_negative_route_side_offset_m": -0.00027,
+      "body_forward_progress_m": 1.12128,
+      "body_heading_course_alignment": 1.0,
+      "finish_line_crossed": true,
+      "body_forward_world": [
+        -1.0,
+        -0.0
+      ],
+      "body_left_world": [
+        0.0,
+        -1.00001
+      ],
+      "body_yaw_rad": -3.14159,
+      "final_body_forward_world": [
+        -0.70337,
+        -0.71083
+      ],
+      "final_body_left_world": [
+        0.70739,
+        -0.70381
+      ],
+      "final_body_yaw_rad": -2.35092,
+      "final_joint_positions_rad": [
+        -0.00055,
+        -0.74181,
+        1.45935,
+        -0.00808,
+        -0.72441,
+        1.386,
+        0.01078,
+        -0.6455,
+        1.51406,
+        0.05555,
+        -0.71855,
+        1.39851
+      ],
+      "min_base_height_m": 0.39734,
+      "max_tilt_rad": 0.49346,
+      "peak_actuator_force_nm": 150.0,
+      "floor_contact_observed": true,
+      "course": {
+        "course_id": "x30-pro-two-obstacle-slow-slalom-v5",
+        "course_hash": "6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78",
+        "blocker_centers_m": [
+          [
+            -1.05,
+            0.0
+          ],
+          [
+            -1.0,
+            0.45
+          ]
+        ],
+        "physical_blockers": [
+          "course_blocker_1_collision",
+          "course_blocker_2_collision"
+        ],
+        "obstacle_collision_observed": false,
+        "obstacle_approached": true,
+        "minimum_approach_clearance_m": 0.79497,
+        "finish_line_x_m": -1.0,
+        "success_requires": "body-forward travel, two measured widening-arc evasion gates, finish-line crossing, physical-course approach, and no blocker contact"
+      },
+      "measured_trajectory": [
+        {
+          "time_seconds": 0.0,
+          "base_position_m": [
+            -0.0,
+            -0.0,
+            0.50996
+          ]
+        },
+        {
+          "time_seconds": 0.25,
+          "base_position_m": [
+            0.0172,
+            0.0,
+            0.49123
+          ]
+        },
+        {
+          "time_seconds": 0.5,
+          "base_position_m": [
+            0.02572,
+            -0.0,
+            0.48971
+          ]
+        },
+        {
+          "time_seconds": 0.75,
+          "base_position_m": [
+            0.01902,
+            -0.0,
+            0.49033
+          ]
+        },
+        {
+          "time_seconds": 1.0,
+          "base_position_m": [
+            0.0174,
+            -0.0,
+            0.49022
+          ]
+        },
+        {
+          "time_seconds": 1.25,
+          "base_position_m": [
+            0.03954,
+            0.00613,
+            0.46743
+          ]
+        },
+        {
+          "time_seconds": 1.5,
+          "base_position_m": [
+            0.09414,
+            0.07154,
+            0.45201
+          ]
+        },
+        {
+          "time_seconds": 1.75,
+          "base_position_m": [
+            0.14985,
+            0.14636,
+            0.46117
+          ]
+        },
+        {
+          "time_seconds": 2.0,
+          "base_position_m": [
+            0.14974,
+            0.15409,
+            0.4515
+          ]
+        },
+        {
+          "time_seconds": 2.252,
+          "base_position_m": [
+            0.13398,
+            0.19063,
+            0.45326
+          ]
+        },
+        {
+          "time_seconds": 2.502,
+          "base_position_m": [
+            0.1128,
+            0.27035,
+            0.48015
+          ]
+        },
+        {
+          "time_seconds": 2.752,
+          "base_position_m": [
+            0.05696,
+            0.2792,
+            0.48085
+          ]
+        },
+        {
+          "time_seconds": 3.002,
+          "base_position_m": [
+            0.0584,
+            0.25957,
+            0.45621
+          ]
+        },
+        {
+          "time_seconds": 3.252,
+          "base_position_m": [
+            0.11115,
+            0.27561,
+            0.46472
+          ]
+        },
+        {
+          "time_seconds": 3.502,
+          "base_position_m": [
+            0.08683,
+            0.2808,
+            0.46728
+          ]
+        },
+        {
+          "time_seconds": 3.752,
+          "base_position_m": [
+            0.05054,
+            0.32332,
+            0.46564
+          ]
+        },
+        {
+          "time_seconds": 4.002,
+          "base_position_m": [
+            0.03377,
+            0.37884,
+            0.47502
+          ]
+        },
+        {
+          "time_seconds": 4.252,
+          "base_position_m": [
+            0.01792,
+            0.35145,
+            0.47662
+          ]
+        },
+        {
+          "time_seconds": 4.502,
+          "base_position_m": [
+            0.069,
+            0.34039,
+            0.45285
+          ]
+        },
+        {
+          "time_seconds": 4.752,
+          "base_position_m": [
+            0.15846,
+            0.38806,
+            0.45849
+          ]
+        },
+        {
+          "time_seconds": 5.002,
+          "base_position_m": [
+            0.17624,
+            0.41154,
+            0.47328
+          ]
+        },
+        {
+          "time_seconds": 5.252,
+          "base_position_m": [
+            0.13718,
+            0.46484,
+            0.45736
+          ]
+        },
+        {
+          "time_seconds": 5.502,
+          "base_position_m": [
+            0.09966,
+            0.53393,
+            0.47257
+          ]
+        },
+        {
+          "time_seconds": 5.752,
+          "base_position_m": [
+            0.06901,
+            0.51455,
+            0.48237
+          ]
+        },
+        {
+          "time_seconds": 6.002,
+          "base_position_m": [
+            0.11913,
+            0.47934,
+            0.4534
+          ]
+        },
+        {
+          "time_seconds": 6.252,
+          "base_position_m": [
+            0.21832,
+            0.51568,
+            0.45535
+          ]
+        },
+        {
+          "time_seconds": 6.502,
+          "base_position_m": [
+            0.25895,
+            0.54633,
+            0.47696
+          ]
+        },
+        {
+          "time_seconds": 6.752,
+          "base_position_m": [
+            0.23126,
+            0.60564,
+            0.45595
+          ]
+        },
+        {
+          "time_seconds": 7.002,
+          "base_position_m": [
+            0.17863,
+            0.67351,
+            0.47184
+          ]
+        },
+        {
+          "time_seconds": 7.252,
+          "base_position_m": [
+            0.10943,
+            0.63746,
+            0.47985
+          ]
+        },
+        {
+          "time_seconds": 7.502,
+          "base_position_m": [
+            0.12726,
+            0.59312,
+            0.45708
+          ]
+        },
+        {
+          "time_seconds": 7.752,
+          "base_position_m": [
+            0.15222,
+            0.66279,
+            0.4723
+          ]
+        },
+        {
+          "time_seconds": 8.002,
+          "base_position_m": [
+            0.11497,
+            0.74021,
+            0.4647
+          ]
+        },
+        {
+          "time_seconds": 8.252,
+          "base_position_m": [
+            0.05648,
+            0.73484,
+            0.45723
+          ]
+        },
+        {
+          "time_seconds": 8.502,
+          "base_position_m": [
+            -0.03386,
+            0.73406,
+            0.48624
+          ]
+        },
+        {
+          "time_seconds": 8.752,
+          "base_position_m": [
+            -0.05066,
+            0.78296,
+            0.45664
+          ]
+        },
+        {
+          "time_seconds": 9.002,
+          "base_position_m": [
+            -0.02341,
+            0.86536,
+            0.46905
+          ]
+        },
+        {
+          "time_seconds": 9.252,
+          "base_position_m": [
+            -0.03028,
+            0.94515,
+            0.47369
+          ]
+        },
+        {
+          "time_seconds": 9.502,
+          "base_position_m": [
+            -0.08898,
+            0.95251,
+            0.44956
+          ]
+        },
+        {
+          "time_seconds": 9.752,
+          "base_position_m": [
+            -0.19786,
+            0.94314,
+            0.48216
+          ]
+        },
+        {
+          "time_seconds": 10.0,
+          "base_position_m": [
+            -0.25579,
+            0.97974,
+            0.46647
+          ]
+        },
+        {
+          "time_seconds": 10.25,
+          "base_position_m": [
+            -0.23793,
+            1.05246,
+            0.45707
+          ]
+        },
+        {
+          "time_seconds": 10.5,
+          "base_position_m": [
+            -0.22925,
+            1.15164,
+            0.4873
+          ]
+        },
+        {
+          "time_seconds": 10.75,
+          "base_position_m": [
+            -0.27592,
+            1.17402,
+            0.45322
+          ]
+        },
+        {
+          "time_seconds": 11.0,
+          "base_position_m": [
+            -0.36648,
+            1.1566,
+            0.47127
+          ]
+        },
+        {
+          "time_seconds": 11.25,
+          "base_position_m": [
+            -0.44803,
+            1.17349,
+            0.47494
+          ]
+        },
+        {
+          "time_seconds": 11.5,
+          "base_position_m": [
+            -0.46449,
+            1.23275,
+            0.44873
+          ]
+        },
+        {
+          "time_seconds": 11.75,
+          "base_position_m": [
+            -0.46438,
+            1.34399,
+            0.48357
+          ]
+        },
+        {
+          "time_seconds": 12.0,
+          "base_position_m": [
+            -0.51178,
+            1.39689,
+            0.46425
+          ]
+        },
+        {
+          "time_seconds": 12.25,
+          "base_position_m": [
+            -0.58675,
+            1.37048,
+            0.46166
+          ]
+        },
+        {
+          "time_seconds": 12.5,
+          "base_position_m": [
+            -0.66788,
+            1.33962,
+            0.47521
+          ]
+        },
+        {
+          "time_seconds": 12.75,
+          "base_position_m": [
+            -0.66455,
+            1.28475,
+            0.47332
+          ]
+        },
+        {
+          "time_seconds": 13.0,
+          "base_position_m": [
+            -0.61267,
+            1.25569,
+            0.41247
+          ]
+        },
+        {
+          "time_seconds": 13.25,
+          "base_position_m": [
+            -0.52124,
+            1.20807,
+            0.39988
+          ]
+        },
+        {
+          "time_seconds": 13.5,
+          "base_position_m": [
+            -0.51674,
+            1.2145,
+            0.43312
+          ]
+        },
+        {
+          "time_seconds": 13.75,
+          "base_position_m": [
+            -0.60781,
+            1.28637,
+            0.43883
+          ]
+        },
+        {
+          "time_seconds": 14.0,
+          "base_position_m": [
+            -0.6844,
+            1.31046,
+            0.46513
+          ]
+        },
+        {
+          "time_seconds": 14.25,
+          "base_position_m": [
+            -0.712,
+            1.31494,
+            0.44895
+          ]
+        },
+        {
+          "time_seconds": 14.5,
+          "base_position_m": [
+            -0.65378,
+            1.3388,
+            0.42255
+          ]
+        },
+        {
+          "time_seconds": 14.75,
+          "base_position_m": [
+            -0.55198,
+            1.31299,
+            0.41779
+          ]
+        },
+        {
+          "time_seconds": 15.0,
+          "base_position_m": [
+            -0.54319,
+            1.33156,
+            0.46942
+          ]
+        },
+        {
+          "time_seconds": 15.25,
+          "base_position_m": [
+            -0.58958,
+            1.33541,
+            0.44055
+          ]
+        },
+        {
+          "time_seconds": 15.5,
+          "base_position_m": [
+            -0.66605,
+            1.31991,
+            0.46699
+          ]
+        },
+        {
+          "time_seconds": 15.75,
+          "base_position_m": [
+            -0.69582,
+            1.33017,
+            0.39828
+          ]
+        },
+        {
+          "time_seconds": 16.0,
+          "base_position_m": [
+            -0.63839,
+            1.35302,
+            0.41164
+          ]
+        },
+        {
+          "time_seconds": 16.25,
+          "base_position_m": [
+            -0.65991,
+            1.35604,
+            0.44884
+          ]
+        },
+        {
+          "time_seconds": 16.5,
+          "base_position_m": [
+            -0.76779,
+            1.34667,
+            0.44244
+          ]
+        },
+        {
+          "time_seconds": 16.75,
+          "base_position_m": [
+            -0.82071,
+            1.31206,
+            0.47281
+          ]
+        },
+        {
+          "time_seconds": 17.0,
+          "base_position_m": [
+            -0.83647,
+            1.31202,
+            0.43084
+          ]
+        },
+        {
+          "time_seconds": 17.25,
+          "base_position_m": [
+            -0.77435,
+            1.38019,
+            0.41554
+          ]
+        },
+        {
+          "time_seconds": 17.5,
+          "base_position_m": [
+            -0.70695,
+            1.40389,
+            0.4309
+          ]
+        },
+        {
+          "time_seconds": 17.75,
+          "base_position_m": [
+            -0.77613,
+            1.40253,
+            0.46286
+          ]
+        },
+        {
+          "time_seconds": 18.0,
+          "base_position_m": [
+            -0.83688,
+            1.3355,
+            0.45775
+          ]
+        },
+        {
+          "time_seconds": 18.25,
+          "base_position_m": [
+            -0.87647,
+            1.26671,
+            0.44054
+          ]
+        },
+        {
+          "time_seconds": 18.5,
+          "base_position_m": [
+            -0.87489,
+            1.2999,
+            0.42442
+          ]
+        },
+        {
+          "time_seconds": 18.75,
+          "base_position_m": [
+            -0.83544,
+            1.40587,
+            0.42433
+          ]
+        },
+        {
+          "time_seconds": 19.0,
+          "base_position_m": [
+            -0.89889,
+            1.41308,
+            0.46617
+          ]
+        },
+        {
+          "time_seconds": 19.25,
+          "base_position_m": [
+            -0.94806,
+            1.35823,
+            0.44258
+          ]
+        },
+        {
+          "time_seconds": 19.5,
+          "base_position_m": [
+            -0.97807,
+            1.27923,
+            0.46685
+          ]
+        }
+      ],
+      "finite_state": true,
+      "controller": "measured_state_two_obstacle_slalom_controller_with_bounded_joint_gaits",
+      "state_authority": "MuJoCo official-joint qpos, actuator force, torso pose, contact state, and finite dynamic state",
+      "viewer_enabled": true
+    }
+  },
+  "course": {
+    "course_id": "x30-pro-two-obstacle-slow-slalom-v5",
+    "course_version": 5,
+    "forward_axis": "-X",
+    "route_side_axis": "engine-selected side around two centerline obstacles",
+    "blocker_centers_m": [
+      [
+        -1.05,
+        0.0
+      ],
+      [
+        -1.0,
+        0.45
+      ]
+    ],
+    "blocker_half_extents_m": [
+      0.015,
+      0.015,
+      0.22
+    ],
+    "finish_line_x_m": -1.0,
+    "goal_center_m": [
+      -1.05,
+      0.75
+    ],
+    "success_thresholds": {
+      "min_forward_progress_m": 0.85,
+      "first_clearance_offset_m": 0.5,
+      "second_clearance_offset_m": 0.55,
+      "first_obstacle_passed_progress_m": 0.65,
+      "max_approach_clearance_m": 1.8,
+      "require_finish_line_crossing": true,
+      "require_zero_blocker_contact": true
+    },
+    "course_hash": "6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78"
+  },
+  "settlement": {
+    "network": "eip155:84532",
+    "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+    "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg1MmMxYmNkNDY2MDI1ZDQ3NTc0MGE3MmQ3YjkyMzdmZjE1YmVmNGZlZjk0M2ZmMzhiZTNiOTFhZWY4ZjQyZmY2IiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+    "transaction": "0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6"
+  },
+  "transaction_hash": "0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6",
+  "basescan_url": "https://sepolia.basescan.org/tx/0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6"
+}

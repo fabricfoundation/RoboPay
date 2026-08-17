@@ -7,20 +7,22 @@ evidence:
     courseId: x30-pro-two-obstacle-slow-slalom-v5
     courseHash: 6f57922dddf966288c4f44c1b7eba04a92f7168b226127136509cadd27b15b78
     status: generated-by-required-ci
-  - artifact: bridge/deep_robotics/x30_pro_mujoco_bridge/artifacts/base_sepolia_result_<timestamp>.json
+  - artifact: registry/vendors/deep-robotics/x30-pro/deep-robotics.x30-pro.mujoco-webots-inspection.v1/docs/evidence/base_sepolia_result_1786994689.json
     generatedBy: bridge/deep_robotics/x30_pro_mujoco_bridge/run_live_base_sepolia_visual.ps1
-    proves: current-source cold start through the public Fabric Gateway, unpaid 402, first paid 202, measured MuJoCo success and execution-gated Base Sepolia settlement
-    sourceCommit: pending-current-head-recording
-    actionId: pending-current-head-recording
-    transactionHash: pending-current-head-recording
-    basescanUrl: pending-current-head-recording
-    status: pending-current-head-recording
-  - artifact: pending-current-head-recording.mp4
+    proves: source-bound cold start through the public Fabric Gateway, unpaid 402, first paid 202, complete correlated robot/tunnel/result, measured MuJoCo success and execution-gated Base Sepolia settlement
+    sourceCommit: 3919acb5a430a240d7b6c50c7a0ec906d1d82265
+    actionId: x30-drive-1786994629
+    transactionHash: "0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6"
+    artifactSha256: 675415387bdabcb12662e7f6139eaa334175f617953a3de4005126643871c673
+    artifactUrl: https://raw.githubusercontent.com/RobotDeveloper1/RoboPay/deep-robotics-x30-pro-tier-1/registry/vendors/deep-robotics/x30-pro/deep-robotics.x30-pro.mujoco-webots-inspection.v1/docs/evidence/base_sepolia_result_1786994689.json
+    basescanUrl: https://sepolia.basescan.org/tx/0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6
+    status: captured-and-verified
+  - artifact: registry/vendors/deep-robotics/x30-pro/deep-robotics.x30-pro.mujoco-webots-inspection.v1/docs/evidence/x30-pro-current-head-3919acb.mp4
     generatedBy: bridge/deep_robotics/x30_pro_mujoco_bridge/run_live_base_sepolia_visual.ps1
     proves: continuous split-screen run with readable terminal, complete X30 Pro MuJoCo course, final goal hold, correlated result, settlement and matching BaseScan page
-    sourceCommit: pending-current-head-recording
-    actionId: pending-current-head-recording
-    transactionHash: pending-current-head-recording
-    recordingSha256: pending-current-head-recording
-    recordingUrl: pending-current-head-recording
-    status: pending-current-head-recording
+    sourceCommit: 3919acb5a430a240d7b6c50c7a0ec906d1d82265
+    actionId: x30-drive-1786994629
+    transactionHash: "0x52c1bcd466025d475740a72d7b9237ff15bef4fef943ff38be3b91aef8f42ff6"
+    recordingSha256: eaa52c06a6099388d1e5cd7f0d78fefd43deab490f4e080342cf7fc7f9519a9b
+    recordingUrl: https://raw.githubusercontent.com/RobotDeveloper1/RoboPay/deep-robotics-x30-pro-tier-1/registry/vendors/deep-robotics/x30-pro/deep-robotics.x30-pro.mujoco-webots-inspection.v1/docs/evidence/x30-pro-current-head-3919acb.mp4
+    status: captured-and-verified
