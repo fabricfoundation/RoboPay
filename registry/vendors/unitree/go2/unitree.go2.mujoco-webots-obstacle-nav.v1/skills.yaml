@@ -1,0 +1,39 @@
+schemaVersion: robot-skills.v1
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+skills:
+  - skillId: navigate_obstacles
+    description: >-
+      Drive Go2 through the simulator obstacle corridor using closed-loop pose
+      feedback and an online foot-space trot. Succeeds only when it reaches the goal
+      without an obstacle contact.
+    params:
+      maxDurationSec:
+        type: number
+        min: 5
+        max: 60
+        default: 48
+      side:
+        type: string
+        enum: [left]
+        default: left
+      speedScale:
+        type: number
+        min: 0.5
+        max: 1.0
+        default: 1.0
+    paymentRequired: true
+    priceUSDC: "0.001"
+    movementLimits:
+      maxDurationSec: 60
+      maxGaitFrequencyHz: 1.25
+      maxStrideHalfLengthM: 0.09
+      maxSwingLiftM: 0.09
+      maxSteeringDifferential: 0.06
+  - skillId: stop
+    description: >-
+      Interrupt an active MuJoCo episode, command the neutral 12-actuator pose,
+      and zero simulated velocity. If navigation is active it receives a
+      correlated safe_stopped failure so that action cannot settle.
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.001"

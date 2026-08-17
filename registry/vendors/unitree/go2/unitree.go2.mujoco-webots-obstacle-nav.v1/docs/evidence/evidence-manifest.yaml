@@ -1,0 +1,76 @@
+schemaVersion: evidence-manifest.v1
+profileId: unitree.go2.mujoco-webots-obstacle-nav.v1
+
+claimBoundary:
+  scope: simulator-only Tier 1
+  claimed: >-
+    The shared Tunnel validates x402 evidence before publishing an ActionEvent;
+    the official-model MuJoCo bridge executes navigate_obstacles and returns a
+    correlated terminal result; settlement is deferred until that result is a
+    matching success.
+  notClaimed: >-
+    This profile does not claim physical Go2 hardware execution. A visual
+    recording proves only the exact live run it identifies and does not replace
+    the required Tunnel, simulator, payment-gate, and Sim-to-Sim test suites.
+
+evidence:
+  - evidenceId: GO2-LIVE-X402-CURRENT-HEAD
+    artifact: docs/evidence/base_sepolia_result_1786801197.json
+    generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    requiredFields:
+      - source_commit
+      - unpaid_http_status
+      - request_id
+      - paid_http_status
+      - terminal_status.action_id
+      - terminal_status.state
+      - terminal_status.settled
+      - transaction_hash
+      - basescan_url
+    proves: >-
+      One current-source run observed unpaid 402, first paid 202, a terminal
+      Go2 simulator success correlated by action ID, and the resulting Base
+      Sepolia settlement transaction.
+    status: captured
+    capture:
+      sourceCommit: 7404f879621cfc3bd99a365849c05918cad64883
+      capturedAt: 2026-08-15T13:39:57Z
+      actionId: go2-obstacle-nav-1786801123
+      unpaidHttpStatus: 402
+      paidHttpStatus: 202
+      terminalState: succeeded
+      settled: true
+      transactionHash: 0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92
+      basescanUrl: https://sepolia.basescan.org/tx/0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92
+      # The runtime emits CRLF on Windows; the versioned documentation copy
+      # is normalized to LF by Git. Both digests bind the same JSON object.
+      sourceArtifactSha256: ece0d2ea0e42a47231d4e1ad6a2d947d838f53eaa83327c096a7ffa87f3c67f6
+      sha256: 5468bd3995393cf334c9b3065d40389104451cf3af0048d3e7579eae5ede63aa
+
+  - evidenceId: GO2-CONTINUOUS-VISUAL-CURRENT-HEAD
+    artifact: 2026-08-15 10-38-38.mp4 (attached to the PR evidence comment)
+    generatedBy: bridge/unitree/go2_mujoco_bridge/run_live_base_sepolia_visual.ps1
+    requiredVisibleSequence:
+      - exact source commit
+      - unpaid HTTP 402 with no MuJoCo actuation
+      - first paid HTTP 202 and action ID
+      - all four route points and final goal hold in the unobstructed viewer
+      - correlated terminal result with the same action ID
+      - settlement and matching BaseScan transaction
+    requiredBindings:
+      - source_commit
+      - action_id
+      - transaction_hash
+      - recording_sha256
+      - json_artifact_sha256
+    status: captured
+    capture:
+      sourceCommit: 7404f879621cfc3bd99a365849c05918cad64883
+      actionId: go2-obstacle-nav-1786801123
+      transactionHash: 0x7ea440f58766c769671995841a3d9766edc2222c400300fd596f0521929bdd92
+      recordingSha256: 7a202259a52d75d528d17d05aa04a98a42b90e17459dc2f055f24ff456b5373c
+      recordingBytes: 2061177
+      recordingUrl: https://github.com/user-attachments/assets/06f6e665-d6c9-47cf-99d2-664d936450e9
+      jsonArtifact: docs/evidence/base_sepolia_result_1786801197.json
+      jsonArtifactSha256: 5468bd3995393cf334c9b3065d40389104451cf3af0048d3e7579eae5ede63aa
+      supersedes: 2026-08-15 08-13-17.mp4 (partial viewer/terminal continuity)

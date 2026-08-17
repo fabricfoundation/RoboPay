@@ -1,0 +1,8 @@
+models/unitree_go2_mujoco/
+models/unitree_go2_urdf/
+models/Go2Official.proto
+models/Go2Official_textures/
+scenes/webots_obstacle_nav_result.json
+scenes/.*.wbproj
+artifacts/
+__pycache__/

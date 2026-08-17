@@ -1,0 +1,14 @@
+{
+  "mujoco": {
+    "source": "https://github.com/unitreerobotics/unitree_mujoco",
+    "commit": "ae6a8403e272733e9996ef59990880330496177f",
+    "directory": "unitree_robots/go2",
+    "license": "BSD-3-Clause"
+  },
+  "urdf": {
+    "source": "https://github.com/unitreerobotics/unitree_ros",
+    "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+    "directory": "robots/go2_description",
+    "license": "BSD-3-Clause"
+  }
+}

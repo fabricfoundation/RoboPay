@@ -1,0 +1,27 @@
+schemaVersion: payment-policy.v1
+provider: x402
+network: eip155:84532
+asset:
+  symbol: USDC
+  address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  decimals: 6
+policies:
+  - skillId: navigate_obstacles
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+# Payee is deployment-configured by ROBO_PAYEE_ADDRESS; keep profiles portable.
+payTo: "<evm_payee_address>"
+settlement:
+  facilitator: https://x402.org/facilitator
+  scheme: exact
+  settleOnStatus: success
+  rule: >-
+    Settlement is deferred until a correlated robot/tunnel/result carries
+    status success. Failed, timed-out, rejected, or safely stopped navigation
+    episodes never settle payment. A paid stop request may settle only after
+    its own correlated safe-stop success result.
