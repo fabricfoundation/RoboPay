@@ -122,6 +122,20 @@ python -m sim_bridge.tools.send_action --tunnel-format --tamper
 python -m sim_bridge.tools.send_action --tunnel-format --repeat 2
 ```
 
+This shape is not guessed. `tunnel/cmd/tunnelprobe` drives the tunnel's real
+`PostAction` handler through its real Zenoh publisher, and the bytes it put on
+the wire are committed as `docs/evidence/tunnel-wire-capture.json`. To run it
+yourself:
+
+```bash
+cd tunnel
+CGO_CFLAGS="-I$ZENOH_C/include" CGO_LDFLAGS="-L$ZENOH_C/lib -lzenohc" \
+  go run ./cmd/tunnelprobe -robot x2-sim-001
+```
+
+with the bridge running. It reports `SUCCESS settle=true`; `-unpaid` gives
+`PAYMENT_REQUIRED settle=false`.
+
 Both shapes go through one parser. Two properties of the real contract are
 easy to get wrong, and both are covered by tests:
 

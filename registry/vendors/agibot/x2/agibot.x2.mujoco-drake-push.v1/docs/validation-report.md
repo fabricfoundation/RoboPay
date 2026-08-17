@@ -222,13 +222,51 @@ and reads verification only from `transaction_details`, which is what the
 middleware resolved. Measured: a body claiming a verified payment of 999999
 with a forged hash is refused with `PAYMENT_REQUIRED`.
 
-What is **not** claimed here: this has not been run against the Go tunnel
-binary end to end. Go is not installed on the build machine, and a true
-end-to-end run additionally needs a funded Base Sepolia key, which is the
-operator's to hold and not something this repository should carry. What is
-verified is that the bridge accepts, and correctly refuses, the exact bytes
-that `handlers.go` constructs — reproduced from that source in
-`sim_bridge/tools/send_action.py --tunnel-format` and in the contract tests.
+### Run against the tunnel's own code
+
+The above was first derived by reading `handlers.go`. It has since been checked
+against the tunnel itself. `tunnel/cmd/tunnelprobe` drives the real
+`handlers.PostAction`, through the real `zenoh.Session` publisher, with the two
+context values the x402 gin middleware sets on a verified payment
+(`x402_payload`, `x402_requirements` — see `http/gin/middleware.go`). Nothing
+about the handler, its JSON shaping, or its publisher is stubbed.
+
+With the bridge subscribed to `robot/tunnel/action`:
+
+| probe | handler | bridge verdict |
+|---|---|---|
+| default (payment verified) | 200 accepted | `act_probe_307824656000` **SUCCESS, settle=true** |
+| `-unpaid` (no x402 context) | 200 accepted | `act_probe_323940412000` **PAYMENT_REQUIRED, settle=false** |
+
+The bytes that actually crossed the wire are committed as
+`evidence/tunnel-wire-capture.json`. Two things in them are worth reading
+directly, because they are what the earlier version of this bridge got wrong:
+
+- the action fields sit under `payload`, wrapped, not at the top level; and
+- there is **no `tx_hash` anywhere in the message**. The transaction hash the
+  bridge used to demand does not exist at this point in the protocol, so
+  demanding it rejected every real message.
+
+The captured shape matches the reproduction in
+`sim_bridge/tools/send_action.py --tunnel-format` and in the contract tests
+field for field.
+
+### Still not claimed
+
+Two links in the chain remain unexercised, and neither can be closed from this
+repository alone:
+
+- **No real payment was settled.** The probe supplies a verified-payment
+  context rather than driving the x402 facilitator, because a genuine
+  verification needs a funded Base Sepolia key. That key belongs to the
+  operator and should not live in a repository.
+- **The tunnel's WebSocket link to the Fabric proxy was not used.** The tunnel
+  serves its router through `internal.NewClient(cfg.ProxyWSURL, ...)` rather
+  than binding a local port, and the proxy is not part of this repository.
+
+What is established is everything between the tunnel's HTTP handler and the
+robot's verdict: the real handler's bytes, the bridge's parse, the execution,
+and the settlement decision.
 
 ## 6. Known model artefacts
 
