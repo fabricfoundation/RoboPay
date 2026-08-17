@@ -1,0 +1,8 @@
+isaac_sim_bridge_tron1:
+  ros__parameters:
+    zenoh_topic: "robot/tunnel/action"
+    zenoh_listen: "tcp/127.0.0.1:7447"
+    cmd_vel_topic: "/cmd_vel"
+    forward_speed: 0.3
+    backward_speed: 0.3
+    turn_angular_speed: 0.3

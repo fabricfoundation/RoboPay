@@ -1,0 +1,25 @@
+[
+  {
+    "skill_id": "push_object",
+    "description": "Push a target object to a goal region.",
+    "params": {
+      "object": {
+        "type": "string",
+        "values": [
+          "cube",
+          "unreachable",
+          "collision",
+          "timeout",
+          "far_cube",
+          "blocked_cube",
+          "slow_cube"
+        ]
+      },
+      "maxSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000
+      }
+    }
+  }
+]
