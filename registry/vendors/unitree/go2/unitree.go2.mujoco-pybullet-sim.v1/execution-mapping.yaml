@@ -1,0 +1,62 @@
+﻿schemaVersion: execution-mapping.v1
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+mappings:
+  wave:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: joint-space trajectory on the official model, body-weight
+      compensation xfrc while the front-right paw is airborne
+    goal: lift and lower the front-right paw
+    metrics: [pawLift, bodyZ, bodyRollDeg, bodyPitchDeg, bodyYawDeg]
+  sit:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: joint-space crouch to a static sit posture, then recovery
+    goal: crouch and return to stance
+    metrics: [sitDepth, bodyZ]
+  stand:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: joint-space recovery to the home stance
+    goal: return to the home standing height
+    metrics: [standHeight]
+  stop:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: joint-space safe-stop to the home stance (short timeline)
+    goal: halt motion and return to the stable home stance
+    metrics: [stopHeight, bodyZ]
+  bow:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: joint-space play bow (front legs flex, hind stays up)
+    goal: pitch the torso forward and recover
+    metrics: [bowPitchDeg, bodyPitchDeg, bodyZ]
+  nod:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: joint-space full-body bob
+    goal: a measured dip of the body and recovery
+    metrics: [nodDepth, bodyZ]
+  turn_to_face:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: single-phase proportional yaw servo on the hip joints
+      (static-stability shuffle), target = "$params.headingDeg"
+    goal: yaw the body toward the requested heading
+    metrics: [achievedYawDeg, finalHeadingErrorDeg, bodyYawDeg, bodyZ]
+  hold:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: hold the stance joints for "$params.seconds"
+    goal: hold the current stance
+    metrics: [bodyZ]
+  navigate_obstacle:
+    output: mujoco-or-pybullet episode (simulation/go2/robopay_link.py)
+    controller: >-
+      slow diagonal trot steered by a measured shared calf-gain calibration
+      (STEER_TABLE: kc -> net heading over -21.7..0 deg) with a
+      potential-field local planner (attraction toward a look-ahead point on
+      the waypoint segment, repulsion from each obstacle within its influence
+      radius) and goal-settle stance; obstacle contact counted from physics
+      contact pairs (simulation/go2/obstacle_world.py injects the obstacle
+      geoms into the MuJoCo scene); success only when the goal is reached with
+      zero contacts; TIMEOUT / COLLISION are error results
+    goal: reach ("$params.goalX", "$params.goalY") via the waypoint list
+    metrics: [waypointsReached, totalWaypoints, pathLengthM, minClearanceM,
+      contacts, finalGoalDistanceM, headingErrorDeg]

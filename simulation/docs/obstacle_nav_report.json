@@ -1,0 +1,14 @@
+{
+  "skill": "navigate_obstacle",
+  "success": true,
+  "status": "success",
+  "message": "Obstacle navigation completed: goal reached",
+  "waypoints_reached": 3.0,
+  "total_waypoints": 3.0,
+  "path_length_m": 4.535,
+  "min_clearance_m": 0.047,
+  "contacts": 0.0,
+  "final_goal_distance_m": 0.099,
+  "heading_error_deg": 26.9,
+  "tolerance_goal_m": 0.2
+}

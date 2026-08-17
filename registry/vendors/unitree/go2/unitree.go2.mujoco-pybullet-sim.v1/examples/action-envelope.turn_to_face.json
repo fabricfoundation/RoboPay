@@ -1,0 +1,18 @@
+{
+  "actionId": "act_example",
+  "robotId": "test-robot",
+  "skillId": "turn_to_face",
+  "params": {
+    "headingDeg": 30.0
+  },
+  "paramsHash": "a2befd60f83a5ddfd881f41d10d000f7a176363bb95aa74c1c23a5d5365e1fa9",
+  "idempotencyKey": "example-turn-001",
+  "payment": {
+    "scheme": "exact",
+    "network": "eip155:84532",
+    "payer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "amountUSDC": "0.002",
+    "txHash": "0xabababababababababababababababababababababababababababababababab",
+    "simulated": true
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "phase": "success",
+  "chainId": 84532,
+  "token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "payer": "0x71a3Ae262A16EC7CF841bbe892865715810706d0",
+  "payee": "0x4F39550C9F9736Cc42A7E4e20b30D39e0477C080",
+  "amountUSDC": "1.0",
+  "value": 1000000,
+  "nonce": "0xc1f69f2197c510bcd21fcbe334b674d188e2ec03effc5f2c2d7035aa279f03fb",
+  "digest": "0x2227a851fd51796446b9e6b0ef24b6bf805677a04f4aad1fa3d18b6a02ec7fd2",
+  "offlineSignatureVerified": true,
+  "settled": true,
+  "txHash": "6bb1c8edc789068cdba95f556a21720f9d55b564824be07eb758b36815fbb504",
+  "blockNumber": 45416937,
+  "gasUsed": 83256,
+  "authorizationStateConsumed": true,
+  "explorer": "https://sepolia.basescan.org/tx/6bb1c8edc789068cdba95f556a21720f9d55b564824be07eb758b36815fbb504",
+  "error": null,
+  "balanceBeforeUSDC": 2.0,
+  "balanceAfterUSDC": 3.0,
+  "deltaUSDC": 1.0
+}

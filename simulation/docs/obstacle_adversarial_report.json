@@ -1,0 +1,24 @@
+{
+  "skill": "navigate_obstacle",
+  "success": true,
+  "failure_matrix": [
+    {
+      "scenario": "unreachable goal",
+      "status": "error",
+      "code": "TIMEOUT",
+      "waypoints_reached": 1.0,
+      "total_waypoints": 1.0,
+      "final_goal_distance_m": 2.901,
+      "message": "Navigation timed out before reaching the goal"
+    },
+    {
+      "scenario": "blocking obstacle",
+      "status": "error",
+      "code": "COLLISION",
+      "contacts": 8.0,
+      "min_clearance_m": 0.157,
+      "final_goal_distance_m": 0.721,
+      "message": "Obstacle contact detected during navigation"
+    }
+  ]
+}
