@@ -1,0 +1,25 @@
+[
+  {
+    "skill_id": "pick_and_place",
+    "description": "Pick a target cube and place it at a goal pose.",
+    "params": {
+      "object": {
+        "type": "string",
+        "values": [
+          "cube",
+          "unreachable",
+          "collision",
+          "timeout",
+          "far_cube",
+          "blocked_cube",
+          "slow_cube"
+        ]
+      },
+      "maxSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000
+      }
+    }
+  }
+]

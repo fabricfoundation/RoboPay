@@ -1,0 +1,15 @@
+{
+  "robot": "ur5-real-001",
+  "skill": "pick_and_place",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621b1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541ec2318f3dCF7e",
+  "amount_usdc": "0.1",
+  "txs": [
+    "0x7baf889b787a6838aa1c78810688dd3cdc0ebc843060eb11a0c7968a83d6b503"
+  ],
+  "settled": true,
+  "note": "real Base Sepolia USDC transfer; audited by verify_settlement.py (criterion #7)"
+}

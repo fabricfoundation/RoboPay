@@ -1,0 +1,6 @@
+"""Minimal conftest for door-arm-001."""
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))

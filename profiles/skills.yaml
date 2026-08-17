@@ -1,0 +1,120 @@
+# door-arm-001 --- skill catalogue and pricing
+apiVersion: robopay.fabric/v1
+kind: SkillCatalog
+
+robotId: door-arm-001
+profileId: door.door-arm-001.mujoco-sim.v1
+
+skills:
+  - skillId: open_door
+    displayName: Open door
+    category: manipulation
+    version: 1.0.0
+    description: >
+      Grip the door handle and pull the door open. The door is a hinged rigid
+      body with a handle that rotates into the fingers. Success requires the
+      door to rotate past OPEN_ANGLE_MIN (29 degrees) while the gripper holds
+      the handle via measured contact force.
+
+    pricing:
+      model: per-execution
+      amount: "0.10"
+      currency: USDC
+      decimals: 6
+      amountAtomic: "100000"
+      network: base-sepolia
+      settlement: on-success-only
+
+    execution:
+      idempotent: true
+      idempotencyKeyRequired: true
+      estimatedDurationSec: 2
+      maxDurationSec: 15
+      defaultStepBudget: 400
+      nominalSteps: 330
+      concurrency: 1
+
+    paramsSchema:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        door:
+          type: string
+          default: open
+          description: Named physical scene to instantiate.
+          enum:
+            - open
+            - stuck
+            - out_of_range
+            - normal
+            - stuck_door
+            - far_door
+        maxSteps:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          description: Override the hard step budget.
+
+    successCriteria:
+      - key: doorAngle
+        op: gte
+        value: 0.5
+      - key: handleState
+        op: eq
+        value: gripped
+
+    failureModes:
+      - reason: unreachable
+        trigger: Door is outside the arm's work envelope.
+        example: '{"door": "out_of_range"}'
+        settles: false
+      - reason: stuck
+        trigger: High-friction hinge prevents door rotation.
+        example: '{"door": "stuck"}'
+        settles: false
+      - reason: timeout
+        trigger: Step budget exhausted before door opens.
+        example: '{"door": "open", "maxSteps": 100}'
+        settles: false
+      - reason: grasp_failed
+        trigger: Fingers close but insufficient contact force on handle.
+        example: '{"door": "open"}'
+        settles: false
+      - reason: insufficient_open
+        trigger: Door rotates but not past the success threshold.
+        example: '{"door": "stuck"}'
+        settles: false
+
+    resultSchema:
+      type: object
+      required: [success, reason, metrics]
+      properties:
+        success: {type: boolean}
+        reason:
+          type: string
+          enum: [opened, unreachable, stuck, timeout, grasp_failed, insufficient_open, configuration_error]
+        metrics:
+          type: object
+          required:
+            - robotId
+            - skillId
+            - engine
+            - object
+            - scene
+            - stage
+            - handleState
+            - doorAngle
+            - objectStart
+            - objectEnd
+            - objectDelta
+            - objectLifted
+            - contactForce
+            - peakForce
+            - contactSamples
+            - collisionCount
+            - stepsUsed
+            - stepBudget
+            - simTime
+            - wallTime
+            - note

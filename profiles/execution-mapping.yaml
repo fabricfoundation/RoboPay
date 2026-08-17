@@ -1,0 +1,87 @@
+# door-arm-001 --- execution mapping (stages, keyframes, scenes)
+#
+# This file is the human-readable plan the reviewer looks at to verify the
+# simulator is following a deterministic trajectory, not a learned one.
+# Every number here is asserted in tests/test_profiles.py against arm_spec.py.
+apiVersion: robopay.fabric/v1
+kind: ExecutionMapping
+
+robotId: door-arm-001
+profileId: door.door-arm-001.mujoco-sim.v1
+
+mappings:
+  - skillId: open_door
+    defaultStepBudget: 400           # arm_spec.DEFAULT_BUDGET
+    nominalSteps: 330                # sum(arm_spec.STAGE_STEPS)
+
+    # ------------------------------------------------------------- stages
+    stages:
+      - name: move_above
+        steps: 70                     # arm_spec.STAGE_STEPS.move_above
+        description: Move the wrist to a point directly above the handle.
+      - name: descend
+        steps: 50                     # arm_spec.STAGE_STEPS.descend
+        description: Lower the wrist onto the handle centre.
+      - name: grip
+        steps: 80                     # arm_spec.STAGE_STEPS.grip
+        description: Close fingers around the handle and measure contact force.
+      - name: pull
+        steps: 100                    # arm_spec.STAGE_STEPS.pull
+        description: Pull the arm back to rotate the door open.
+      - name: settle
+        steps: 30                     # arm_spec.STAGE_STEPS.settle
+        description: Hold position and sample contact force.
+
+    # --------------------------------------------------------- keyframes
+    keyframes:
+      home: {pan: 0.0, shoulder: 0.0, elbow: 0.0, wristp: 0.0}
+      move_above: ~                  # solved by arm_spec.solve(hx, hz+0.15)
+      descend: ~                     # solved by arm_spec.solve(hx, hz)
+      grip: ~                        # same pose, fingers close
+      pull: ~                        # solved by arm_spec.solve(hx-0.40, hz-0.10)
+      settle: ~                      # same as pull
+
+    # --------------------------------------------------------- controller
+    controller:
+      type: deterministic-trajectory
+      runtimeIteration: none
+      jointOrder: [pan, shoulder, elbow, wristp]
+
+    # -------------------------------------------------------- dispatch
+    dispatch:
+      backends:
+        mujoco: simulator.py::MuJoCoSimulator
+        pybullet: simulator_pybullet.py::PyBulletSimulator
+
+    # --------------------------------------------------------- success
+    decision:
+      success:
+        doorAngleMinRad: 0.5         # arm_spec.OPEN_ANGLE_MIN
+        handleState: gripped
+        contactForceMinN: 0.25       # arm_spec.GRASP_FORCE_MIN
+
+# -------------------------------------------------------------- scenes
+scenes:
+  open:
+    doorX: 0.0
+    doorY: 0.0
+    friction: 0.3
+    budget: 400
+    description: Normal door, handle reachable.
+  stuck:
+    doorX: 0.0
+    doorY: 0.0
+    friction: 5.0
+    budget: 400
+    description: High-friction hinge, door resists opening.
+  out_of_range:
+    doorX: 0.35
+    doorY: 0.0
+    friction: 0.3
+    budget: 400
+    description: Door too far for the arm to reach the handle.
+
+aliases:
+  normal: open
+  stuck_door: stuck
+  far_door: out_of_range

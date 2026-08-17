@@ -1,0 +1,102 @@
+====================================================================
+ RoboPay Tier 1 demo -- door-arm-001 / open_door
+ engine=mujoco  transport=loopback  payment=demo
+====================================================================
+
+[ 1] list_skills (free discovery)
+     open_door: 0.10 USDC on base-sepolia (on-success-only)
+     failure modes: unreachable, stuck, timeout, grasp_failed, insufficient_open
+
+[ 2] request_action  params={'door': 'out_of_range'}  (no payment attached)
+{
+  "status": 402,
+  "paymentRequired": true,
+  "x402Version": "1",
+  "header": "X-PAYMENT",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base-sepolia",
+      "chainId": 84532,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "assetSymbol": "USDC",
+      "maxAmountRequired": "100000",
+      "amount": "0.10",
+      "currency": "USDC",
+      "payTo": "0x0000000000000000000000000000000000000000",
+      "resource": "robopay://door-arm-001/open_door",
+      "description": "One physics-executed open_door run on door-arm-001.",
+      "maxTimeoutSeconds": 120,
+      "settlement": "on-success-only"
+    }
+  ]
+}
+
+[ 3] robot contacted so far: 0 executions  <- must be 0
+
+[ 4] pay 0.10 USDC on base-sepolia
+     txHash = 0x07e5c3a18f6d4b29...
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+
+[ 6] publish -> robot/tunnel/action
+
+[ 7] execute -> physics
+
+[ 8] result  <- robot/tunnel/result
+{
+  "actionId": "ba3df9fa-3ede-44cd-9803-1f93d9f0d926",
+  "skill": "open_door",
+  "status": "failed",
+  "message": "configuration_error",
+  "metrics": {
+    "robotId": "door-arm-001",
+    "skillId": "open_door",
+    "engine": "mujoco",
+    "object": "out_of_range",
+    "scene": "out_of_range",
+    "stage": "full",
+    "handleState": "ungripped",
+    "doorAngle": 0.0,
+    "objectStart": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "objectEnd": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "objectDelta": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "objectLifted": 0.0,
+    "contactForce": 0.0,
+    "peakForce": 0.0,
+    "contactSamples": 0,
+    "collisionCount": 0,
+    "stepsUsed": 0,
+    "stepBudget": 400,
+    "simTime": 0.0,
+    "wallTime": 0.0713,
+    "note": "keyframes unsolvable"
+  },
+  "paymentState": "FAILED",
+  "settled": false
+}
+
+[ 9] payment FAILED -> NOT SETTLED
+
+[10] replay the same idempotencyKey
+{
+  "status": "rejected",
+  "reason": "duplicate_idempotency_key",
+  "actionId": "ba3df9fa-3ede-44cd-9803-1f93d9f0d926"
+}
+     executions total: 1 <- must be 1
+
+====================================================================
+ done.

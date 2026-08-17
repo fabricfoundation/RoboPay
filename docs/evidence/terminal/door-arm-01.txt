@@ -1,0 +1,35 @@
+====================================================================
+ RoboPay Tier 1 demo -- door-arm-001 / open_door
+ engine=mujoco  transport=loopback  payment=demo
+====================================================================
+
+[ 1] list_skills (free discovery)
+     open_door: 0.10 USDC on base-sepolia (on-success-only)
+     failure modes: unreachable, stuck, timeout, grasp_failed, insufficient_open
+
+--------------------------------------------------------------------
+ scene: open
+--------------------------------------------------------------------
+ status=completed  reason=opened  settled=True
+ handleState=gripped  angle=0.529 rad  force=192.0012 N  steps=330/400  collisions=0
+
+--------------------------------------------------------------------
+ scene: stuck
+--------------------------------------------------------------------
+ status=failed  reason=insufficient_open  settled=False
+ handleState=incomplete  angle=0.021 rad  force=17.6038 N  steps=330/400  collisions=0
+
+--------------------------------------------------------------------
+ scene: out_of_range
+--------------------------------------------------------------------
+ status=failed  reason=configuration_error  settled=False
+ handleState=ungripped  angle=0.000 rad  force=0.0 N  steps=0/400  collisions=0
+
+==============================================================================
+ scene        status     reason       angle(rad)  force(N)  steps  settled
+------------------------------------------------------------------------------
+ open         completed  opened            0.529    192.00    330     True
+ stuck        failed     insufficient_open     0.021     17.60    330    False
+ out_of_range failed     configuration_error     0.000      0.00      0    False
+==============================================================================
+ PASS: success settles, every failure does not.

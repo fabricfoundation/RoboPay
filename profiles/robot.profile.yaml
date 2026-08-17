@@ -1,0 +1,101 @@
+# door-arm-001 --- RoboPay Door-opening robot profile
+apiVersion: robopay.fabric/v1
+kind: RobotProfile
+
+profileId: door.door-arm-001.mujoco-sim.v1
+robotId: door-arm-001
+displayName: DoorArm-001 (MuJoCo simulated door-opening arm)
+version: 1.0.0
+
+vendor:
+  name: laok
+  robotModel: door-arm-001
+  hardwareRevision: "n/a (simulated)"
+
+scope:
+  classification: simulator
+  tier: 1
+  simulationOnly: true
+  realWorldActuation: false
+  gpuRequired: false
+  networkEgressDuringExecution: false
+  safetyNote: >
+    This profile never drives physical hardware. Every action is executed by a
+    physics engine on CPU inside the robot process.
+
+embodiment:
+  type: manipulator
+  degreesOfFreedom: 4
+  specSource: ../arm_spec.py
+  kinematics:
+    baseHeight: 0.80
+    link1: 0.28
+    link2: 0.24
+    maxReach: 0.52
+    workRadius: 0.35
+    units: meters
+  joints:
+    - {name: pan,      type: hinge, axis: z, limitRad: 3.14}
+    - {name: shoulder, type: hinge, axis: y, limitRad: 1.95}
+    - {name: elbow,    type: hinge, axis: y, limitRad: 2.55}
+    - {name: wristp,   type: hinge, axis: y, limitRad: 2.75}
+  gripper:
+    type: parallel-jaw
+    fingers: 2
+    halfApertureClosed: 0.032
+    halfApertureOpen: 0.050
+
+simulation:
+  primaryEngine:
+    name: mujoco
+    versionSpec: ">=3.1,<4"
+    module: simulator.py
+    headless: true
+    timestep: 0.002
+  secondaryEngine:
+    name: pybullet
+    versionSpec: ">=3.2.5"
+    module: simulator_pybullet.py
+    headless: true
+  determinism:
+    controller: deterministic-trajectory
+    closedFormKeyframes: true
+    randomSeeds: false
+    replayedAnimation: false
+  physicsEvidence:
+    - gravity
+    - rigid-body-collision
+    - friction
+    - contact-normal-force
+    - free-floating-object-dynamics
+
+transport:
+  protocol: zenoh
+  mode: peer
+  endpoint: tcp/127.0.0.1:17447
+  encoding: application/json
+  correlationField: actionId
+  topics:
+    action: robot/tunnel/action
+    result: robot/tunnel/result
+  node: flow/node.py
+  fallback:
+    name: loopback
+    reason: In-process transport used by unit tests.
+
+identity:
+  walletAddressEnv: DOOR_ARM_WALLET_ADDRESS
+  privateKeyEnv: DOOR_ARM_PRIVATE_KEY
+  payToAddressEnv: DOOR_ARM_PAYTO_ADDRESS
+  keyMaterialInRepo: false
+  bindingRule: >
+    An action is only executed when its envelope carries robotId
+    `door-arm-001`.
+
+capabilities:
+  skills: [open_door]
+manifests:
+  skills: skills.yaml
+  functions: functions.yaml
+  paymentPolicy: payment-policy.yaml
+  executionMapping: execution-mapping.yaml
