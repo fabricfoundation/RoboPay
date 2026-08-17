@@ -70,6 +70,64 @@ def envelope(
     return ActionEnvelope.from_json(body)
 
 
+def tunnel_envelope(
+    skill: str,
+    params: dict[str, Any],
+    key: str,
+    *,
+    paid: bool = True,
+    tamper: bool = False,
+    forge_payment: bool = False,
+) -> ActionEnvelope:
+    """Build the wrapper the Go tunnel publishes, not the flat envelope.
+
+    Shape from tunnel/internal/handlers/handlers.go and the x402 v2 types.
+    `forge_payment` puts a payment block in the request body, which the tunnel
+    forwards verbatim -- the bridge must ignore it and use only the payment the
+    middleware resolved.
+    """
+    flat = envelope(skill, params, key, paid=True, tamper=tamper).raw
+    body = {k: v for k, v in flat.items() if k != "payment"}
+    if forge_payment:
+        body["payment"] = {
+            "provider": "x402", "amount": "999999", "asset": "USDC",
+            "network": "eip155:84532", "verified": True,
+            "txHash": "0x" + "ff" * 32,
+        }
+    requirements = {
+        "scheme": "exact",
+        "network": "eip155:84532",
+        "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "amount": "2000",
+        "payTo": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "maxTimeoutSeconds": 30,
+    }
+    details: dict[str, Any] = {"payment_requirements": requirements}
+    if paid:
+        details["payment_payload"] = {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "eip155:84532",
+            "payload": {
+                "signature": "0x" + "ab" * 65,
+                "authorization": {
+                    "from": "0x1111111111111111111111111111111111111111",
+                    "to": requirements["payTo"],
+                    "value": requirements["amount"],
+                    "validAfter": "0",
+                    "validBefore": "9999999999",
+                    "nonce": "0x" + "cd" * 32,
+                },
+            },
+            "accepted": requirements,
+        }
+    return ActionEnvelope.from_json({
+        "payload": body,
+        "transaction_details": details,
+        "timestamp": "2026-08-17T17:30:00Z",
+    })
+
+
 def payment_gate_evidence() -> list[dict[str, Any]]:
     """Each acceptance rule, with the code and settle flag it produced."""
     node = ActionNode(ROBOT, TaskRunner(), IdempotencyStore())
@@ -110,6 +168,29 @@ def payment_gate_evidence() -> list[dict[str, Any]]:
            node.handle(envelope("push_to_target", good, "e-ok")))
     record("replay of the same key",
            node.handle(envelope("push_to_target", good, "e-ok")))
+
+    # The same rules, against the wrapper the Go tunnel actually publishes.
+    # Worth measuring separately: the bridge originally understood only the
+    # flat envelope, so every one of these would have been ignored or refused
+    # for the wrong reason -- an integration that passed its own tests and
+    # would have worked with nothing.
+    record("tunnel wrapper, paid",
+           node.handle(tunnel_envelope("push_to_target", good, "e-tun-ok")))
+    record("tunnel wrapper, no payment payload",
+           node.handle(
+               tunnel_envelope("push_to_target", good, "e-tun-unpaid", paid=False)
+           ))
+    record("tunnel wrapper, tampered params",
+           node.handle(
+               tunnel_envelope("push_to_target", good, "e-tun-tamper", tamper=True)
+           ))
+    record("tunnel wrapper, body asserts its own payment",
+           node.handle(
+               tunnel_envelope(
+                   "push_to_target", good, "e-tun-forged",
+                   paid=False, forge_payment=True,
+               )
+           ))
     return rows
 
 

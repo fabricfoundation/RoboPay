@@ -36,7 +36,9 @@ sim-to-sim comparison a comparison of physics rather than of models.
 
 ## Payment gate
 
-Nine cases, run in-process against the same `ActionNode` the Zenoh bridge uses.
+Thirteen cases, run in-process against the same `ActionNode` the Zenoh bridge
+uses. The last four go through the wrapper the Go tunnel really publishes; see
+"The tunnel's wire format" below.
 
 | Case | Status | Code | Settled |
 |---|---|---|---|
@@ -49,6 +51,10 @@ Nine cases, run in-process against the same `ActionNode` the Zenoh bridge uses.
 | Free `stop` skill | success | — | yes (price 0) |
 | Valid paid action | success | — | yes |
 | Replay of the same key | success | `IDEMPOTENCY_REPLAY` | **no** |
+| Tunnel wrapper, paid | success | — | yes |
+| Tunnel wrapper, no payment payload | error | `PAYMENT_REQUIRED` | **no** |
+| Tunnel wrapper, tampered params | error | `PARAMS_HASH_MISMATCH` | **no** |
+| Tunnel wrapper, body asserts its own payment | error | `PAYMENT_REQUIRED` | **no** |
 
 Notes on two of these:
 
@@ -60,8 +66,64 @@ Notes on two of these:
 - **Replay.** A repeated `idempotencyKey` returns the first outcome without
   re-entering the simulator, and is never settled a second time.
 
-The same nine cases were also exercised end to end over Zenoh with
+The same cases were also exercised end to end over Zenoh with
 `tools/send_action.py`; see `docs/README.md` for the commands.
+
+## The tunnel's wire format
+
+This bridge was originally written against a flat action envelope that nothing
+in this repository publishes. Read against `tunnel/internal/handlers/handlers.go`,
+`POST /action` sits behind the x402 middleware and the handler publishes
+
+    {payload, transaction_details, timestamp}
+
+to `robot/tunnel/action` -- the client's body wrapped verbatim, with the
+resolved x402 payload and requirements beside it. Two defects followed, and
+neither could be caught by tests that spoke the same invented dialect as the
+bridge:
+
+1. **Only the flat envelope parsed**, so every message the real tunnel sends
+   would have been refused as malformed. An integration that passes its own
+   tests and works with nothing.
+2. **A transaction hash was required before the robot would act.** x402
+   verifies, runs the resource handler, then settles -- skipping settlement
+   when the handler fails (`x402/server.go` calls the cancellation path "after
+   a successful Verify but before/instead of Settle when the resource handler
+   errors"). No hash exists when the robot is asked to move. Demanding one
+   rejected every real message, and inverted the exact lifecycle that gives
+   no-settle-on-failure its meaning.
+
+Both shapes now go through one parser. On arrival the bridge requires a
+verified payment plus an `authorizationRef` -- a digest of the x402
+authorisation the tunnel verified -- rather than a settlement reference that
+cannot exist yet.
+
+This also closes a hole the wrapper opens. The tunnel forwards the request body
+verbatim, so a caller who reaches the topic can put
+`payment: {verified: true, txHash: ...}` inside it. Verification is now read
+only from `transaction_details`, which is what the middleware resolved.
+Measured: a body claiming a verified payment of 999999 with a forged hash is
+refused with `PAYMENT_REQUIRED`.
+
+### Checked against the tunnel, not its source
+
+`tunnel/cmd/tunnelprobe` drives the real `handlers.PostAction` through the real
+`zenoh.Session` publisher, with the two context values the x402 gin middleware
+sets on a verified payment. The handler, its JSON shaping and its publisher are
+untouched; what is not run is the middleware itself, which needs a facilitator
+and a funded key.
+
+With this bridge subscribed:
+
+| probe | bridge verdict |
+|---|---|
+| default (payment verified) | `act_probe_697261368000` **SUCCESS, settle=true** |
+| `-unpaid` | `act_probe_731465445000` **PAYMENT_REQUIRED, settle=false** |
+
+The bytes that crossed the wire are committed as
+`evidence/tunnel-wire-capture.json`. Two things in them are why the fix was
+needed: the action fields sit wrapped under `payload`, and there is no
+`tx_hash` anywhere in the message.
 
 ## Task performance
 
@@ -146,7 +208,16 @@ These are stated because a reviewer will find them anyway.
    position-controlled joints, with measured peaks of 60–120N on a 100g object,
    which ejects it. Controlled contact is reliable on this hand; holding is not.
 
-4. **One run takes 10–25 simulated seconds.** The droop correction that trims
+4. **No payment was actually settled, and the Fabric proxy was not used.** The
+   probe above supplies a verified-payment context rather than driving the x402
+   facilitator, because a genuine verification needs a funded Base Sepolia key,
+   which belongs to the operator rather than to a repository. The tunnel also
+   serves its router through `internal.NewClient(cfg.ProxyWSURL, ...)` rather
+   than binding a local port, and that proxy is not part of this repository.
+   What is established is everything between the tunnel's HTTP handler and the
+   robot's verdict.
+
+5. **One run takes 10–25 simulated seconds.** The droop correction that trims
    the arm onto its waypoint is deliberately slow, because faster gains wind up
    during the large travel of the raise stage.
 

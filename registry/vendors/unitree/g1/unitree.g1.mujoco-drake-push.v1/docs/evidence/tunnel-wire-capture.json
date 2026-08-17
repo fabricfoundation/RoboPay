@@ -1,0 +1,49 @@
+{
+  "payload": {
+    "actionId": "act_probe_453353638000",
+    "expiresAt": "2026-08-17T09:47:33Z",
+    "idempotencyKey": "idem-probe-3353641000",
+    "params": {
+      "goal_x": 0.27,
+      "goal_y": 0.3,
+      "puck_x": 0.26,
+      "puck_y": 0.17
+    },
+    "paramsHash": "sha256:8f89f4c52de946db5419bb4f5f5117227cf5546a357112d0ca0855758263dab4",
+    "robotId": "x2-sim-001",
+    "skillId": "push_to_target"
+  },
+  "timestamp": "2026-08-17T18:37:33+09:00",
+  "transaction_details": {
+    "payment_payload": {
+      "accepted": {
+        "amount": "2000",
+        "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "maxTimeoutSeconds": 30,
+        "network": "eip155:84532",
+        "payTo": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "scheme": "exact"
+      },
+      "payload": {
+        "authorization": {
+          "from": "0x1111111111111111111111111111111111111111",
+          "nonce": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "to": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          "validAfter": "0",
+          "validBefore": "9999999999",
+          "value": "2000"
+        },
+        "signature": "0xababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      },
+      "x402Version": 2
+    },
+    "payment_requirements": {
+      "amount": "2000",
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "maxTimeoutSeconds": 30,
+      "network": "eip155:84532",
+      "payTo": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "scheme": "exact"
+    }
+  }
+}

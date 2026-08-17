@@ -113,6 +113,35 @@ python -m sim_bridge.tools.send_action --skill diagnostic_fail  # ACTION_FAILED
 python -m sim_bridge.tools.send_action --repeat 2               # second is IDEMPOTENCY_REPLAY
 ```
 
+### Against the tunnel's real wire format
+
+The tunnel in this repository does not publish the flat envelope. `POST
+/action` sits behind its x402 middleware, and the handler publishes
+`{payload, transaction_details, timestamp}` — the client's body wrapped, with
+the resolved x402 payment beside it. `--tunnel-format` publishes that exact
+shape:
+
+```bash
+python -m sim_bridge.tools.send_action --tunnel-format
+python -m sim_bridge.tools.send_action --tunnel-format --unpaid
+python -m sim_bridge.tools.send_action --tunnel-format --tamper
+```
+
+The shape is not guessed. `tunnel/cmd/tunnelprobe` drives the tunnel's real
+`PostAction` handler through its real Zenoh publisher, and the bytes it put on
+the wire are committed as `docs/evidence/tunnel-wire-capture.json`:
+
+```bash
+cd tunnel
+CGO_CFLAGS="-I$ZENOH_C/include" CGO_LDFLAGS="-L$ZENOH_C/lib -lzenohc" \
+  go run ./cmd/tunnelprobe -robot g1-sim-001 -puck-x 0.34 -puck-y -0.20
+```
+
+Two properties of the real contract are easy to get wrong, and both are
+covered by tests: no transaction hash arrives with the action (x402 settles
+*after* the handler runs), and a `payment` block inside the body is ignored —
+verification is read only from `transaction_details`.
+
 Expected for the unpaid case:
 
 ```
