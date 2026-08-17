@@ -119,6 +119,38 @@
       "settle": false,
       "replayed": true,
       "displacementM": 0.0925
+    },
+    {
+      "case": "tunnel wrapper, paid",
+      "status": "success",
+      "code": null,
+      "settle": true,
+      "replayed": false,
+      "displacementM": 0.0925
+    },
+    {
+      "case": "tunnel wrapper, no payment payload",
+      "status": "error",
+      "code": "PAYMENT_REQUIRED",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "tunnel wrapper, tampered params",
+      "status": "error",
+      "code": "PARAMS_HASH_MISMATCH",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "tunnel wrapper, body asserts its own payment",
+      "status": "error",
+      "code": "PAYMENT_REQUIRED",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
     }
   ],
   "workspace": [

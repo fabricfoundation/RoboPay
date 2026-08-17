@@ -82,6 +82,62 @@ def build_envelope(
     return envelope
 
 
+def wrap_as_tunnel_message(envelope: dict[str, Any], paid: bool) -> dict[str, Any]:
+    """Re-shape a flat envelope into what the Go tunnel actually publishes.
+
+    Reproduced from tunnel/internal/handlers/handlers.go: `POST /action` sits
+    behind the x402 middleware, and on a verified payment the handler wraps the
+    client's body in `payload`, attaches the resolved x402 payload and
+    requirements under `transaction_details`, and publishes that.
+
+    Two details matter and are easy to get wrong:
+
+      * the body carries no payment block at all -- the client never sends one,
+        the middleware resolves it; and
+      * there is no transaction hash. x402 verifies, runs the handler, and
+        settles afterwards, so at this point the payment is verified and
+        unsettled. That is the whole reason `settle` is the robot's to report.
+
+    An unpaid request never reaches the handler in the real tunnel, so it is
+    never published at all. `--unpaid --tunnel-format` models the weaker case
+    that is still worth refusing: something reaching the topic directly with no
+    payment payload on it.
+    """
+    body = {k: v for k, v in envelope.items() if k != "payment"}
+    requirements = {
+        "scheme": "exact",
+        "network": "eip155:84532",
+        "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",  # USDC, Base Sepolia
+        "amount": "2000",
+        "payTo": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "maxTimeoutSeconds": 30,
+    }
+    details: dict[str, Any] = {"payment_requirements": requirements}
+    if paid:
+        details["payment_payload"] = {
+            "x402Version": 2,
+            "scheme": "exact",
+            "network": "eip155:84532",
+            "payload": {
+                "signature": "0x" + uuid.uuid4().hex * 2 + uuid.uuid4().hex[:2],
+                "authorization": {
+                    "from": "0x1111111111111111111111111111111111111111",
+                    "to": requirements["payTo"],
+                    "value": requirements["amount"],
+                    "validAfter": "0",
+                    "validBefore": "9999999999",
+                    "nonce": "0x" + uuid.uuid4().hex + uuid.uuid4().hex,
+                },
+            },
+            "accepted": requirements,
+        }
+    return {
+        "payload": body,
+        "transaction_details": details,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--robot-id", default=os.environ.get("ROBOT_ID", "x2-sim-001"))
@@ -93,6 +149,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--unpaid", action="store_true")
     parser.add_argument("--tamper", action="store_true")
     parser.add_argument("--expired", action="store_true")
+    parser.add_argument(
+        "--tunnel-format", action="store_true",
+        help="publish the wrapper the Go tunnel really puts on the topic "
+             "({payload, transaction_details, timestamp}) instead of a flat "
+             "envelope, to exercise the bridge against the actual contract",
+    )
     parser.add_argument("--repeat", type=int, default=1,
                         help="send the same envelope N times to exercise replay")
     parser.add_argument("--timeout", type=float, default=180.0)
@@ -129,10 +191,16 @@ def main(argv: list[str] | None = None) -> int:
                 args.robot_id, args.skill, params, key,
                 paid=not args.unpaid, tamper=args.tamper, expired=args.expired,
             )
+            message: dict[str, Any] = envelope
+            if args.tunnel_format:
+                message = wrap_as_tunnel_message(envelope, paid=not args.unpaid)
+
             before = len(results)
+            shape = "tunnel wrapper" if args.tunnel_format else "flat envelope"
             print(f"--- attempt {attempt}/{args.repeat}: "
-                  f"action {envelope['actionId']} skill={args.skill} key={key}")
-            session.put(args.action_topic, json.dumps(envelope).encode())
+                  f"action {envelope['actionId']} skill={args.skill} key={key} "
+                  f"[{shape}]")
+            session.put(args.action_topic, json.dumps(message).encode())
 
             deadline = time.time() + args.timeout
             while len(results) == before and time.time() < deadline:

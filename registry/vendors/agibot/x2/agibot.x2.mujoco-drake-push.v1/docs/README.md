@@ -106,6 +106,34 @@ python -m sim_bridge.tools.send_action --repeat 2          # IDEMPOTENCY_REPLAY
 python -m sim_bridge.tools.send_action --skill diagnostic_fail   # ACTION_FAILED
 ```
 
+### Against the tunnel's real wire format
+
+The tunnel in this repository does not publish the flat envelope. `POST
+/action` sits behind its x402 middleware, and the handler publishes
+`{payload, transaction_details, timestamp}` — the client's body wrapped, with
+the resolved x402 payment alongside it. `--tunnel-format` publishes that exact
+shape, so the bridge can be exercised against the contract it will actually
+meet:
+
+```bash
+python -m sim_bridge.tools.send_action --tunnel-format
+python -m sim_bridge.tools.send_action --tunnel-format --unpaid
+python -m sim_bridge.tools.send_action --tunnel-format --tamper
+python -m sim_bridge.tools.send_action --tunnel-format --repeat 2
+```
+
+Both shapes go through one parser. Two properties of the real contract are
+easy to get wrong, and both are covered by tests:
+
+- **No transaction hash arrives with the action.** x402 verifies, runs the
+  handler, and settles afterwards — skipping settlement when the handler
+  fails. A bridge that demands a settlement reference up front rejects every
+  message the tunnel sends, and inverts the lifecycle that makes
+  no-settle-on-failure mean anything.
+- **The body is caller-controlled; the payment is not.** A `payment` block
+  inside `payload` is ignored. Verification is read only from
+  `transaction_details`, which is what the middleware resolved.
+
 Every one of those returns `settle=false`. `diagnostic_fail` exists so the
 no-settle-on-failure guarantee can be demonstrated on demand rather than
 argued for.

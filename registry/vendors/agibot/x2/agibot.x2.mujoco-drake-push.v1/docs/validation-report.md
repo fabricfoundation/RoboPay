@@ -22,8 +22,9 @@ changed verdict rather than as a different sample.
 | Sim-to-sim agreement (MuJoCo vs Drake) | 10 / 10 agree |
 | Worst puck-end disagreement between engines | 51.1 mm (tolerance 100 mm) |
 | Mean puck-end disagreement | 22.3 mm |
-| Payment gate rules exercised | 9 / 9 behave as specified |
-| Settlement on any failure | never (`settle=false` in all 7 failure cases) |
+| Payment gate rules exercised | 13 / 13 behave as specified |
+| Settlement on any failure | never (`settle=false` in all 9 failure cases) |
+| Bridge accepts the tunnel's real wire format | yes, with every defence intact |
 
 ## 1. Task success across the advertised envelope
 
@@ -170,8 +171,12 @@ Exercised in-process, no Zenoh required.
 | replay of the same key | error | `IDEMPOTENCY_REPLAY` | no |
 | free `stop` skill | success | — | yes |
 | valid paid action | success | — | yes |
+| tunnel wrapper, paid | success | — | yes |
+| tunnel wrapper, no payment payload | error | `PAYMENT_REQUIRED` | no |
+| tunnel wrapper, tampered params | error | `PARAMS_HASH_MISMATCH` | no |
+| tunnel wrapper, body asserts its own payment | error | `PAYMENT_REQUIRED` | no |
 
-**Settlement is authorised in exactly the two cases that succeeded.** Every
+**Settlement is authorised in exactly the three cases that succeeded.** Every
 failure path — including a replayed key that was already paid for once —
 returns `settle=false`.
 
@@ -181,6 +186,49 @@ out of range, or it would prove nothing about tamper detection.
 
 `diagnostic_fail` exists so the no-settle-on-failure guarantee can be
 demonstrated on demand rather than argued for.
+
+### The tunnel's real wire format
+
+The last four rows matter more than their count suggests. The tunnel in this
+repository does not publish the flat envelope: `POST /action` sits behind its
+x402 middleware and the handler publishes `{payload, transaction_details,
+timestamp}` to `robot/tunnel/action`, wrapping the client's body and carrying
+the resolved payment beside it (`tunnel/internal/handlers/handlers.go`).
+
+Read against that source, the bridge had two defects that its own tests could
+never have caught, because the tests spoke the same invented dialect the bridge
+did:
+
+1. **It only understood the flat envelope**, so every message from the real
+   tunnel would have been rejected as malformed. An integration that passes its
+   own tests and works with nothing.
+2. **It required a transaction hash before it would act.** x402 verifies, runs
+   the resource handler, and settles *afterwards*, skipping settlement when the
+   handler fails (`x402/server.go`: the HTTP transport calls the cancellation
+   path "after a successful Verify but before/instead of Settle when the
+   resource handler errors"). There is no transaction hash when the robot is
+   asked to move. Demanding one rejects every real message — and inverts the
+   exact lifecycle that gives no-settle-on-failure its meaning.
+
+Both are fixed. The bridge parses either shape through one parser; on arrival
+it requires a verified payment and an `authorizationRef` — a digest of the x402
+authorisation the tunnel verified — rather than a settlement reference that
+cannot exist yet.
+
+The fourth row is a security property rather than a compatibility one. The
+tunnel forwards the client's body *verbatim*, so a caller can put a
+`payment: {verified: true, txHash: ...}` block inside it. The bridge ignores it
+and reads verification only from `transaction_details`, which is what the
+middleware resolved. Measured: a body claiming a verified payment of 999999
+with a forged hash is refused with `PAYMENT_REQUIRED`.
+
+What is **not** claimed here: this has not been run against the Go tunnel
+binary end to end. Go is not installed on the build machine, and a true
+end-to-end run additionally needs a funded Base Sepolia key, which is the
+operator's to hold and not something this repository should carry. What is
+verified is that the bridge accepts, and correctly refuses, the exact bytes
+that `handlers.go` constructs — reproduced from that source in
+`sim_bridge/tools/send_action.py --tunnel-format` and in the contract tests.
 
 ## 6. Known model artefacts
 
@@ -204,7 +252,7 @@ result envelopes. All three come from one invocation of
 `sim_bridge.tools.record_demo`, so the video and the log describe the same
 `actionId` rather than being assembled from separate takes.
 
-The recorded run: `act_4ad818a99603`, puck (0.26, 0.17) to goal (0.27, 0.30),
+The recorded run: `act_0ae3538fb65e`, puck (0.26, 0.17) to goal (0.27, 0.30),
 payment verified, `settle=true`, puck delivered to (0.2682, 0.2551) — 47.9 mm
 from the goal, 85.5 mm of displacement, 2 hand contacts peaking at 34.1 N, no
 foreign collision.

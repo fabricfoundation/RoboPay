@@ -12,6 +12,31 @@ transport:
   # bridge rather than a networking problem.
   discovery: explicit-endpoint
 
+  # What the tunnel in this repository actually publishes, taken from
+  # tunnel/internal/handlers/handlers.go rather than assumed. `POST /action`
+  # sits behind the x402 middleware; on a verified payment the handler wraps
+  # the client's body and forwards the resolved payment alongside it.
+  actionWireFormat:
+    payload: the client's request body, verbatim
+    transaction_details:
+      payment_payload: x402 v2 PaymentPayload, present only when verified
+      payment_requirements: x402 v2 PaymentRequirements
+    timestamp: RFC3339
+  # The bridge accepts this wrapper and the flat envelope, through one parser.
+  # Two properties of the real contract that a flat-only bridge gets wrong:
+  #
+  #   * There is no transaction hash on arrival. x402 verifies, runs the
+  #     resource handler, then settles -- and skips settling when the handler
+  #     fails. Demanding a settlement reference up front rejects every message
+  #     the tunnel sends, and inverts the very lifecycle that makes
+  #     no-settle-on-failure meaningful.
+  #   * The body is caller-controlled and the payment is not. A `payment` block
+  #     inside `payload` is ignored; verification is read only from
+  #     `transaction_details`.
+  paymentReference:
+    onArrival: authorizationRef, a digest of the verified x402 authorisation
+    afterSettlement: txHash, when a relay settles before forwarding
+
 mappings:
   push_to_target:
     output: joint_position_targets

@@ -37,6 +37,21 @@ REQUIRED_FIELDS = (
 )
 
 
+#: Keys that identify the wrapper the Fabric tunnel actually puts on the wire.
+#:
+#: The tunnel does not publish the action envelope directly. `POST /action`
+#: sits behind its x402 middleware, and on a verified payment the handler
+#: publishes `{payload, transaction_details, timestamp}` to
+#: `robot/tunnel/action`, where `payload` is the client's request body verbatim
+#: and `transaction_details` carries the x402 payload and requirements the
+#: middleware resolved. See tunnel/internal/handlers/handlers.go.
+#:
+#: A bridge that only understood the flat envelope would silently ignore every
+#: message the real tunnel sends, which is a integration that passes its own
+#: tests and works with nothing.
+_TUNNEL_WRAPPER_KEYS = ("payload", "transaction_details")
+
+
 class RejectionCode:
     """Stable reason codes. These end up in logs and in the result envelope."""
 
@@ -72,6 +87,75 @@ def canonical_params_hash(params: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
+def unwrap_tunnel_envelope(raw: dict[str, Any]) -> dict[str, Any]:
+    """Flatten the Fabric tunnel's wire format, if that is what arrived.
+
+    Messages published straight to the topic -- by the test client, or by any
+    relay that already speaks the flat envelope -- are returned untouched, so
+    both shapes work and there is one parser rather than two.
+
+    The payment block is *always* rebuilt from `transaction_details` and never
+    taken from the client's body, even when the body carries one. That is the
+    point of the wrapper: the body is attacker-controlled, while
+    `transaction_details` is what the tunnel's x402 middleware resolved before
+    it agreed to forward anything. Trusting a `payment.verified` that came from
+    the request body would let anyone who can reach the topic assert their own
+    payment.
+
+    Note that `verified` here means verified, not settled. The tunnel publishes
+    after the facilitator verifies the payment and before it is settled, so
+    there is no transaction hash yet -- which is exactly why settlement is the
+    robot's decision to report, and why `settle=false` on failure is worth
+    anything at all.
+    """
+    if not all(key in raw for key in _TUNNEL_WRAPPER_KEYS):
+        return raw
+
+    inner = raw.get("payload")
+    if not isinstance(inner, dict):
+        raise ActionRejected(
+            RejectionCode.MALFORMED,
+            "tunnel envelope carries a non-object payload",
+        )
+
+    details = raw.get("transaction_details")
+    details = details if isinstance(details, dict) else {}
+    payload = details.get("payment_payload")
+    payload = payload if isinstance(payload, dict) else None
+
+    # x402 v2 keeps the resolved requirements on the payload as `accepted`;
+    # the tunnel reports them separately as well. Either is authoritative.
+    accepted = details.get("payment_requirements")
+    if not isinstance(accepted, dict) and payload is not None:
+        accepted = payload.get("accepted")
+    accepted = accepted if isinstance(accepted, dict) else {}
+
+    flat = dict(inner)
+    payment: dict[str, Any] = {
+        "provider": "x402",
+        "amount": str(accepted.get("amount", "")),
+        "asset": str(accepted.get("asset", "")),
+        "network": str(accepted.get("network", "")),
+        "verified": payload is not None,
+    }
+    if payload is not None:
+        # Digest the whole authorisation rather than reaching for a
+        # scheme-specific field: x402 keeps `payload` as an opaque
+        # scheme-defined map, so a nonce path that works for exact-EVM would
+        # break on the next scheme. A digest is stable, scheme-agnostic, and
+        # enough to tie this action to one payment.
+        payment["authorizationRef"] = _digest(payload)
+    if details.get("tx_hash"):
+        payment["txHash"] = str(details["tx_hash"])
+    flat["payment"] = payment
+    return flat
+
+
+def _digest(value: Any) -> str:
+    blob = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+    return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
 @dataclass(frozen=True)
 class Payment:
     """The payment attached to an action, as presented by the tunnel."""
@@ -82,8 +166,15 @@ class Payment:
     network: str
     #: Set once the tunnel has verified the x402 authorisation.
     verified: bool = False
-    #: Settlement reference, present for a verified payment.
+    #: Settlement reference. Absent on arrival under the real x402 lifecycle:
+    #: the resource server verifies, runs its handler, and only settles after
+    #: the handler succeeds, so a transaction hash does not exist yet at the
+    #: moment the robot is asked to move. Populated when a relay settles first.
     tx_hash: str | None = None
+    #: Digest of the exact x402 authorisation the tunnel verified. This is the
+    #: reference that *is* available on arrival, and it is what lets the robot
+    #: tie the action it performed to a specific payment after the fact.
+    authorization_ref: str | None = None
 
     @classmethod
     def from_json(cls, raw: Any) -> "Payment":
@@ -99,6 +190,11 @@ class Payment:
                 network=str(raw["network"]),
                 verified=bool(raw.get("verified", False)),
                 tx_hash=(str(raw["txHash"]) if raw.get("txHash") else None),
+                authorization_ref=(
+                    str(raw["authorizationRef"])
+                    if raw.get("authorizationRef")
+                    else None
+                ),
             )
         except KeyError as exc:
             raise ActionRejected(
@@ -116,6 +212,8 @@ class Payment:
         }
         if self.tx_hash:
             out["txHash"] = self.tx_hash
+        if self.authorization_ref:
+            out["authorizationRef"] = self.authorization_ref
         return out
 
 
@@ -151,6 +249,7 @@ class ActionEnvelope:
 
     @classmethod
     def from_json(cls, raw: dict[str, Any]) -> "ActionEnvelope":
+        raw = unwrap_tunnel_envelope(raw)
         missing = [f for f in REQUIRED_FIELDS if not raw.get(f)]
         if missing:
             raise ActionRejected(
@@ -225,10 +324,10 @@ class ActionEnvelope:
                 RejectionCode.PAYMENT_MISSING,
                 "payment has not been verified by the tunnel",
             )
-        if not self.payment.tx_hash:
+        if not (self.payment.tx_hash or self.payment.authorization_ref):
             raise ActionRejected(
                 RejectionCode.PAYMENT_INVALID,
-                "verified payment carries no settlement reference",
+                "verified payment carries no reference to the authorisation",
             )
 
 
