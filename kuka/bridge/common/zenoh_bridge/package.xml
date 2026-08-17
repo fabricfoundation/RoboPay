@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>zenoh_bridge</name>
+  <version>0.1.0</version>
+  <description>Common Zenoh and Fabric action event utilities shared across all robot adapters</description>
+  <maintainer email="todo@example.com">Maintainer</maintainer>
+  <license>Apache-2.0</license>
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

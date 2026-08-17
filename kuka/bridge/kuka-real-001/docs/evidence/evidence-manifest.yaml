@@ -1,0 +1,27 @@
+claimBoundary:
+  scope: simulator-only Tier 1
+  claimed: >-
+    The shared Tunnel validates x402 evidence before publishing an ActionEvent;
+    the MuJoCo bridge executes the skill and returns a correlated terminal
+    result; settlement is deferred until that result is a matching success.
+  notClaimed: >-
+    This profile does not claim physical hardware execution. A visual
+    recording proves only the exact live run it identifies and does not
+    replace the required Tunnel, simulator, payment-gate, and Sim-to-Sim
+    test suites.
+
+evidence:
+  captured: True
+  status: captured
+  commit_sha: dfe5abe73e78c82094c39bbb1186078fe2087f83
+  action_id: pending-push
+  tx_hash: "0xc9248109694c50d4a7037018ea64a224cb1a2e2e1dfdfbbb48a73bd03b08240b"
+  tx_network: base-sepolia
+  payer: '0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a'
+  payee: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+  basescan: "https://sepolia.basescan.org/tx/0xc9248109694c50d4a7037018ea64a224cb1a2e2e1dfdfbbb48a73bd03b08240b"
+  recording: robopay_evidence.gif
+  recording_sha256: "28bf06a0419042bb74ed1f594e5a5f809e054dcd7f911b155c1d379687905835"
+  recording_bytes: 463809
+  sequence: ["unpaid 402 -> no actuation (0 executions)", "paid 202 + action_id -> Tunnel-verified x402 payment", "real MuJoCo physics motion (reach/grasp/lift)", "correlated terminal result (action_id matched)", "success-only settlement via Tunnel facilitator /settle", "matching BaseScan transaction linked"]
+  notes: "Real x402 gate + real MuJoCo physics for kuka-real-001 (sort_and_route). Real USDC settlement on base-sepolia proven by verify_settlement.py (criterion #7); payment-boundary tests in CI prove fail-closed 402, no-settle-on-failure, and settle-on-success. Visual recording is a 2D animation of the real MuJoCo physics state (arm skeleton + cube position over time) rendered via matplotlib from the actual sim xpos; 3D offscreen rendering is unavailable on the build host (mujoco egl/osmesa are Linux-only)."

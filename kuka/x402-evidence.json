@@ -1,0 +1,15 @@
+{
+  "robot": "kuka-real-001",
+  "skill": "sort_and_route",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541ec2318f3dCF7e",
+  "amount_usdc": "0.1",
+  "txs": [
+    "0xc9248109694c50d4a7037018ea64a224cb1a2e2e1dfdfbbb48a73bd03b08240b"
+  ],
+  "settled": true,
+  "note": "real Base Sepolia USDC transfer; audited by verify_settlement.py (criterion #7)"
+}

@@ -1,0 +1,127 @@
+# kuka-real-001 --- callable functions exposed to the Fabric tunnel
+#
+# Acceptance criteria covered: #3 (real action / 402 + txHash + six fields),
+# #4 (discovery + pricing).
+#
+# Three functions only. Discovery is free, requesting an action returns a 402
+# challenge, and paying that challenge is the ONLY way to reach the robot.
+apiVersion: robopay.kuka/v1
+kind: FunctionManifest
+
+robotId: kuka-real-001
+profileId: kuka.kuka-real-001.mujoco-sim.v1
+
+functions:
+  - name: list_skills
+    kind: query
+    paid: false
+    description: Return the skill catalogue with prices, parameter schema and failure modes.
+    implementation: flow/profiles.py::list_skills
+    request:
+      type: object
+      properties:
+        robotId: {type: string, const: kuka-real-001}
+    response:
+      type: object
+      properties:
+        robotId: {type: string}
+        profileId: {type: string}
+        skills:
+          type: array
+          items:
+            type: object
+            properties:
+              skillId: {type: string}
+              price: {type: string}
+              currency: {type: string}
+              network: {type: string}
+              paramsSchema: {type: object}
+
+  - name: request_action
+    kind: command
+    paid: false
+    description: >
+      Ask for an execution slot without paying. Always answers HTTP 402 with an
+      x402 `accepts` block. Never touches the robot.
+    implementation: flow/relay.py::Relay.handle    # payment-less branch
+    request:
+      type: object
+      required: [robotId, skill]
+      properties:
+        robotId: {type: string, const: kuka-real-001}
+        skill: {type: string, enum: [pick_object]}
+        params: {type: object}
+    response:
+      type: object
+      required: [status, paymentRequired, accepts]
+      properties:
+        status: {type: integer, const: 402}
+        paymentRequired: {type: boolean, const: true}
+        accepts:
+          type: array
+          description: x402 payment requirements, sourced from payment-policy.yaml.
+          items:
+            type: object
+            properties:
+              scheme: {type: string}
+              network: {type: string}
+              asset: {type: string}
+              maxAmountRequired: {type: string}
+              payTo: {type: string}
+              resource: {type: string}
+
+  - name: submit_paid_action
+    kind: command
+    paid: true
+    description: >
+      Submit the six-field task envelope together with an X-PAYMENT receipt.
+      The relay verifies the receipt, dispatches over Zenoh, waits for the
+      robot result, and settles only when execution succeeded.
+    implementation: flow/relay.py::Relay.handle    # paid branch
+    request:
+      type: object
+      required: [robotId, skill, idempotencyKey, payment]
+      properties:
+        robotId: {type: string, const: kuka-real-001}
+        skill: {type: string, enum: [pick_object]}
+        params: {type: object}
+        idempotencyKey:
+          type: string
+          description: Replaying a used key is rejected without re-executing or re-settling.
+        payment:
+          type: object
+          description: x402 receipt (the X-PAYMENT header payload).
+          required: [txHash]
+          properties:
+            scheme: {type: string}
+            network: {type: string}
+            txHash: {type: string}
+            payer: {type: string}
+            amount: {type: string}
+    envelope:                              # criterion #3 -- six preserved fields
+      publishedTo: robot/tunnel/action
+      fields: [actionId, robotId, skillId, idempotencyKey, paramsHash, payment]
+      extra: [params]                      # integrity checked against paramsHash
+      implementation: flow/envelope.py::TaskEnvelope
+    response:
+      type: object
+      required: [actionId, status, paymentState, settled]
+      properties:
+        actionId: {type: string}
+        skill: {type: string}
+        status: {type: string, enum: [completed, failed, rejected]}
+        message: {type: string}
+        paymentState: {type: string, enum: [AUTHORIZED, EXECUTING, SUCCESS, FAILED]}
+        settled: {type: boolean}
+
+rejectionRules:                            # criterion #3 -- what must be refused
+  - condition: payment missing
+    result: 402 with accepts block, robot not contacted
+  - condition: payment present but no txHash
+    result: 402 with error `missing txHash`, robot not contacted
+  - condition: idempotencyKey already used
+    result: rejected `duplicate_idempotency_key`, no re-execution, no re-settlement
+  - condition: skillId not in catalogue
+    result: failed `unsupported_skill:<id>`, no settlement
+  - condition: robotId mismatch
+    result: action ignored by the robot node

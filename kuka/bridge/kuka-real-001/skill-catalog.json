@@ -1,0 +1,25 @@
+[
+  {
+    "skill_id": "sort_and_route",
+    "description": "Pick an object and route/sort it to a bin by class.",
+    "params": {
+      "object": {
+        "type": "string",
+        "values": [
+          "cube",
+          "unreachable",
+          "collision",
+          "timeout",
+          "far_cube",
+          "blocked_cube",
+          "slow_cube"
+        ]
+      },
+      "maxSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000
+      }
+    }
+  }
+]

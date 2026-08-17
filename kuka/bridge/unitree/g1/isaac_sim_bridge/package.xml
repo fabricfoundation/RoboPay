@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>isaac_sim_bridge_g1</name>
+  <version>0.1.0</version>
+  <description>Fabric Zenoh action adapter for Unitree G1 in OM1-sim / Isaac Sim</description>
+  <maintainer email="todo@example.com">Maintainer</maintainer>
+  <license>Apache-2.0</license>
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <exec_depend>zenoh_bridge</exec_depend>
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
