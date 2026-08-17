@@ -1,0 +1,30 @@
+# unitree-g1 execution mapping
+schemaVersion: execution-mapping.v1
+
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+
+mappings:
+  balance_recover:
+    output: balance
+    controller: torque-limited-balance-pd
+    actuators:
+      torso_x: 0
+      torso_pitch: balance-pd       # torque-limited PD holds the torso upright
+      left_hip: ik
+      left_knee: ik
+      right_hip: ik
+      right_knee: ik
+    metrics:
+      - type: posture
+        description: Final torso pitch after the disturbance (rad)
+      - type: fall_status
+        description: Whether the torso pitch passed the fall threshold
+
+  stop:
+    output: hold
+    actuators:
+      torso_x: 0
+      torso_pitch: balance-pd
+    metrics: []

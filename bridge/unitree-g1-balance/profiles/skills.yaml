@@ -1,0 +1,58 @@
+# unitree-g1 skills
+schemaVersion: robot-skills.v1
+
+profileId: laok.unitree-g1-arm-001.balance-recover.v1
+
+skills:
+  - skillId: balance_recover
+    displayName: Recover balance after a push
+    description: >
+      Hold a standing planar biped (unitree-g1) upright while a disturbance pushes
+      the torso, then let a torque-limited balance PD controller catch it. The
+      torso is a real inverted pendulum about the hip line; a gentle push stays
+      within the actuator's torque authority and the robot recovers (success,
+      payment). A hard push exceeds that authority, the torso tips past the fall
+      threshold and the robot falls -- a genuine physics failure, never settled.
+    pricing:
+      amount: "0.10"
+      amountAtomic: 100000
+      currency: USDC
+      network: eip155:84532
+      settlement: on-success-only
+    paramsSchema:
+      type: object
+      properties:
+        push:
+          type: number
+          description: >
+            Disturbance angular impulse (rad/s) applied to the torso at 30% of the
+            budget. 0 keeps the robot at rest; the default is a recoverable push.
+            A value above the actuator's authority makes the robot fall.
+          minimum: 0.0
+          maximum: 12.0
+          default: 1.3
+      additionalProperties: false
+    failureModes:
+      - reason: fall
+        description: >
+          The disturbance exceeded the balance actuator's torque authority, so the
+          torso pitch passed the fall threshold. This is a real physics outcome
+          (the inverted pendulum ran away under gravity), never a scripted flag.
+
+  - skillId: stop
+    displayName: Safe stop
+    description: >
+      Hold the current pose; no forward motion. Always succeeds when paid, and
+      proves the bounded / interruptible policy (the run terminates cleanly and
+      never settles a failed action).
+    pricing:
+      amount: "0.10"
+      amountAtomic: 100000
+      currency: USDC
+      network: eip155:84532
+      settlement: on-success-only
+    paramsSchema:
+      type: object
+      properties: {}
+      additionalProperties: false
+    failureModes: []

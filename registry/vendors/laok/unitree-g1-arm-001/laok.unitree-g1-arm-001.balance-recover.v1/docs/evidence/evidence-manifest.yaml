@@ -1,0 +1,35 @@
+files:
+- path: x402-evidence.json
+  sha256: 1ebf6a64cf75b502dcbf18f58f63350cf41766b2fd2d21744e1b20164bc5947a
+  description: {'x402-evidence.json':'x402 payment evidence','settle.png':'Settlement proof','demo.mp4':'Demo video','terminal/output.txt':'Terminal output','metrics.json':'Test+onchain metrics','sim_to_sim_validation.json':'Sim-to-sim validation'}[f]
+  size: 1801
+- path: settle.png
+  sha256: 44995ec45b11ebbe983c6e8f72cce1211b2b723baecd8e190ffdbf91cd0d8ccc
+  description: {'x402-evidence.json':'x402 payment evidence','settle.png':'Settlement proof','demo.mp4':'Demo video','terminal/output.txt':'Terminal output','metrics.json':'Test+onchain metrics','sim_to_sim_validation.json':'Sim-to-sim validation'}[f]
+  size: 76996
+- path: demo.mp4
+  sha256: df31a39c7c811bee46efa53fbe29c1c70930f703d58ec07a195fb671c69d37de
+  description: {'x402-evidence.json':'x402 payment evidence','settle.png':'Settlement proof','demo.mp4':'Demo video','terminal/output.txt':'Terminal output','metrics.json':'Test+onchain metrics','sim_to_sim_validation.json':'Sim-to-sim validation'}[f]
+  size: 85075
+- path: terminal/output.txt
+  sha256: 84403f5afd36a360c57f6342ea08a1441593c7466f45aade3ca00be9e602b993
+  description: {'x402-evidence.json':'x402 payment evidence','settle.png':'Settlement proof','demo.mp4':'Demo video','terminal/output.txt':'Terminal output','metrics.json':'Test+onchain metrics','sim_to_sim_validation.json':'Sim-to-sim validation'}[f]
+  size: 9340
+- path: metrics.json
+  sha256: 4ca7cc257a41734ff70211c3d6c51027aa52233b616c5bd11a0ebe5547f5e7c4
+  description: {'x402-evidence.json':'x402 payment evidence','settle.png':'Settlement proof','demo.mp4':'Demo video','terminal/output.txt':'Terminal output','metrics.json':'Test+onchain metrics','sim_to_sim_validation.json':'Sim-to-sim validation'}[f]
+  size: 4292
+- path: sim_to_sim_validation.json
+  sha256: 266fac754e2f9e82d9f21eec103ec94342e165e5efb8bd418a85b8c350a4555e
+  description: {'x402-evidence.json':'x402 payment evidence','settle.png':'Settlement proof','demo.mp4':'Demo video','terminal/output.txt':'Terminal output','metrics.json':'Test+onchain metrics','sim_to_sim_validation.json':'Sim-to-sim validation'}[f]
+  size: 2614
+metrics:
+  totalTransactions: 5
+  successfulSettlements: 5
+  failedSettlements: 0
+  totalAmountUSDC: '0.50'
+  engine: mujoco
+  realOnChain: true
+  verifiedTx: '0xcf0222171e83fd6c0d3981cf202de984c1dd0cb10f06d81eef76da779a5fb6d2'
+  verifiedBlock: 45115386
+generated: '2026-08-15T04:06:25Z'

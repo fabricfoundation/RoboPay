@@ -1,0 +1,317 @@
+====================================================================
+ RoboPay Tier 1 demo -- unitree-g1 / planar biped
+ engine=mujoco  transport=loopback
+====================================================================
+
+[ 1] list_skills (free discovery)
+     balance_recover: 0.10 USDC on eip155:84532 (on-success-only)
+     stop: 0.10 USDC on eip155:84532 (on-success-only)
+
+--------------------------------------------------------------------
+ scene: balance_recover {}
+--------------------------------------------------------------------
+
+[ 2] request_action skill=balance_recover params={} (no payment)
+{
+  "status": 402,
+  "paymentRequired": true,
+  "x402Version": "1",
+  "header": "X-PAYMENT",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:84532",
+      "chainId": 84532,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "assetSymbol": "USDC",
+      "maxAmountRequired": 100000,
+      "amount": "0.10",
+      "currency": "USDC",
+      "payTo": "0x0000000000000000000000000000000000000000",
+      "resource": "robopay://unitree-g1-arm-001/{skill}",
+      "description": "Pay-to-actuate unitree-g1 balance-recover skill",
+      "maxTimeoutSeconds": 300,
+      "settlement": "on-success-only"
+    }
+  ]
+}
+
+[ 3] robot contacted so far: 0 executions  <- must be 0
+
+[ 4] pay 0.10 USDC on eip155:84532
+     note: this is a challenge-matched protocol receipt for the demo.
+           Real on-chain settlement is in x402-evidence.json.
+     txHash = 0x0000000000000000... (local, not on-chain)
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+
+[ 6] publish -> robot/tunnel/action
+
+[ 7] execute -> physics (real MuJoCo/PyBullet gait)
+
+[ 8] result  <- robot/tunnel/result
+{
+  "actionId": "1df3df45-a749-49b6-8b3b-e50c41375764",
+  "skill": "balance_recover",
+  "status": "completed",
+  "message": "balance_recover: pitch +0.0302 rad in 250 steps (recovered)",
+  "metrics": {
+    "robotId": "unitree-g1",
+    "skillId": "balance_recover",
+    "engine": "mujoco",
+    "scene": "balance_recover",
+    "stage": "balance_recover",
+    "positionStart": [
+      0.0,
+      0.0,
+      0.925
+    ],
+    "positionEnd": [
+      -0.0062,
+      0.0,
+      0.925
+    ],
+    "positionDelta": [
+      -0.0062,
+      0.0,
+      0.0
+    ],
+    "distanceTraveled": 0.0062,
+    "stepsUsed": 250,
+    "stepBudget": 250,
+    "simTime": 1.0,
+    "wallTime": 0.0244,
+    "note": "recovered upright (final pitch +0.030 rad)",
+    "goalDistance": 1.3,
+    "reached": true,
+    "obstacleContact": false,
+    "pitchRad": 0.0302,
+    "maxPitchRad": 0.2158,
+    "fell": false,
+    "pushImpulse": 1.3,
+    "recovered": true
+  },
+  "paymentState": "SUCCESS",
+  "settled": true
+}
+
+[ 9] payment SUCCESS -> SETTLED
+
+[10] replay the same idempotencyKey
+{
+  "status": "rejected",
+  "reason": "duplicate_idempotency_key",
+  "actionId": "1df3df45-a749-49b6-8b3b-e50c41375764"
+}
+     executions total: 1 <- must be 1
+ status=completed  msg=balance_recover: pitch +0.0302 rad in 250 steps (recovered)  settled=True
+ pitch=0.030 rad  maxPitch=0.216 rad  fell=False  recovered=True  pushImpulse=1.3  steps=250/250
+
+--------------------------------------------------------------------
+ scene: stop {}
+--------------------------------------------------------------------
+
+[ 2] request_action skill=stop params={} (no payment)
+{
+  "status": 402,
+  "paymentRequired": true,
+  "x402Version": "1",
+  "header": "X-PAYMENT",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:84532",
+      "chainId": 84532,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "assetSymbol": "USDC",
+      "maxAmountRequired": 100000,
+      "amount": "0.10",
+      "currency": "USDC",
+      "payTo": "0x0000000000000000000000000000000000000000",
+      "resource": "robopay://unitree-g1-arm-001/{skill}",
+      "description": "Pay-to-actuate unitree-g1 balance-recover skill",
+      "maxTimeoutSeconds": 300,
+      "settlement": "on-success-only"
+    }
+  ]
+}
+
+[ 3] robot contacted so far: 0 executions  <- must be 0
+
+[ 4] pay 0.10 USDC on eip155:84532
+     note: this is a challenge-matched protocol receipt for the demo.
+           Real on-chain settlement is in x402-evidence.json.
+     txHash = 0x0000000000000000... (local, not on-chain)
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+
+[ 6] publish -> robot/tunnel/action
+
+[ 7] execute -> physics (real MuJoCo/PyBullet gait)
+
+[ 8] result  <- robot/tunnel/result
+{
+  "actionId": "724e918b-42b4-4c63-a305-6b65ea9a6e63",
+  "skill": "stop",
+  "status": "completed",
+  "message": "stop: pitch +0.0010 rad in 50 steps (recovered)",
+  "metrics": {
+    "robotId": "unitree-g1",
+    "skillId": "stop",
+    "engine": "mujoco",
+    "scene": "stop",
+    "stage": "stop",
+    "positionStart": [
+      0.0,
+      0.0,
+      0.925
+    ],
+    "positionEnd": [
+      -0.0001,
+      0.0,
+      0.925
+    ],
+    "positionDelta": [
+      -0.0001,
+      0.0,
+      0.0
+    ],
+    "distanceTraveled": 0.0001,
+    "stepsUsed": 50,
+    "stepBudget": 50,
+    "simTime": 0.2,
+    "wallTime": 0.0047,
+    "note": "hold pose; upright within tolerance",
+    "goalDistance": 0.0,
+    "reached": true,
+    "obstacleContact": false,
+    "pitchRad": 0.001,
+    "maxPitchRad": 0.0012,
+    "fell": false,
+    "pushImpulse": 0.0,
+    "recovered": true
+  },
+  "paymentState": "SUCCESS",
+  "settled": true
+}
+
+[ 9] payment SUCCESS -> SETTLED
+
+[10] replay the same idempotencyKey
+{
+  "status": "rejected",
+  "reason": "duplicate_idempotency_key",
+  "actionId": "724e918b-42b4-4c63-a305-6b65ea9a6e63"
+}
+     executions total: 1 <- must be 1
+ status=completed  msg=stop: pitch +0.0010 rad in 50 steps (recovered)  settled=True
+ steps=50/50
+
+--------------------------------------------------------------------
+ scene: balance_recover {'push': 8.0}
+--------------------------------------------------------------------
+
+[ 2] request_action skill=balance_recover params={'push': 8.0} (no payment)
+{
+  "status": 402,
+  "paymentRequired": true,
+  "x402Version": "1",
+  "header": "X-PAYMENT",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:84532",
+      "chainId": 84532,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "assetSymbol": "USDC",
+      "maxAmountRequired": 100000,
+      "amount": "0.10",
+      "currency": "USDC",
+      "payTo": "0x0000000000000000000000000000000000000000",
+      "resource": "robopay://unitree-g1-arm-001/{skill}",
+      "description": "Pay-to-actuate unitree-g1 balance-recover skill",
+      "maxTimeoutSeconds": 300,
+      "settlement": "on-success-only"
+    }
+  ]
+}
+
+[ 3] robot contacted so far: 0 executions  <- must be 0
+
+[ 4] pay 0.10 USDC on eip155:84532
+     note: this is a challenge-matched protocol receipt for the demo.
+           Real on-chain settlement is in x402-evidence.json.
+     txHash = 0x0000000000000000... (local, not on-chain)
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+
+[ 6] publish -> robot/tunnel/action
+
+[ 7] execute -> physics (real MuJoCo/PyBullet gait)
+
+[ 8] result  <- robot/tunnel/result
+{
+  "actionId": "ca9ffcdb-6d90-4950-8bf9-5297436b3d2a",
+  "skill": "balance_recover",
+  "status": "failed",
+  "message": "balance_recover: pitch +0.5186 rad in 92 steps (fell)",
+  "metrics": {
+    "robotId": "unitree-g1",
+    "skillId": "balance_recover",
+    "engine": "mujoco",
+    "scene": "balance_recover",
+    "stage": "balance_recover",
+    "positionStart": [
+      0.0,
+      0.0,
+      0.925
+    ],
+    "positionEnd": [
+      -0.0129,
+      0.0,
+      0.925
+    ],
+    "positionDelta": [
+      -0.0129,
+      0.0,
+      0.0
+    ],
+    "distanceTraveled": 0.0129,
+    "stepsUsed": 92,
+    "stepBudget": 250,
+    "simTime": 0.368,
+    "wallTime": 0.0089,
+    "note": "fell: torso pitch reached 0.519 rad (> 0.5 rad) -- genuine physics failure",
+    "goalDistance": 8.0,
+    "reached": false,
+    "obstacleContact": false,
+    "pitchRad": 0.5186,
+    "maxPitchRad": 0.5186,
+    "fell": true,
+    "pushImpulse": 8.0,
+    "recovered": false
+  },
+  "paymentState": "FAILED",
+  "settled": false
+}
+
+[ 9] payment FAILED -> NOT SETTLED
+
+[10] replay the same idempotencyKey
+{
+  "status": "rejected",
+  "reason": "duplicate_idempotency_key",
+  "actionId": "ca9ffcdb-6d90-4950-8bf9-5297436b3d2a"
+}
+     executions total: 1 <- must be 1
+ status=failed  msg=balance_recover: pitch +0.5186 rad in 92 steps (fell)  settled=False
+ pitch=0.519 rad  maxPitch=0.519 rad  fell=True  recovered=False  pushImpulse=8.0  steps=92/250
+
+==============================================================================
+ skill             status      settled   dist(m)   steps
+------------------------------------------------------------------------------
+ balance_recover   completed      True    0.0062     250
+ stop              completed      True    0.0001      50
+ balance_recover {'push': 8.0}failed        False    0.0129      92
+==============================================================================
+ PASS: every success settles, the genuine fall does not.

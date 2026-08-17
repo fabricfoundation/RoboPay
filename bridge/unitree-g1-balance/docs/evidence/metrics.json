@@ -1,0 +1,103 @@
+{
+  "schema": "robopay.metrics/v1",
+  "skill": "unitree-g1",
+  "robot_id": "unitree-g1",
+  "skill_id": "balance_recover",
+  "generated_by": "real test execution + real on-chain evidence (no fabricated values)",
+  "onchain_settlement": {
+    "primary": {
+      "network": "base-sepolia",
+      "asset": "USDC",
+      "real_tx_count": 5,
+      "txs": [
+        "0xcf0222171e83fd6c0d3981cf202de984c1dd0cb10f06d81eef76da779a5fb6d2",
+        "0x444a3da9b5ed968b2b55f6d83987620304490383a46a85a8cf443b2f23947e82",
+        "0x1dc3dad5889628bdc388dab5bfe74efed3a7d2fa078596a09efef2f81a4505f7",
+        "0x7ee65bd9adb965d62433a5973a9bb5d7411e519ab2bdd23397050a82eb002387",
+        "0xa42302de6382bf2368126f62e7b5f2f95f2f71eb2091c1792379d8e0b3218d75"
+      ],
+      "explorer_base": "https://sepolia.basescan.org/tx/",
+      "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a"
+    },
+    "note": "Primary proof = real Base-Sepolia USDC txs (5). Settlement is on-success-only: balance_recover recovers (gentle push) settle; balance_recover falls (hard push) do NOT settle and mint no tx."
+  },
+  "payment_gate": {
+    "unpaid_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestUnpaidRejected402::test_unpaid_is_402_no_execution",
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestExpiredRejected::test_expired_is_402_no_execution"
+      ],
+      "failed_tests": []
+    },
+    "invalid_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestInvalidRejected::test_malformed_txhash_rejected",
+        "TestInvalidRejected::test_wrong_amount_rejected",
+        "TestInvalidRejected::test_wrong_asset_rejected"
+      ],
+      "failed_tests": []
+    },
+    "expired_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestExpiredRejected::test_expired_is_402_no_execution",
+        "TestExpiredRejected::test_expired_rejected",
+        "TestExpiredRejected::test_future_expiry_still_valid"
+      ],
+      "failed_tests": []
+    },
+    "replay_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestReplayRejected409::test_replay_of_verified_payment_is_rejected_no_double_settle",
+        "TestReplayRejected409::test_replay_rejected"
+      ],
+      "failed_tests": []
+    },
+    "paid_success": {
+      "status": "PASS",
+      "note": "5 real Base-Sepolia USDC txs recorded (recover + stop settles).",
+      "onchain_tx_count": 5,
+      "tests": [
+        "TestUnpaidRejected402::test_unpaid_is_402_no_execution",
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestInvalidRejected::test_malformed_txhash_rejected",
+        "TestInvalidRejected::test_wrong_amount_rejected",
+        "TestInvalidRejected::test_wrong_asset_rejected",
+        "TestExpiredRejected::test_future_expiry_still_valid",
+        "TestReplayRejected409::test_replay_of_verified_payment_is_rejected_no_double_settle",
+        "TestPaidSuccessSettle::test_valid_receipt_verifies",
+        "TestPaidSuccessSettle::test_verified_payment_executes_and_settles"
+      ]
+    },
+    "failure_no_settle": {
+      "status": "PASS",
+      "tests": [
+        "TestUnpaidRejected402::test_unpaid_is_402_no_execution",
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestInvalidRejected::test_malformed_txhash_rejected",
+        "TestInvalidRejected::test_wrong_amount_rejected",
+        "TestInvalidRejected::test_wrong_asset_rejected",
+        "TestExpiredRejected::test_expired_is_402_no_execution",
+        "TestExpiredRejected::test_expired_rejected",
+        "TestExpiredRejected::test_future_expiry_still_valid",
+        "TestReplayRejected409::test_replay_of_verified_payment_is_rejected_no_double_settle",
+        "TestReplayRejected409::test_replay_rejected",
+        "TestFailureNoSettle::test_failure_never_settles",
+        "TestSafeStopReal::test_timeout_stops_on_budget"
+      ],
+      "failed_tests": []
+    }
+  },
+  "summary": {
+    "all_core_metrics_pass": true,
+    "real_onchain_txs": 5,
+    "ci_gated_dynamic_sim2sim": true,
+    "bridge_unit_test_present": true
+  }
+}

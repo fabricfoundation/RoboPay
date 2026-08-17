@@ -1,0 +1,67 @@
+name: unitree-g1 balance-recover Tier 1 bridge
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1-balance/requirements.txt
+      - run: python -m flake8 bridge/unitree-g1-balance --max-line-length=100
+      - run: python -m mypy bridge/unitree-g1-balance --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1-balance/requirements.txt
+      - run: pytest -q bridge/unitree-g1-balance/tests/
+
+  tunnel-integration:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1-balance/requirements.txt
+      - run: pytest -q bridge/unitree-g1-balance/tests/test_x402.py
+
+  sim2sim:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1-balance/requirements.txt
+      - run: pytest -q bridge/unitree-g1-balance/tests/test_sim2sim.py
+
+  evidence:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree-g1-balance/requirements.txt
+      - run: pip install pillow                 # render_evidence.py needs PIL
+      - run: python -m flow.demo --all
+        working-directory: bridge/unitree-g1-balance
+      - run: python docs/evidence/render_evidence.py
+        working-directory: bridge/unitree-g1-balance
+      - name: independently verify the Base Sepolia settlement receipt
+        run: python verify_settlement.py
+        env:
+          X402_EVIDENCE: bridge/unitree-g1-balance/docs/evidence/x402-evidence.json

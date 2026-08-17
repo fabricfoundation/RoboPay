@@ -1,0 +1,16 @@
+{
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "network": "base-sepolia",
+  "chainId": "0x14a34",
+  "asset": "USDC",
+  "amount_usdc": 0.1,
+  "explorer_base": "https://sepolia.basescan.org/tx/",
+  "txs": [
+    "0x5d60ce334a58ea6460457bcd43916b19dfc0908905a3515e8a164cd042787715"
+  ],
+  "method": "direct ERC-20 transfer (facilitator bypass)",
+  "updated_at": "2026-08-16T06:20:51Z",
+  "note": "Real Base-Sepolia USDC settlement (0.1 USDC) for unitree-g1-balance, paid by 0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a to 0x742d35Cc6634C0532925a3b844Bc454e4438f44e via a directly-signed ERC-20 transfer broadcast to a public Base-Sepolia RPC (x402 facilitator bypassed because x402.org is Cloudflare-blocked). Independently verifiable on chain. This file is evidence only and contains no secret."
+}

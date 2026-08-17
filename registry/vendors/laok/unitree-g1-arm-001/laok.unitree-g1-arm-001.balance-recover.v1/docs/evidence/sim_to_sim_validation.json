@@ -1,0 +1,51 @@
+{
+  "schema": "robopay.sim_to_sim_validation/v1",
+  "skill": "unitree-g1",
+  "robot_id": "unitree-g1",
+  "skill_id": "balance_recover",
+  "engines": {
+    "engine_a": "mujoco",
+    "engine_b": "pybullet"
+  },
+  "method": "One skill definition executed on two independent physics backends; the recover/fall verdict and the pitch metrics must agree. Both backends share the same torque-limited balance-PD law (KP_BAL/KV_BAL/MAX_TORQUE_BAL from g1_spec.py) and the same inverted-pendulum torso model, so the verdict is engine-independent.",
+  "environment": {
+    "python": "3.13.14",
+    "mujoco": "3.11.0",
+    "pybullet": "stub-only on Windows (real wheel not installable on Windows; dynamic layer CI-gated on Linux)",
+    "host": "windows (dynamic cross-engine layer CI-gated)"
+  },
+  "baseline_runs": {
+    "engine": "mujoco",
+    "note": "Measured locally; these are the verdicts the PyBullet CI run must agree with.",
+    "cases": [
+      {"skill": "balance_recover", "params": {"push": 1.3}, "verdict": "recovered", "pitchRad_end": 0.030, "maxPitchRad": 0.216, "fell": false, "settled": true},
+      {"skill": "balance_recover", "params": {"push": 8.0}, "verdict": "fell", "pitchRad_end": 0.519, "maxPitchRad": 0.519, "fell": true, "settled": false},
+      {"skill": "stop", "params": {}, "verdict": "held", "pitchRad_end": 0.001, "maxPitchRad": 0.001, "fell": false, "settled": true}
+    ]
+  },
+  "layers": {
+    "static_spec_consistency": {
+      "status": "PASS",
+      "note": "Both backends generated from one robot spec (g1_spec.py); URDF/joint-chain/link-offsets verified, including the torso_pitch inverted-pendulum hinge."
+    },
+    "pybullet_backend_contract": {
+      "status": "PASS",
+      "note": "PyBullet call surface + failure semantics verified (real PyBullet absent on Windows -> bullet_stub)."
+    },
+    "dynamic_engine_agreement": {
+      "status": "CI_GATED",
+      "note": "MuJoCo<->PyBullet numeric agreement runs only where real PyBullet is importable (Linux CI). Skipped on this Windows host; not faked. The PyBullet run must reproduce the three baseline_run verdicts above.",
+      "skipped_tests": [
+        "[1] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)",
+        "[2] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)",
+        "[3] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)"
+      ]
+    },
+    "runnable_layers": {
+      "passed": 11,
+      "skipped": 3,
+      "failed": 0
+    }
+  },
+  "overall": "RUNNABLE_LAYERS_PASS__DYNAMIC_CI_GATED"
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "skill_id": "balance_recover",
+    "description": "Hold a standing planar biped (unitree-g1) upright while a disturbance pushes the torso, then let a torque-limited balance PD controller catch it. Gentle push stays within actuator torque authority and the robot recovers (success, payment); a hard push saturates the actuator, the torso tips past the fall threshold and the robot falls (genuine physics failure, never settled).",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {
+      "push": {"type": "number", "minimum": 0.0, "maximum": 12.0, "default": 1.3}
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Hold the current pose; no forward motion. Always succeeds when paid and proves the bounded/interruptible policy.",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {}
+  }
+]
