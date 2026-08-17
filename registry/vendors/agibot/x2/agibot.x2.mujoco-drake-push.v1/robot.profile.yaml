@@ -1,0 +1,81 @@
+schemaVersion: robot-profile.v1
+
+vendor: agibot
+robotModel: x2
+robotType: x2-ultra-humanoid
+profileId: agibot.x2.mujoco-drake-push.v1
+profileVersion: 1.0.0
+
+description: >-
+  AgiBot X2 humanoid executing paid manipulation actions in simulation. A payer
+  names where a puck is and where it should end up; the robot plans a path over
+  it with a constrained IK solver and pushes it to the commanded destination.
+  Both ends of the motion are parameters of the paid request.
+
+scope: simulator-only
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/x2/metrics
+  skillsTopic: robot/x2/skills
+  bridge: sim_bridge
+  # No ROS2. The criteria require Zenoh as the local robot communication layer;
+  # ROS2 is not part of this integration and is not installed. Stating that
+  # plainly is better than listing a topic that nothing publishes.
+  ros2: null
+
+simulation:
+  primaryEngine: mujoco
+  primaryModel: X2_URDF-v1.3.0/x2_ultra.xml
+  validationEngine: drake
+  validationModel: assets/x2_description_obj/x2_ultra_simple_collision.urdf
+  simToSim: docs/validation-report.md
+  # The torso is welded to the world in both engines. The X2 has no balance
+  # controller here, and the IK planner plans against a welded base, so a
+  # floating base would mean planning in one frame and executing in another.
+  fixedBase: true
+  planner: constrained-ik-drake
+  # Drake accepts .obj/.vtk/.gltf for collision geometry while AgiBot ships
+  # .STL throughout, so the validation model is a mesh-converted copy produced
+  # by tools/convert_meshes.py. Same joints, same names, same link frames.
+  validationModelDerivedFrom: X2_URDF-v1.3.0/x2_ultra.urdf
+
+physics:
+  controlRateHz: 100
+  # The AgiBot MuJoCo scene actuates 19 upper-body joints. The URDF Drake
+  # parses carries those same 19 under identical names plus 12 leg joints;
+  # both descriptions weld the torso, so the legs hang unloaded below the
+  # working volume and never enter the task. Every joint that moves is
+  # simulated in both engines.
+  actuatedJoints: 19
+  actuatedJointsValidationModel: 31
+  jointNamesMatchAcrossEngines: true
+  # Not a uniform arm. The five shoulder/elbow/wrist-yaw joints carry 24-36 Nm;
+  # wrist pitch and roll carry 2.2 Nm each and stall against any contact, so
+  # the planner is not allowed to spend them. See policy/ik.py FREE_JOINTS.
+  plannedJoints: 5
+
+knownModelArtefacts:
+  # Recorded because they are properties of the shipped model, not of this
+  # integration, and a reader comparing engines will otherwise trip over them.
+  - description: >-
+      pelvis and hip_pitch collision geometry interpenetrate by 14.5mm in the
+      model's own rest pose, which MuJoCo resolves with very large contact
+      forces. Present on both sides, in every run, and outside the working
+      volume; the task neither depends on nor disturbs it.
+    affects: mujoco
+  - description: >-
+      Six links carry visual-only geometry in the MuJoCo scene
+      (contype=0 conaffinity=0) while the URDF gives them collision tags.
+      Drake is filtered to match the vendor's own collision set, or the two
+      engines would be simulating different robots.
+    affects: drake
+    handledBy: simulation/drake_env.py _NON_COLLIDING_LINKS
+
+maintainers:
+  - github: hossein6191
+
+status: experimental
+license: Apache-2.0

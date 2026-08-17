@@ -1,0 +1,91 @@
+schemaVersion: robot-skills.v1
+profileId: agibot.x2.mujoco-drake-push.v1
+
+skills:
+  - skillId: push_to_target
+    description: >-
+      Approach a puck at (puck_x, puck_y) on the work surface from above and
+      push it to (goal_x, goal_y). Both ends of the motion are chosen by the
+      payer.
+    paymentRequired: true
+    priceUSDC: "0.01"
+    params:
+      puck_x:
+        type: number
+        min: 0.255
+        max: 0.270
+        units: m
+        description: Puck start, forward of the robot base.
+      puck_y:
+        type: number
+        min: 0.160
+        max: 0.200
+        units: m
+        description: Puck start, lateral. Positive is the robot's left.
+      goal_x:
+        type: number
+        min: 0.255
+        max: 0.285
+        units: m
+      goal_y:
+        type: number
+        min: 0.290
+        max: 0.320
+        units: m
+    constraints:
+      # Shorter than this and the puck already counts as delivered; longer and
+      # the destination leaves the reachable set.
+      minPushDistanceM: 0.10
+      maxPushDistanceM: 0.17
+    success:
+      # Measured from simulator state, not asserted by the policy.
+      criterion: puck within goalToleranceM of (goal_x, goal_y)
+      goalToleranceM: 0.050
+    metrics:
+      - displacementM
+      - finalDistanceM
+      - peakContacts
+      - peakContactForceN
+      - foreignCollision
+      - stages
+
+  - skillId: stop
+    description: Hold the current pose and stop all motion immediately.
+    paymentRequired: false
+    priceUSDC: "0.00"
+    params: {}
+
+  - skillId: diagnostic_fail
+    description: >-
+      Always fails during execution. Exists so the no-settle-on-failure
+      guarantee can be exercised on demand rather than argued for.
+    paymentRequired: true
+    priceUSDC: "0.01"
+    params: {}
+    success:
+      criterion: never succeeds; always returns ACTION_FAILED with settle=false
+
+workspace:
+  # Measured by sweeping targets through *both* engines and keeping only what
+  # both deliver. Requests outside this are refused with PARAMS_OUT_OF_RANGE
+  # rather than attempted, because a skill that quotes a price should only
+  # quote it where it delivers.
+  #
+  # The binding limit is not the arm's reach. The tool point sits 165mm below
+  # the wrist, so the travel leg needs the wrist near shoulder height, and
+  # hover-reachable ground narrows to a band about 60mm wide in x while push
+  # height covers most of the table.
+  frame: world, base welded, +x forward and +y to the robot's left
+  surfaceHeightM: 0.85
+  puckRadiusM: 0.035
+  puckHeightM: 0.044
+  measuredLimits:
+    - limit: puck_y >= 0.16
+      reason: >-
+        below this the contact point sits at the edge of the reachable band,
+        the hand arrives at a sharp angle and knocks the puck off the push line
+    - limit: puck_x <= 0.27
+      reason: >-
+        beyond this the puck leaves the committed push line in Drake; confirmed
+        geometric rather than tuning, since loosening the re-approach tolerance
+        and raising the retry cap moved the final distance by under 5mm

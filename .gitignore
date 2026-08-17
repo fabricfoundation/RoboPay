@@ -35,3 +35,7 @@ log/
 .colcon_settings.yaml
 
 PROJECT_MEMORY.md
+
+# Local toolchain and generated assets for the AgiBot X2 bridge
+# (not part of the submission; produced by tools/convert_meshes.py)
+assets/x2_description_obj/

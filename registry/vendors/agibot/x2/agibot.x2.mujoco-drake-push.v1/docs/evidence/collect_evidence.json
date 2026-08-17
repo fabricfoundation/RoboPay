@@ -1,0 +1,638 @@
+{
+  "robotId": "x2-sim-001",
+  "catalogue": [
+    {
+      "name": "push_to_target",
+      "description": "Reach over a puck at (puck_x, puck_y) on the work surface and push it to (goal_x, goal_y) with the left wrist.",
+      "priceUSDC": "0.01",
+      "paymentRequired": true,
+      "paramsSchema": {
+        "puck_x": {
+          "type": "number",
+          "min": 0.255,
+          "max": 0.27
+        },
+        "puck_y": {
+          "type": "number",
+          "min": 0.16,
+          "max": 0.2
+        },
+        "goal_x": {
+          "type": "number",
+          "min": 0.255,
+          "max": 0.285
+        },
+        "goal_y": {
+          "type": "number",
+          "min": 0.29,
+          "max": 0.32
+        }
+      },
+      "robotId": "x2-sim-001"
+    },
+    {
+      "name": "stop",
+      "description": "Hold the current pose and stop all motion immediately.",
+      "priceUSDC": "0.00",
+      "paymentRequired": false,
+      "paramsSchema": {},
+      "robotId": "x2-sim-001"
+    },
+    {
+      "name": "diagnostic_fail",
+      "description": "Deliberately fails during execution. Exists so the no-settle-on-failure guarantee can be exercised on demand.",
+      "priceUSDC": "0.01",
+      "paymentRequired": true,
+      "paramsSchema": {},
+      "robotId": "x2-sim-001"
+    }
+  ],
+  "paymentGate": [
+    {
+      "case": "unpaid request",
+      "status": "error",
+      "code": "PAYMENT_REQUIRED",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "tampered params",
+      "status": "error",
+      "code": "PARAMS_HASH_MISMATCH",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "expired action",
+      "status": "error",
+      "code": "ACTION_EXPIRED",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "out-of-range params",
+      "status": "error",
+      "code": "PARAMS_OUT_OF_RANGE",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "wrong robot id",
+      "status": "error",
+      "code": "UNKNOWN_ROBOT",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "deliberate failure skill",
+      "status": "error",
+      "code": "ACTION_FAILED",
+      "settle": false,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "free stop skill",
+      "status": "success",
+      "code": null,
+      "settle": true,
+      "replayed": false,
+      "displacementM": null
+    },
+    {
+      "case": "valid paid action",
+      "status": "success",
+      "code": null,
+      "settle": true,
+      "replayed": false,
+      "displacementM": 0.0925
+    },
+    {
+      "case": "replay of the same key",
+      "status": "success",
+      "code": "IDEMPOTENCY_REPLAY",
+      "settle": false,
+      "replayed": true,
+      "displacementM": 0.0925
+    }
+  ],
+  "workspace": [
+    {
+      "puck": [
+        0.2599,
+        0.166
+      ],
+      "goal": [
+        0.2745,
+        0.2922
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0925,
+      "finalDistanceM": 0.0498,
+      "simSeconds": 2.63
+    },
+    {
+      "puck": [
+        0.263,
+        0.1746
+      ],
+      "goal": [
+        0.2567,
+        0.3052
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.086,
+      "finalDistanceM": 0.0496,
+      "simSeconds": 2.95
+    },
+    {
+      "puck": [
+        0.2556,
+        0.1773
+      ],
+      "goal": [
+        0.2571,
+        0.2927
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0726,
+      "finalDistanceM": 0.0467,
+      "simSeconds": 2.9
+    },
+    {
+      "puck": [
+        0.2614,
+        0.1931
+      ],
+      "goal": [
+        0.2587,
+        0.2967
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0601,
+      "finalDistanceM": 0.0478,
+      "simSeconds": 2.49
+    },
+    {
+      "puck": [
+        0.2644,
+        0.1979
+      ],
+      "goal": [
+        0.2723,
+        0.3019
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0737,
+      "finalDistanceM": 0.0484,
+      "simSeconds": 2.46
+    },
+    {
+      "puck": [
+        0.2696,
+        0.1619
+      ],
+      "goal": [
+        0.2808,
+        0.2987
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0933,
+      "finalDistanceM": 0.0476,
+      "simSeconds": 2.65
+    },
+    {
+      "puck": [
+        0.2572,
+        0.1647
+      ],
+      "goal": [
+        0.2643,
+        0.3145
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.103,
+      "finalDistanceM": 0.0499,
+      "simSeconds": 3.19
+    },
+    {
+      "puck": [
+        0.2577,
+        0.1833
+      ],
+      "goal": [
+        0.2742,
+        0.3012
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0919,
+      "finalDistanceM": 0.0477,
+      "simSeconds": 2.53
+    },
+    {
+      "puck": [
+        0.2632,
+        0.1625
+      ],
+      "goal": [
+        0.2568,
+        0.2962
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0909,
+      "finalDistanceM": 0.0493,
+      "simSeconds": 2.96
+    },
+    {
+      "puck": [
+        0.2652,
+        0.1771
+      ],
+      "goal": [
+        0.2644,
+        0.3076
+      ],
+      "success": true,
+      "reason": null,
+      "displacementM": 0.0849,
+      "finalDistanceM": 0.0494,
+      "simSeconds": 2.86
+    }
+  ],
+  "simToSim": [
+    {
+      "puck": [
+        0.2599,
+        0.166
+      ],
+      "goal": [
+        0.2745,
+        0.2922
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0925,
+        "finalDistanceM": 0.0498
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0805,
+        "finalDistanceM": 0.048
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0277,
+        "finalDistanceA": 0.0498,
+        "finalDistanceB": 0.048,
+        "displacementA": 0.0925,
+        "displacementB": 0.0805,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.263,
+        0.1746
+      ],
+      "goal": [
+        0.2567,
+        0.3052
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.086,
+        "finalDistanceM": 0.0496
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0862,
+        "finalDistanceM": 0.0481
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0067,
+        "finalDistanceA": 0.0496,
+        "finalDistanceB": 0.0481,
+        "displacementA": 0.086,
+        "displacementB": 0.0862,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2556,
+        0.1773
+      ],
+      "goal": [
+        0.2571,
+        0.2927
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0726,
+        "finalDistanceM": 0.0467
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0814,
+        "finalDistanceM": 0.0481
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0225,
+        "finalDistanceA": 0.0467,
+        "finalDistanceB": 0.0481,
+        "displacementA": 0.0726,
+        "displacementB": 0.0814,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2614,
+        0.1931
+      ],
+      "goal": [
+        0.2587,
+        0.2967
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0601,
+        "finalDistanceM": 0.0478
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0588,
+        "finalDistanceM": 0.0496
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0046,
+        "finalDistanceA": 0.0478,
+        "finalDistanceB": 0.0496,
+        "displacementA": 0.0601,
+        "displacementB": 0.0588,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2644,
+        0.1979
+      ],
+      "goal": [
+        0.2723,
+        0.3019
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0737,
+        "finalDistanceM": 0.0484
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0605,
+        "finalDistanceM": 0.0465
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0314,
+        "finalDistanceA": 0.0484,
+        "finalDistanceB": 0.0465,
+        "displacementA": 0.0737,
+        "displacementB": 0.0605,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2696,
+        0.1619
+      ],
+      "goal": [
+        0.2808,
+        0.2987
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0933,
+        "finalDistanceM": 0.0476
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.1039,
+        "finalDistanceM": 0.0478
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0298,
+        "finalDistanceA": 0.0476,
+        "finalDistanceB": 0.0478,
+        "displacementA": 0.0933,
+        "displacementB": 0.1039,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2572,
+        0.1647
+      ],
+      "goal": [
+        0.2643,
+        0.3145
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.103,
+        "finalDistanceM": 0.0499
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.112,
+        "finalDistanceM": 0.0496
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0233,
+        "finalDistanceA": 0.0499,
+        "finalDistanceB": 0.0496,
+        "displacementA": 0.103,
+        "displacementB": 0.112,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2577,
+        0.1833
+      ],
+      "goal": [
+        0.2742,
+        0.3012
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0919,
+        "finalDistanceM": 0.0477
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0784,
+        "finalDistanceM": 0.0491
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0511,
+        "finalDistanceA": 0.0477,
+        "finalDistanceB": 0.0491,
+        "displacementA": 0.0919,
+        "displacementB": 0.0784,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2632,
+        0.1625
+      ],
+      "goal": [
+        0.2568,
+        0.2962
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0909,
+        "finalDistanceM": 0.0493
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0903,
+        "finalDistanceM": 0.05
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0025,
+        "finalDistanceA": 0.0493,
+        "finalDistanceB": 0.05,
+        "displacementA": 0.0909,
+        "displacementB": 0.0903,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    },
+    {
+      "puck": [
+        0.2652,
+        0.1771
+      ],
+      "goal": [
+        0.2644,
+        0.3076
+      ],
+      "mujoco": {
+        "success": true,
+        "displacementM": 0.0849,
+        "finalDistanceM": 0.0494
+      },
+      "drake": {
+        "success": true,
+        "displacementM": 0.0882,
+        "finalDistanceM": 0.0491
+      },
+      "comparison": {
+        "engines": [
+          "mujoco",
+          "drake"
+        ],
+        "verdictMatches": true,
+        "successA": true,
+        "successB": true,
+        "puckEndGapM": 0.0237,
+        "finalDistanceA": 0.0494,
+        "finalDistanceB": 0.0491,
+        "displacementA": 0.0849,
+        "displacementB": 0.0882,
+        "toleranceM": 0.1,
+        "agrees": true
+      }
+    }
+  ]
+}

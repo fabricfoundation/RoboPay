@@ -1,0 +1,17 @@
+{
+  "actionId": "act_eaddcf6f7677",
+  "robotId": "x2-sim-001",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "idem-4a241f80e3",
+  "paramsHash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "expiresAt": "2026-08-17T08:25:08.488084+00:00",
+  "payment": {
+    "provider": "x402",
+    "amount": "0",
+    "asset": "USDC",
+    "network": "eip155:84532",
+    "verified": false,
+    "txHash": null
+  }
+}
