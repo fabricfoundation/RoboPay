@@ -1,0 +1,25 @@
+[
+  {
+    "skill_id": "open_door",
+    "description": "Grasp a handle and open a door.",
+    "params": {
+      "object": {
+        "type": "string",
+        "values": [
+          "cube",
+          "unreachable",
+          "collision",
+          "timeout",
+          "far_cube",
+          "blocked_cube",
+          "slow_cube"
+        ]
+      },
+      "maxSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000
+      }
+    }
+  }
+]

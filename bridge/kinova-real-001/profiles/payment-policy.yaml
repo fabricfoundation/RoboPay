@@ -1,0 +1,120 @@
+# kinova-real-001 --- x402 payment policy
+#
+# Acceptance criteria covered: #3 (real payment), #7 (payment safety /
+# no-settle-on-failure), #8 (wallet binding), #13 (non-acceptable behaviours).
+#
+# flow/profiles.py reads this file to build the 402 `accepts` block, so the
+# challenge the client sees is generated from this policy -- not hard-coded.
+apiVersion: robopay.kinova/v1
+kind: PaymentPolicy
+
+robotId: kinova-real-001
+profileId: kinova.kinova-real-001.mujoco-sim.v1
+
+provider:
+  name: x402
+  version: "1"
+  scheme: exact
+  network: base-sepolia
+  networkCaip2: "eip155:84532"        # matches tunnel/config.json `network` convention
+  chainId: 84532
+  asset:
+    symbol: USDC
+    address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"   # USDC on Base Sepolia
+    decimals: 6
+  facilitatorUrlEnv: X402_FACILITATOR_URL
+  payToAddressEnv: FABRIC_ARM_PAYTO_ADDRESS
+
+# ------------------------------------------------------------------- header
+challenge:
+  httpStatus: 402
+  headerIn: X-PAYMENT                # client -> bridge, the signed receipt
+  headerOut: X-PAYMENT-RESPONSE      # bridge -> client, settlement outcome
+  resource: "robopay://kinova-real-001/pick_object"
+  description: One physics-executed pick_object run on kinova-real-001.
+  maxTimeoutSeconds: 120
+
+pricing:
+  source: skills.yaml                # single price definition, per skill
+  currency: USDC
+  perExecution: true
+  refunds: not-applicable            # nothing is captured unless execution succeeds
+
+# --------------------------------------------------------------- lifecycle
+# The state machine is implemented in flow/payment.py + flow/relay.py.
+lifecycle:
+  states: [AUTHORIZED, EXECUTING, SUCCESS, FAILED]
+  transitions:
+    - from: null
+      to: AUTHORIZED
+      when: receipt verified (txHash present and accepted by the facilitator)
+    - from: AUTHORIZED
+      to: EXECUTING
+      when: action envelope published to robot/tunnel/action
+    - from: EXECUTING
+      to: SUCCESS
+      when: robot result status == completed
+      effect: settle
+    - from: EXECUTING
+      to: FAILED
+      when: robot result status != completed
+      effect: no-settlement
+
+safety:                              # criterion #7 -- the rules a reviewer greps for
+  settleOnFailure: false
+  settleBeforeExecution: false
+  captureOnAuthorization: false
+  executeWithoutPayment: false
+  doubleExecutionOnReplay: false
+  proof:                             # tests/test_profiles.py asserts these exist
+    - tests/test_flow.py::TestPaymentFlow::test_failure_no_settle
+    - tests/test_flow.py::TestPaymentFlow::test_unpaid_rejected
+    - tests/test_simulator.py::TestMuJoCoPick::test_relay_settles_only_on_success
+    - tests/test_sim2sim.py::TestPyBulletBackendContract::test_failure_still_blocks_settlement
+    - tests/test_sim2sim.py::TestSimToSimAgreement::test_failures_never_settle_on_either_engine
+
+idempotency:
+  keyField: idempotencyKey
+  required: true
+  scope: relay-process                # D7: shared store when the relay is replicated
+  onReplay:
+    execute: false
+    settle: false
+    response: '{"status": "rejected", "reason": "duplicate_idempotency_key"}'
+  recordedAfter: execution-attempt     # a crashed attempt is never silently retried
+
+# ----------------------------------------------------------------- secrets
+secrets:
+  storage: environment-variables-only
+  committedToRepo: false
+  variables:
+    - name: FABRIC_ARM_PRIVATE_KEY
+      required: false                 # only for live settlement (mode: onchain)
+      note: Robot wallet signing key. Never logged, never echoed in results.
+    - name: FABRIC_ARM_WALLET_ADDRESS
+      required: false
+    - name: FABRIC_ARM_PAYTO_ADDRESS
+      required: false
+    - name: X402_FACILITATOR_URL
+      required: false
+  redaction:
+    logs: true
+    resultMetrics: true               # metrics carry no payment material at all
+
+# -------------------------------------------------------------------- modes
+modes:
+  - name: mock
+    default: true
+    description: >
+      Offline-reproducible mode used by CI and by `make demo`. Verification
+      accepts any receipt carrying a txHash and settlement is recorded in a
+      local ledger. The success/failure branching, idempotency and the
+      no-settle-on-failure rule are byte-for-byte the same code path as onchain.
+    verifier: flow/payment.py::verify_payment
+    ledger: flow/payment.py::SettlementLedger
+  - name: onchain
+    default: false
+    description: Base Sepolia settlement through the x402 facilitator.
+    verifier: flow/payment.py::verify_payment      # swap point, same signature
+    ledger: flow/payment.py::SettlementLedger      # swap point, same signature
+    requires: [X402_FACILITATOR_URL, FABRIC_ARM_PAYTO_ADDRESS]

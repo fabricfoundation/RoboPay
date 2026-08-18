@@ -1,0 +1,8 @@
+# kinova-real-001 bridge -- CPU only, no GPU, no ROS.
+# Reference platform: ubuntu-22.04, Python 3.11 / 3.12 (see .github/workflows).
+
+mujoco>=3.1,<4          # primary physics engine
+pybullet>=3.2.5         # sim-to-sim second engine (no Windows wheels)
+pyyaml>=6.0             # profile manifests are loaded at runtime
+eclipse-zenoh>=1.0.0    # transport (Linux/macOS wheels only)
+pytest>=8.0             # test suite

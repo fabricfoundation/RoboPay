@@ -1,0 +1,127 @@
+# kinova-real-001 --- skill catalogue and pricing
+#
+# Acceptance criteria covered: #4 (skill registration & pricing),
+# #5 (success/failure semantics).
+#
+# This file is LOADED AT RUNTIME by flow/profiles.py: the price advertised in
+# the HTTP 402 challenge and the parameter validation both come from here.
+# Changing a number here changes the running bridge.
+apiVersion: robopay.kinova/v1
+kind: SkillCatalog
+
+robotId: kinova-real-001
+profileId: kinova.kinova-real-001.mujoco-sim.v1
+
+skills:
+  - skillId: pick_object
+    displayName: Pick object
+    category: manipulation
+    version: 1.0.0
+    description: >
+      Drive the 4-DoF arm through HOME -> MOVE_ABOVE -> DESCEND -> GRIP -> LIFT
+      and pick a 50 mm cube off the table. The cube is a free rigid body: it
+      only moves because the fingers make contact and friction holds it. The
+      skill reports the measured contact force and the object displacement it
+      actually produced.
+
+    pricing:
+      model: per-execution
+      amount: "0.10"
+      currency: USDC
+      decimals: 6
+      amountAtomic: "100000"
+      network: base-sepolia
+      settlement: on-success-only     # criterion #7
+
+    execution:
+      idempotent: true
+      idempotencyKeyRequired: true
+      estimatedDurationSec: 1
+      maxDurationSec: 15
+      defaultStepBudget: 400          # arm_spec.DEFAULT_BUDGET
+      nominalSteps: 260               # sum(arm_spec.STAGE_STEPS)
+      concurrency: 1
+
+    paramsSchema:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        object:
+          type: string
+          default: cube
+          description: Named physical scene to instantiate (not a code branch).
+          enum:
+            - cube                    # nominal, reachable target
+            - unreachable             # cube placed outside the work envelope
+            - collision               # obstacle pillar on the approach path
+            - timeout                 # step budget clipped below nominal
+            - far_cube                # alias -> unreachable
+            - blocked_cube            # alias -> collision
+            - slow_cube               # alias -> timeout
+        maxSteps:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          description: Override the hard step budget; exceeding it fails as `timeout`.
+
+    successCriteria:                  # all must hold; enforced in simulator.py
+      - key: graspState
+        op: eq
+        value: attached
+      - key: contactForce
+        op: gte
+        value: 0.30                   # N, arm_spec.GRASP_FORCE_MIN
+      - key: objectLifted
+        op: gte
+        value: 0.030                  # m, arm_spec.LIFT_MIN
+
+    failureModes:                     # criterion #5 -- every one is reproducible
+      - reason: unreachable
+        trigger: Target lies outside the 0.35 m work radius; the arm stretches and stops short.
+        example: '{"object": "unreachable"}'
+        settles: false
+      - reason: collision
+        trigger: An obstacle pillar is contacted by a link or finger during approach.
+        example: '{"object": "collision"}'
+        settles: false
+      - reason: timeout
+        trigger: The step budget runs out before the lift stage completes.
+        example: '{"object": "timeout"}'
+        settles: false
+      - reason: grasp_failed
+        trigger: Fingers close but measured normal force or lift height stays below threshold.
+        example: '{"object": "cube", "maxSteps": 200}'
+        settles: false
+
+    resultSchema:
+      type: object
+      required: [success, reason, metrics]
+      properties:
+        success: {type: boolean}
+        reason:
+          type: string
+          enum: [picked, unreachable, collision, timeout, grasp_failed]
+        metrics:
+          type: object
+          required:
+            - robotId
+            - skillId
+            - engine
+            - object
+            - scene
+            - stage
+            - graspState
+            - objectStart
+            - objectEnd
+            - objectDelta
+            - objectLifted
+            - contactForce
+            - peakForce
+            - contactSamples
+            - collisionCount
+            - stepsUsed
+            - stepBudget
+            - simTime
+            - wallTime
+            - note
