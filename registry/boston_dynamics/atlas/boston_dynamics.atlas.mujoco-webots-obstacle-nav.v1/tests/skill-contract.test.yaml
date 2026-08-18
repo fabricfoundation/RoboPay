@@ -1,0 +1,73 @@
+schemaVersion: skill-contract-test.v1
+profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+tests:
+  - name: navigate_obstacles_valid_params
+    action: navigate_obstacles
+    params:
+      maxDurationSec: 48
+      side: left
+      speedScale: 1.0
+    expect:
+      status: success
+      forward_progress_m: "> 0"
+
+  - name: navigate_obstacles_min_duration
+    action: navigate_obstacles
+    params:
+      maxDurationSec: 5
+      side: left
+      speedScale: 0.5
+    expect:
+      status: success
+
+  - name: navigate_obstacles_invalid_duration_low
+    action: navigate_obstacles
+    params:
+      maxDurationSec: 3
+      side: left
+    expect:
+      status: failure
+      error_code: INVALID_DURATION
+
+  - name: navigate_obstacles_invalid_duration_high
+    action: navigate_obstacles
+    params:
+      maxDurationSec: 120
+      side: left
+    expect:
+      status: failure
+      error_code: INVALID_DURATION
+
+  - name: navigate_obstacles_invalid_side
+    action: navigate_obstacles
+    params:
+      maxDurationSec: 48
+      side: right
+    expect:
+      status: failure
+      error_code: INVALID_SIDE
+
+  - name: navigate_obstacles_invalid_speed_low
+    action: navigate_obstacles
+    params:
+      maxDurationSec: 48
+      side: left
+      speedScale: 0.1
+    expect:
+      status: failure
+      error_code: INVALID_SPEED
+
+  - name: stop_valid
+    action: stop
+    params: {}
+    expect:
+      status: success
+      safe_stop_applied: true
+
+  - name: stop_with_params_rejected
+    action: stop
+    params:
+      foo: bar
+    expect:
+      status: failure
+      error_code: INVALID_PARAMS

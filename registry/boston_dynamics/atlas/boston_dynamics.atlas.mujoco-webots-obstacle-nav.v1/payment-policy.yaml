@@ -1,0 +1,18 @@
+schemaVersion: payment-policy.v1
+profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+network: eip155:84532
+facilitatorUrl: https://x402.org/facilitator
+deferred: true
+settlementWindow: 60
+skills:
+  navigate_obstacles:
+    priceUSDC: "0.001"
+    maxPriceUSDC: "0.005"
+  stop:
+    priceUSDC: "0.001"
+    maxPriceUSDC: "0.001"
+negativeTests:
+  - failure
+  - timeout
+  - replay
+settlementInvariant: zero-settle-on-failure

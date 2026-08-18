@@ -1,0 +1,14 @@
+{
+  "action": "navigate_obstacles",
+  "skill_id": "navigate_obstacles",
+  "robot_id": "atlas-mujoco-sim-01",
+  "profile_id": "boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1",
+  "params": {
+    "maxDurationSec": 48.0,
+    "side": "left",
+    "speedScale": 1.0
+  },
+  "params_hash": "sha256:placeholder",
+  "idempotency_key": "example-001",
+  "action_id": "example-action-001"
+}

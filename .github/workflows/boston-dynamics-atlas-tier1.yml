@@ -1,0 +1,85 @@
+name: Boston Dynamics Atlas Tier 1
+
+on:
+  pull_request:
+    branches: [main, boston-dynamics-atlas-tier-1]
+    paths:
+      - 'bridge/boston_dynamics/**'
+      - 'registry/boston_dynamics/**'
+      - '.github/workflows/boston-dynamics-atlas-tier1.yml'
+  push:
+    branches: [main, boston-dynamics-atlas-tier-1]
+
+jobs:
+  tunnel-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Build tunnel
+        run: make build
+      - name: Run tunnel tests
+        run: make test
+      - name: Install Python dependencies
+        run: |
+          pip install pytest pyyaml mujoco
+          pip install -r bridge/boston_dynamics/atlas_mujoco_bridge/requirements.txt
+      - name: Download MuJoCo humanoid model
+        run: python -c "from bridge.boston_dynamics.atlas_mujoco_bridge.download_atlas_model import download; download()"
+      - name: Run bridge contract tests
+        run: python -m pytest bridge/boston_dynamics/atlas_mujoco_bridge/tests/ -v
+      - name: Validate registry profiles
+        run: python scripts/registry/validate_profiles.py
+
+  atlas-mujoco:
+    needs: tunnel-and-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install pytest mujoco numpy
+          pip install -r bridge/boston_dynamics/atlas_mujoco_bridge/requirements.txt
+      - name: Download MuJoCo humanoid model
+        run: python -c "from bridge.boston_dynamics.atlas_mujoco_bridge.download_atlas_model import download; download()"
+      - name: Run MuJoCo policy tests
+        run: python -m pytest bridge/boston_dynamics/atlas_mujoco_bridge/tests/test_bridge_contract.py -v
+      - name: Run MuJoCo obstacle navigation
+        run: python -c "from bridge.boston_dynamics.atlas_mujoco_bridge.runner import run_obstacle_nav; import json; r=run_obstacle_nav(max_duration_seconds=10.0); open('artifacts/mujoco_result.json','w').write(json.dumps(r,indent=2))"
+      - name: Upload MuJoCo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-mujoco-evidence
+          path: artifacts/mujoco_result.json
+
+  atlas-sim2sim:
+    needs: tunnel-and-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install mujoco numpy
+          pip install -r bridge/boston_dynamics/atlas_mujoco_bridge/requirements.txt
+      - name: Download MuJoCo humanoid model
+        run: python -c "from bridge.boston_dynamics.atlas_mujoco_bridge.download_atlas_model import download; download()"
+      - name: Run sim2sim validation
+        run: python -c "from bridge.boston_dynamics.atlas_mujoco_bridge.sim2sim import run_sim2sim; import json; r=run_sim2sim(max_duration=10.0); open('artifacts/sim2sim_result.json','w').write(json.dumps(r,indent=2))"
+      - name: Upload sim2sim evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-sim2sim-evidence
+          path: artifacts/sim2sim_result.json

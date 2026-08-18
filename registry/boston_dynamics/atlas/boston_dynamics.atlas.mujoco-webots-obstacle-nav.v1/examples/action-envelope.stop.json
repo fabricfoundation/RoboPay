@@ -1,0 +1,10 @@
+{
+  "action": "stop",
+  "skill_id": "stop",
+  "robot_id": "atlas-mujoco-sim-01",
+  "profile_id": "boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1",
+  "params": {},
+  "params_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "idempotency_key": "example-stop-001",
+  "action_id": "example-action-stop-001"
+}

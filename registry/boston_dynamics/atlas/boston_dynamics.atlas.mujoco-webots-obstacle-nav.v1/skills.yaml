@@ -1,0 +1,38 @@
+schemaVersion: robot-skills.v1
+profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+skills:
+  - skillId: navigate_obstacles
+    description: >-
+      Drive the Atlas humanoid through the simulator obstacle corridor using
+      closed-loop pose feedback and an online bipedal walk.  Succeeds only when
+      it reaches the goal without an obstacle contact.
+    params:
+      maxDurationSec:
+        type: number
+        min: 5
+        max: 60
+        default: 48
+      side:
+        type: string
+        enum: [left]
+        default: left
+      speedScale:
+        type: number
+        min: 0.5
+        max: 1.0
+        default: 1.0
+    paymentRequired: true
+    priceUSDC: "0.001"
+    movementLimits:
+      maxDurationSec: 60
+      maxGaitFrequencyHz: 1.0
+      maxHipSwingAmplitudeRad: 0.35
+      maxKneeSwingAmplitudeRad: 0.45
+      maxSteeringDifferential: 0.08
+  - skillId: stop
+    description: >-
+      Interrupt an active MuJoCo episode, command the neutral 21-actuator pose,
+      and zero simulated velocity.
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.001"

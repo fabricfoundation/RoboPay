@@ -1,0 +1,5 @@
+{
+  "source": "embedded",
+  "description": "Atlas obstacle course MJCF elements added programmatically via MjSpec",
+  "note": "No external task XML needed; course.py defines obstacles and goal geometry"
+}

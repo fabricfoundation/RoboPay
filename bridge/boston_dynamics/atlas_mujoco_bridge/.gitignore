@@ -1,0 +1,6 @@
+models/mujoco_humanoid/
+scenes/webots_obstacle_nav_result.json
+scenes/.*.wbproj
+artifacts/
+__pycache__/
+*.pyc

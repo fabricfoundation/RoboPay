@@ -1,0 +1,8 @@
+{
+  "mujoco_humanoid": {
+    "source": "https://github.com/google-deepmind/mujoco",
+    "commit": "b2a6bc459806b2a879a31fcf5ad45f3e24391295",
+    "directory": "model/humanoid",
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,32 @@
+schemaVersion: execution-mapping.v1
+profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/boston_dynamics_atlas/metrics
+  readyTopic: robot/boston_dynamics_atlas/ready
+bridge:
+  path: bridge/boston_dynamics/atlas_mujoco_bridge
+  entry: bridge.py:main
+  module: bridge.boston_dynamics.atlas_mujoco_bridge.bridge
+policy:
+  type: online
+  description: >
+    Pure-Python bipedal walk planner with sinusoidal gait pattern.
+    Shared across MuJoCo and Webots. Engine adapters convert
+    desired joint positions to actuator commands.
+  controllers:
+    - name: mujoco_pd_torque
+      adapter: policy.py:AtlasObstaclePolicy
+      description: PD torque for MuJoCo general actuators
+    - name: webots_position
+      adapter: webots.py (future)
+      description: Webots position-motor adapter (to be implemented)
+actions:
+  navigate_obstacles:
+    handler: _execute_navigation
+    params: maxDurationSec, side, speedScale
+  stop:
+    handler: _handle_stop
+    params: none

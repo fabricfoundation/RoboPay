@@ -1,0 +1,23 @@
+{
+  "profileId": "boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1",
+  "skills": [
+    {
+      "skillId": "navigate_obstacles",
+      "description": "Drive Atlas through obstacle corridor with bipedal walk",
+      "params": {
+        "maxDurationSec": {"type": "number", "min": 5, "max": 60, "default": 48},
+        "side": {"type": "string", "enum": ["left"], "default": "left"},
+        "speedScale": {"type": "number", "min": 0.5, "max": 1.0, "default": 1.0}
+      },
+      "paymentRequired": true,
+      "priceUSDC": "0.001"
+    },
+    {
+      "skillId": "stop",
+      "description": "Interrupt active episode, command neutral pose, zero velocity",
+      "params": {},
+      "paymentRequired": true,
+      "priceUSDC": "0.001"
+    }
+  ]
+}

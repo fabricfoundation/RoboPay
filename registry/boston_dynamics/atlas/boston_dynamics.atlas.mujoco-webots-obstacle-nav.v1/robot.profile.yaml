@@ -1,0 +1,25 @@
+schemaVersion: robot-profile.v1
+vendor: boston_dynamics
+robotModel: atlas
+robotType: humanoid
+profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/boston_dynamics_atlas/metrics
+  readyTopic: robot/boston_dynamics_atlas/ready
+  bridge: bridge/boston_dynamics/atlas_mujoco_bridge
+simulation:
+  scope: simulator-only
+  primaryEngine: MuJoCo
+  validationEngine: Webots R2025a
+  model:
+    source: https://github.com/google-deepmind/mujoco
+    commit: b2a6bc459806b2a879a31fcf5ad45f3e24391295
+    directory: model/humanoid
+    license: Apache-2.0
+maintainers:
+  - github: EslaM-X
+status: experimental
