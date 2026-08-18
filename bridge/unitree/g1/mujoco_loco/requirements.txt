@@ -1,0 +1,11 @@
+# unitree-g1 bridge -- CPU only, no GPU, no ROS.
+# Reference platform: ubuntu-22.04, Python 3.11 (see .github/workflows).
+
+mujoco>=3.1,<4          # primary physics engine
+pybullet==3.2.7         # sim-to-sim second engine (pin: only cp311 manylinux wheels exist)
+pillow>=10.0            # docs/evidence/render_evidence.py (CI evidence job)
+pyyaml>=6.0             # profile manifests are loaded at runtime
+eclipse-zenoh>=1.0.0    # transport (Linux/macOS wheels only)
+pytest>=8.0             # test suite
+flake8>=7.0             # lint job
+mypy>=1.10              # lint job

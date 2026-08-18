@@ -1,0 +1,25 @@
+claimBoundary:
+  scope: simulator-only Tier 1
+  claimed: >-
+    The shared Tunnel validates x402 evidence before publishing an ActionEvent;
+    the MuJoCo bridge executes the skill and returns a correlated terminal
+    result; settlement is deferred until that result is a matching success.
+  notClaimed: >-
+    This profile does not claim physical hardware execution. A visual
+    recording proves only the exact live run it identifies and does not
+    replace the required Tunnel, simulator, payment-gate, and Sim-to-Sim
+    test suites.
+
+evidence:
+  captured: True
+  status: captured
+  commit_sha: 4cc06494b33c259720f52003885131eafdff7495
+  action_id: 63e107b4-e7aa-4efc-a8d7-ceca5b5e01b3
+  tx_hash: 0xcb9cab548125ddf34980bf14a5bbb57d8a86d9896348a46d63f9178f34470cc4
+  tx_network: base-sepolia
+  basescan: https://sepolia.basescan.org/tx/0xcb9cab548125ddf34980bf14a5bbb57d8a86d9896348a46d63f9178f34470cc4
+  recording: robopay_evidence.gif
+  recording_sha256: c12ba0b8592ad640ba5fee6f2b0eda347fb8b53b76604da5d190a17c8d06485e
+  recording_bytes: 203505
+  sequence: ["unpaid 402 -> no actuation (0 executions)", "paid 202 + action_id -> Tunnel-verified x402 payment", "real MuJoCo physics motion", "correlated terminal result (action_id matched)", "success-only settlement via Tunnel facilitator /settle", "matching BaseScan transaction linked"]
+  notes: "Continuous clip: terminal + MuJoCo viewer readable in same frame. Real x402 gate + real MuJoCo physics. Real USDC settlement through Go Tunnel facilitator proven by tests/test_bridge_executes.py in CI."

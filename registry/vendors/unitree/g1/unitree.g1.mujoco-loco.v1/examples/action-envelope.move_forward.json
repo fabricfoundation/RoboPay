@@ -1,0 +1,7 @@
+{
+  "actionId": "act_unitree_g1_move_forward_001",
+  "robotId": "unitree-g1",
+  "skillId": "move_forward",
+  "params": {},
+  "idempotencyKey": "unitree-g1-move_forward-001"
+}

@@ -1,0 +1,16 @@
+{
+  "status": "SETTLED_ON_CHAIN",
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "amount_usdc": 0.1,
+  "resource": "robopay://unitree-g1/move_forward",
+  "settledAt": "2026-08-18T10:22:43Z",
+  "txs": [
+    "0x8a22cc4f62742d743564a4c416a94f0c140da2115593372a436101c6e24cf46e"
+  ],
+  "actionId": "3fc18bfe-a71d-4acc-ad29-07c91d7a803c",
+  "note": "Fresh independent Base Sepolia tx for PR #113 (replaces reused #90 tx)."
+}

@@ -1,0 +1,66 @@
+name: unitree-g1 Tier 1 bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [unitree-g1-tier-1]
+    paths:
+      - "bridge/unitree/g1/**"
+      - ".github/workflows/unitree-g1-bridge.yml"
+  pull_request:
+    paths:
+      - "bridge/unitree/g1/**"
+      - ".github/workflows/unitree-g1-bridge.yml"
+
+jobs:
+  syntax:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m compileall -q bridge/unitree/g1/mujoco_loco
+
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree/g1/mujoco_loco/requirements.txt
+      - run: pytest -q bridge/unitree/g1/mujoco_loco/tests/
+
+  sim2sim:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree/g1/mujoco_loco/requirements.txt
+      - run: pytest -q bridge/unitree/g1/mujoco_loco/tests/test_sim2sim.py
+
+  x402-gate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree/g1/mujoco_loco/requirements.txt
+      - run: pytest -q bridge/unitree/g1/mujoco_loco/tests/test_x402.py bridge/unitree/g1/mujoco_loco/tests/test_payment_gate.py bridge/unitree/g1/mujoco_loco/tests/test_unitree_g1_payment_gate.py
+
+  evidence:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/unitree/g1/mujoco_loco/requirements.txt
+      - run: python -m flow.demo --all
+        working-directory: bridge/unitree/g1/mujoco_loco
+      - run: python docs/evidence/render_evidence.py
+        working-directory: bridge/unitree/g1/mujoco_loco

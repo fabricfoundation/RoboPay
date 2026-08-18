@@ -1,0 +1,7 @@
+{
+  "actionId": "act_unitree_g1_navigate_obstacle_001",
+  "robotId": "unitree-g1",
+  "skillId": "navigate_obstacle",
+  "params": {},
+  "idempotencyKey": "unitree-g1-navigate_obstacle-001"
+}

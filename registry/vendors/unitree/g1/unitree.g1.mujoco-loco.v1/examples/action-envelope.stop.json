@@ -1,0 +1,7 @@
+{
+  "actionId": "act_unitree_g1_stop_001",
+  "robotId": "unitree-g1",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "unitree-g1-stop-001"
+}

@@ -1,0 +1,35 @@
+# unitree-g1-arm-001 / move_forward
+ engine=mujoco  transport=loopback  payment=real-x402
+==============================================================
+
+[ 1] list_skills (free discovery)
+     move_forward: 0.1 USDC on base-sepolia (on-success-only)
+     failure modes: timeout, collision, invalid_params
+
+[ 2] request_action  params={'goalDistance': 1.0}  (no payment attached)
+     HTTP/1.1 402 Payment Required
+     accepts: scheme=exact network=base-sepolia asset=USDC
+              amount=0.1 recipient=0x742d35Cc6634C0532925a3b844Bc454e4438f44e
+
+[ 3] robot contacted so far: 0 executions  <- must be 0 (no free lunch)
+
+[ 4] pay 0.1 USDC on base-sepolia
+     -> x402 facilitator settle (EIP-3009 transferWithAuthorization)
+     txHash = 0xcb9cab548125ddf34980bf14a5bbb57d8a86d9896348a46d63f9178f34470cc4
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+[ 6] publish -> robot/tunnel/action
+[ 7] execute -> MuJoCo physics (planar biped, deterministic IK gait)
+[ 8] result  <- robot/tunnel/result
+     status=success  reason=reached_goal
+     stage=arrived  steps=503/600  collisions=0
+
+[ 9] payment success -> SETTLED
+     verified on Base Sepolia block=45415117 status=1
+
+[10] replay the same idempotencyKey
+     -> rejected, no re-execution, no re-settlement
+
+     executions total: 1  <- must be 1
+PASS: success settles, replay does not.
+==============================================================
