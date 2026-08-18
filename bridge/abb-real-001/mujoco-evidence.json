@@ -1,0 +1,51 @@
+{
+  "engine": "mujoco",
+  "robotId": "abb-real-001",
+  "skillId": "pick_object",
+  "paymentVerifiedThrough": "x402 challenge (protocol-level; amount/network/asset match + well-formed txHash + no replay)",
+  "paymentTx": "0xcf0222171e83fd6c0d3981cf202de984c1dd0cb10f06d81eef76da779a5fb6d2",
+  "relayResponse": {
+    "actionId": "428f5327-cd02-4d76-bb48-a76ecbbbd99b",
+    "skill": "pick_object",
+    "status": "completed",
+    "message": "picked",
+    "metrics": {
+      "robotId": "abb-real-001",
+      "skillId": "pick_object",
+      "engine": "mujoco",
+      "object": "cube",
+      "scene": "cube",
+      "stage": "settle",
+      "graspState": "attached",
+      "objectStart": [
+        0.35,
+        0.0,
+        0.025
+      ],
+      "objectEnd": [
+        0.3505,
+        0.0,
+        0.1563
+      ],
+      "objectDelta": [
+        0.0005,
+        0.0,
+        0.1313
+      ],
+      "objectLifted": 0.1313,
+      "contactForce": 9.8143,
+      "peakForce": 14.8963,
+      "contactSamples": 8,
+      "collisionCount": 0,
+      "stepsUsed": 260,
+      "stepBudget": 400,
+      "simTime": 0.52,
+      "wallTime": 0.093,
+      "note": "object lifted 0.131 m"
+    },
+    "paymentState": "SUCCESS",
+    "settled": true
+  },
+  "wallSeconds": 0.1581,
+  "note": "Real MuJoCo physics (gravity + contacts solved by the mujoco engine). This is the actual simulator backend the robot uses, not MockExecutor."
+}
