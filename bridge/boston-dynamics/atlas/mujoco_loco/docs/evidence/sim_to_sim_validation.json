@@ -1,0 +1,5 @@
+{
+  "robotId": "boston-dynamics-atlas",
+  "status": "skipped_windows_no_pybullet_wheel",
+  "ciRuns": true
+}

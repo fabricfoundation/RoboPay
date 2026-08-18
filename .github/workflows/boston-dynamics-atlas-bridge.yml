@@ -1,0 +1,66 @@
+name: boston-dynamics-atlas Tier 1 bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [boston-dynamics-atlas-tier-1]
+    paths:
+      - "bridge/boston-dynamics/atlas/**"
+      - ".github/workflows/boston-dynamics-atlas-bridge.yml"
+  pull_request:
+    paths:
+      - "bridge/boston-dynamics/atlas/**"
+      - ".github/workflows/boston-dynamics-atlas-bridge.yml"
+jobs:
+  syntax:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m compileall -q bridge/boston-dynamics/atlas/mujoco_loco
+
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/boston-dynamics/atlas/mujoco_loco/requirements.txt
+      - run: pytest -q bridge/boston-dynamics/atlas/mujoco_loco/tests/
+
+  sim2sim:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/boston-dynamics/atlas/mujoco_loco/requirements.txt
+      - run: pip install pybullet==3.2.7
+      - run: pytest -q bridge/boston-dynamics/atlas/mujoco_loco/tests/test_sim2sim.py
+
+  x402-gate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/boston-dynamics/atlas/mujoco_loco/requirements.txt
+      - run: pytest -q bridge/boston-dynamics/atlas/mujoco_loco/tests/test_x402.py bridge/boston-dynamics/atlas/mujoco_loco/tests/test_payment_gate.py
+
+  evidence:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r bridge/boston-dynamics/atlas/mujoco_loco/requirements.txt
+      - run: python -m flow.demo --all
+        working-directory: bridge/boston-dynamics/atlas/mujoco_loco
+      - run: python docs/evidence/render_evidence.py
+        working-directory: bridge/boston-dynamics/atlas/mujoco_loco

@@ -1,0 +1,7 @@
+{
+  "actionId": "act_boston_dynamics_atlas_navigate_obstacle_001",
+  "robotId": "boston-dynamics-atlas",
+  "skillId": "navigate_obstacle",
+  "params": {},
+  "idempotencyKey": "boston-dynamics-atlas-navigate_obstacle-001"
+}

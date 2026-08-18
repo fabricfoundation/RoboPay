@@ -1,0 +1,7 @@
+{
+  "actionId": "act_boston_dynamics_atlas_move_forward_001",
+  "robotId": "boston-dynamics-atlas",
+  "skillId": "move_forward",
+  "params": {},
+  "idempotencyKey": "boston-dynamics-atlas-move_forward-001"
+}

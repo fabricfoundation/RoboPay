@@ -1,0 +1,23 @@
+[
+  {
+    "skill_id": "move_forward",
+    "description": "Advance the Atlas biped forward by a goal distance using a deterministic stepping gait. Success when the torso reaches the goal within the step budget; otherwise a genuine physics timeout. pricing: amount: \"0.10\" amountAtomic: 100000 currency: USDC network: eip155:84532 settlement: on-success-only paramsSchema: type: object properties: goalDistance: type: number description: Target forward distance in metres minimum: 0.1 maximum: 8.0 default: 1.2 speed: type: number minimum: 0.0 maximum: 1.5 default: 0.6 additionalProperties: false failureModes: - reason: timeout description: Step budget exhausted before the goal distance was reached.",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {}
+  },
+  {
+    "skill_id": "navigate_obstacle",
+    "description": "Walk forward and step over a low curb to reach a goal X using the same gait. The swing foot lifts 0.14 m, clear of the curb, so the traversal is genuine geometry, not a teleport. pricing: amount: \"0.10\" amountAtomic: 100000 currency: USDC network: eip155:84532 settlement: on-success-only paramsSchema: type: object properties: goal_x: type: number description: Target X coordinate in metres default: 2.0 speed: type: number minimum: 0.0 maximum: 1.5 default: 0.6 additionalProperties: false failureModes: - reason: timeout description: Step budget exhausted before reaching the goal X.",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {}
+  },
+  {
+    "skill_id": "stop",
+    "description": "Hold the current pose; no forward motion. Always succeeds when paid, and proves the bounded / interruptible policy. pricing: amount: \"0.10\" amountAtomic: 100000 currency: USDC network: eip155:84532 settlement: on-success-only paramsSchema: type: object properties: {} additionalProperties: false failureModes: []",
+    "payment_required": true,
+    "price_usdc": "0.10",
+    "params": {}
+  }
+]

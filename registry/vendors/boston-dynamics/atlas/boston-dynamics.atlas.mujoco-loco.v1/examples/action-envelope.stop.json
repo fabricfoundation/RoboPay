@@ -1,0 +1,7 @@
+{
+  "actionId": "act_boston_dynamics_atlas_stop_001",
+  "robotId": "boston-dynamics-atlas",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "boston-dynamics-atlas-stop-001"
+}

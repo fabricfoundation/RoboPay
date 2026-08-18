@@ -1,0 +1,4 @@
+{
+  "robotId": "boston-dynamics-atlas",
+  "engine": "mujoco"
+}
