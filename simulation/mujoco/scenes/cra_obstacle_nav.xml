@@ -1,0 +1,26 @@
+<mujoco model="cra_obstacle_navigation">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.001" gravity="0 0 -9.81"/>
+  <default><joint armature="0.01" damping="0.1"/><geom condim="4" friction="1.0 0.005 0.0001"/></default>
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.4 0.4 0.4" rgb2="0.5 0.5 0.5" width="512" height="512"/>
+    <material name="grid_mat" texture="grid" texrepeat="10 10" reflectance="0.1"/>
+    <material name="obstacle_mat" rgba="0.8 0.2 0.2 1"/>
+    <material name="goal_mat" rgba="0.2 0.8 0.2 0.5"/>
+    <material name="robot_mat" rgba="0.3 0.3 0.3 1"/>
+  </asset>
+  <worldbody>
+    <geom name="ground" type="plane" size="20 20 0.1" material="grid_mat"/>
+    <light name="top" pos="0 0 10" dir="0 0 -1"/>
+    <body name="base" pos="0 0 0.3">
+      <inertial mass="10.0" pos="0 0 0" diaginertia="0.2 0.2 0.2"/>
+      <geom name="base_geom" type="cylinder" size="0.15 0.3" material="robot_mat"/>
+      <body name="link1" pos="0 0 0.3"><inertial mass="3" pos="0 0 0.2" diaginertia="0.05 0.05 0.05"/><joint name="joint1" type="hinge" axis="0 0 1" range="-3.14 3.14"/><geom name="l1" type="capsule" size="0.05" fromto="0 0 0 0 0 0.4" material="robot_mat"/><body name="link2" pos="0 0 0.4"><inertial mass="2" pos="0 0 0.2" diaginertia="0.03 0.03 0.03"/><joint name="joint2" type="hinge" axis="0 1 0" range="-1.5 1.5"/><geom name="l2" type="capsule" size="0.04" fromto="0 0 0 0 0 0.3" material="robot_mat"/><body name="ee" pos="0 0 0.3"><inertial mass="0.5" pos="0 0 0" diaginertia="0.005 0.005 0.005"/><geom name="ee_g" type="sphere" size="0.05" material="robot_mat"/></body></body></body>
+      <freejoint name="root"/>
+    </body>
+    <body name="obstacle_1" pos="2.5 0 0.5"><geom name="obs1" type="box" size="0.5 0.5 0.5" material="obstacle_mat"/></body>
+    <body name="obstacle_2" pos="5.0 1.5 0.5"><geom name="obs2" type="box" size="0.4 0.4 0.6" material="obstacle_mat"/></body>
+    <body name="obstacle_3" pos="7.0 -1.0 0.5"><geom name="obs3" type="cylinder" size="0.3 0.5" material="obstacle_mat"/></body>
+    <body name="goal" pos="10.0 0 0.05"><geom name="goal_geom" type="cylinder" size="0.3 0.05" material="goal_mat"/></body>
+  </worldbody>
+</mujoco>
