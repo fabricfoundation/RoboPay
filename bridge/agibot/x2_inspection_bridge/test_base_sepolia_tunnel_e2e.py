@@ -299,6 +299,20 @@ def main(argv: list[str] | None = None) -> int:
             client = x402ClientSync(); register_exact_evm_client(client, EthAccountSigner(account), networks=NETWORK)
             paid = x402_requests(client).post(action_url, json=action_body, timeout=120)
             if paid.status_code != 202 or paid.json().get("action_id") != action_id:
+                payment_error = None
+                encoded_error = paid.headers.get("PAYMENT-REQUIRED") or paid.headers.get("Payment-Required")
+                if encoded_error:
+                    try:
+                        payment_error = decode_header(encoded_error)
+                    except Exception as error:
+                        payment_error = {"decode_error": str(error)}
+                log.flush()
+                tunnel_log = log_path.read_text(encoding="utf-8", errors="replace")
+                failure_log = PACKAGE_ROOT / "artifacts" / "last_base_sepolia_tunnel_failure.log"
+                failure_log.parent.mkdir(parents=True, exist_ok=True)
+                failure_log.write_text(tunnel_log, encoding="utf-8")
+                print(f"[PAYMENT VERIFICATION DETAIL] {json.dumps(payment_error, sort_keys=True)}", flush=True)
+                print(f"[TUNNEL LOG] {failure_log}", flush=True)
                 raise RuntimeError(f"Paid action was not accepted: HTTP {paid.status_code}: {paid.text}")
             print(f"[ACTION] first cold-start paid action accepted HTTP 202 action_id={action_id}")
             status_url = f"{FABRIC_API_BASE}/robots/{robot_id}/action/{action_id}/status"
