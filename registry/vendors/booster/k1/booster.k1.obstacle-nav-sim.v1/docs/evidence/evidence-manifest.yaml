@@ -1,0 +1,200 @@
+schemaVersion: robopay-evidence.v1
+profileId: booster.k1.obstacle-nav-sim.v1
+
+claimBoundary:
+  scope: simulation-only
+  claimed: >-
+    (1) A real, unmocked policy-driven MuJoCo and Webots run of the
+    obstacle-avoidance skill, cross-validated by sim_to_sim_validate.py.
+    (2) A real, unmocked Go router/gate/watcher wiring
+    (tunnel/cmd/e2e_test.go) proving the payment-verification and
+    deferred-settlement contract against a recording facilitator:
+    zero facilitator calls for an unpaid request, exactly one Settle
+    call and only after a genuine success result, and zero additional
+    Settle calls for a failure result, a facilitator-side settlement
+    failure, or a replayed success result.
+    (3) A live, real-money-equivalent proof on Base Sepolia testnet
+    (BK1-LIVE-001): a wallet-signed EIP-3009 payment authorization,
+    verified against the real x402.org facilitator, gating a real
+    MuJoCo dispatch, settled only after that dispatch reported
+    success, with an on-chain USDC transfer independently verifiable
+    on Base Sepolia (tx 0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54).
+  notClaimed: >-
+    The production WebSocket/Fabric-proxy transport
+    (tunnel/internal/client.go) itself is not exercised end-to-end --
+    this environment cannot reach the Fabric proxy. BK1-LIVE-001
+    below substitutes an identical Gin router bound to a real local
+    TCP port instead. BK1-E2E-001 documents a real Zenoh session
+    against an earlier architecture where the bridge itself validated
+    payment fields in the Zenoh payload -- payment verification has
+    since moved entirely into the Go tunnel (see BK1-GO-E2E-001 and
+    BK1-LIVE-001), and the bridge no longer receives payment data at
+    all, so BK1-E2E-001 is retained only as historical evidence of
+    the bridge's dispatch/replay behavior, not of the current payment
+    gate.
+
+evidence:
+  - evidenceId: BK1-LIVE-001
+    scope: live-base-sepolia-real-facilitator-real-wallet-real-settlement
+    file: base-sepolia/live-payment-e2e.md
+    captureDate: 2026-08-14
+    source:
+      description: >-
+        A real wallet-signed EIP-3009 payment against the real
+        x402.org facilitator, on real Base Sepolia testnet, gating a
+        real MuJoCo dispatch, settled only after a real success
+        result -- run against tunnel/cmd/localserver, which reuses
+        the exact same router construction as tunnel/cmd/main.go
+        (only the transport differs: a real local TCP port instead of
+        the Fabric WebSocket proxy this environment cannot reach).
+      redaction: none -- the wallet is a fresh, dedicated testnet-only wallet.
+    trace:
+      wallet: "0xE7eB3Ff85Fbe0A4e8ba79e83Be6363F53B3dbbA2 (dedicated testnet wallet, funded via the official Base Sepolia bridge and Circle's testnet USDC faucet)"
+      actionId: f332a0d7-df3e-4f33-a3f7-9f9318d983aa
+      flow: "402 -> signed EIP-3009 payment -> 202 accepted -> real MuJoCo dispatch (status=success, distance_to_goal_m=0.2979) -> robot/tunnel/result -> ExecutionWatcher settle -> state=succeeded, settled=true"
+      onChainTransaction: "0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54"
+      explorer: "https://sepolia.basescan.org/tx/0xa2bfff89404f026f40f8c5782fd533ca9eeaa51017804aea4be467750443bf54"
+      independentlyVerified: "web3.py eth_getTransactionReceipt against https://sepolia.base.org: status=1 (SUCCESS), block 45462806"
+    visibleEvidence:
+      - "GIN log: 402 then 202 on POST /action, both against a real HTTP request"
+      - "settlement_watcher.go log: 'execution watcher: settled' with the real transaction hash"
+      - "GET /action/:id/status returning state=succeeded, settled=true"
+      - "on-chain transaction receipt with status=1, independently re-fetchable by anyone via any Base Sepolia RPC"
+    limitations:
+      - >-
+        Payee and payer are the same wallet (a deliberate
+        simplification to isolate and prove the payment mechanism
+        without needing a second funded wallet); the facilitator
+        interaction and on-chain settlement are identical regardless
+        of whether payer and payee differ.
+      - >-
+        Uses tunnel/cmd/localserver (a real local TCP listener), not
+        the production Fabric WebSocket proxy transport
+        (tunnel/internal/client.go), which this environment cannot
+        reach. The router and all payment-gate/settlement code is
+        byte-for-byte identical to tunnel/cmd/main.go; only the
+        transport differs.
+
+  - evidenceId: BK1-GO-E2E-001
+    scope: real-go-router-gate-watcher-against-recording-facilitator
+    file: ../../../../../../../tunnel/cmd/e2e_test.go
+    captureDate: 2026-08-11
+    source:
+      description: >-
+        Go test file exercising the production gin.Engine wiring
+        (X402VerifyOnly middleware + PostAction + GetActionStatus),
+        the production ExecutionWatcher, and the production
+        IdempotencyStore, all unmodified from tunnel/cmd/main.go's
+        real construction -- only the FacilitatorClient is a
+        recording fake (no real network/funds).
+      redaction: none -- no secrets; all identifiers are synthetic test values.
+    trace:
+      unpaidRequest:
+        request: "POST /action with no PAYMENT-SIGNATURE header"
+        result: "402, zero Verify calls, zero Settle calls"
+      genuineSuccess:
+        request: "ExecutionWatcher.HandleResult({actionId, status: success}) for a reserved action with stored payment data"
+        result: "exactly 1 Settle call; state=succeeded, settled=true"
+      failureResult:
+        request: "ExecutionWatcher.HandleResult({actionId, status: error})"
+        result: "0 Settle calls; settled remains false"
+      replayedSuccess:
+        request: "the same success result delivered a second time for an already-settled actionId"
+        result: "0 additional Settle calls"
+      settlementFailure:
+        request: "genuine success result, but the (fake) facilitator's Settle returns success=false"
+        result: "state=settlement_failed, settled=false -- never upgraded to success"
+    visibleEvidence:
+      - "go test ./cmd/... -v: TestE2E_ValidPaidAction_VerifiesOnceDispatchesOnceSettlesOnlyAfterSuccess PASS"
+      - "go test ./cmd/... -v: TestE2E_SettlementOnlyAfterTerminalSuccess PASS"
+      - "go test ./cmd/... -v: TestE2E_SettlementFailure_DoesNotMarkSettled PASS"
+    limitations:
+      - No real x402 facilitator network call; no live Base Sepolia transaction.
+      - >-
+        Does not exercise the WebSocket/Fabric-proxy transport layer
+        (tunnel/internal/client.go) -- tests call the gin.Engine
+        directly via httptest, which is the same http.Handler the
+        real WS client dispatches into, so the payment/settlement
+        logic under test is identical, but the proxy transport itself
+        is untested here.
+
+  - evidenceId: BK1-E2E-001
+    status: historical -- describes an earlier architecture, retained for
+      the record rather than deleted
+    file: terminal/bridge-e2e-session.log
+    sha256: 705cbe3ebc54e22c211268abf5b686e942160bcb1f5cbbb9fb7c648b365a2876
+    bytes: 2184
+    format: plain-text-log
+    captureDate: 2026-08-01
+    scope: real-bridge-real-zenoh-real-mujoco-three-scenarios-old-architecture
+    source:
+      description: >-
+        Direct terminal output from an earlier version of
+        bridge/booster_k1_zenoh_bridge.py, from before payment
+        verification moved into the Go tunnel. At the time, the
+        bridge itself parsed and validated payment fields
+        (payment.verified, payment.status, etc.) carried directly in
+        the robot/tunnel/action Zenoh payload; that code
+        (action_validator.py) has since been deleted as dead code,
+        because the tunnel no longer publishes payment fields to
+        Zenoh at all. This log remains accurate evidence of the
+        bridge's dispatch-once and replay-rejection behavior, which
+        is unchanged in the current architecture (see test_bridge.py);
+        it is NOT current evidence of how payment is verified.
+      redaction: >-
+        none -- no secrets, wallet addresses, or personal data appear
+        in bridge log output (payment fields in the demo envelopes
+        were synthetic placeholder values, not real credentials).
+    trace:
+      scenario1:
+        actionId: act_12936446e2a44324
+        request: "payment.verified=true, status=authorized, settled=false"
+        result: "status=success, distance_to_goal_m=0.2979, path_length_m=5.4299, collision_count=0"
+        simulatorDispatched: true
+      scenario2:
+        actionId: act_f5cb658f626443d9
+        request: "payment.verified=false"
+        result: "status=rejected, errorCode=payment_not_verified"
+        simulatorDispatched: false
+      scenario3:
+        actionId: "act_12936446e2a44324 (replay of scenario1)"
+        request: "same actionId, new idempotencyKey and authorizationId"
+        result: "status=rejected, errorCode=replay_detected"
+        simulatorDispatched: false
+    limitations:
+      - Describes a bridge-level payment check that no longer exists in the current code.
+      - Synthetic x402 payment fields, not a real Tunnel/x402 payment flow.
+      - >-
+        Single-process, single-session demonstration; does not cover
+        concurrent multi-client load or a distributed replay-guard store.
+
+  - evidenceId: BK1-MUJOCO-001
+    file: ../../simulation/mujoco/results/metrics.json
+    scope: real-mujoco-physics-run
+    captureDate: 2026-08-01
+    trace:
+      status: success
+      distance_to_goal_m: 0.2979
+      path_length_m: 5.4299
+      collision_count: 0
+      sim_time_sec: 30.5
+    limitations:
+      - K1 base is a geometric proxy, not an official CAD model.
+
+  - evidenceId: BK1-WEBOTS-001
+    file: ../../simulation/webots/results/metrics.json
+    scope: real-webots-physics-run-independent-engine-same-policy
+    captureDate: 2026-08-01
+    trace:
+      status: success
+      distance_to_goal_m: 0.2984
+      path_length_m: 5.3593
+      collision_count: 0
+      sim_time_sec: 9.9
+    limitations:
+      - K1 base is a geometric proxy, not an official CAD model.
+      - >-
+        Base motion is applied kinematically (direct pose integration)
+        rather than through a wheeled/actuator physics model, since
+        the proxy has no drivetrain of its own; documented in
+        docs/validation-report.md.

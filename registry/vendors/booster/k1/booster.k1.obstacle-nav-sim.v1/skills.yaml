@@ -1,0 +1,24 @@
+schemaVersion: robot-skills.v1
+profileId: booster.k1.obstacle-nav-sim.v1
+
+skills:
+  - skillId: k1_navigate_avoid_obstacles
+    name: Navigate to goal with obstacle avoidance
+    description: >-
+      Runs a DWA-based local planner policy that drives the simulated
+      Booster K1 base from its current pose to a target (x, y) goal
+      pose while avoiding static obstacles placed in the scene.
+    tier: 1
+    customBehavior: true
+    params:
+      goal_x: {type: number, required: true}
+      goal_y: {type: number, required: true}
+      max_time_sec: {type: number, required: false, default: 60}
+    paymentRequired: true
+    timeoutSec: 90
+    safety:
+      requiresIdlePolicy: true
+      emergencyStop: "stop action zeroes all actuator commands immediately, no payment required"
+      softwareFailureAction: "publish result status=error, halt policy loop, never retry automatically"
+    implementation:
+      source: simulation/common_policy/dwa_planner.py

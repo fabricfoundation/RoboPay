@@ -1,0 +1,118 @@
+name: booster-k1-obstacle-nav-sim tests
+
+on:
+  pull_request:
+    paths:
+      - 'registry/vendors/booster/k1/booster.k1.obstacle-nav-sim.v1/**'
+      - 'bridge/common/zenoh_bridge/zenoh_bridge/action_event.py'
+      - 'tunnel/**'
+  push:
+    branches:
+      - booster-k1-tier-1
+    paths:
+      - 'registry/vendors/booster/k1/booster.k1.obstacle-nav-sim.v1/**'
+      - 'bridge/common/zenoh_bridge/zenoh_bridge/action_event.py'
+      - 'tunnel/**'
+
+jobs:
+  python-simulation-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: registry/vendors/booster/k1/booster.k1.obstacle-nav-sim.v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install mujoco numpy scipy pyyaml eclipse-zenoh pytest
+
+      - name: Run unit + integration tests
+        run: python3 -m pytest tests/ -v
+
+      - name: Run MuJoCo simulation
+        run: |
+          cd simulation/mujoco
+          python3 runner.py --goal_x 5.0 --goal_y 0.0 --max_time_sec 60
+
+      - name: Verify MuJoCo run succeeded
+        run: |
+          python3 -c "
+          import json
+          with open('simulation/mujoco/results/metrics.json') as f:
+              m = json.load(f)
+          assert m['status'] == 'success', f'MuJoCo run did not succeed: {m[\"status\"]}'
+          assert m['collision_count'] == 0
+          print('MuJoCo run OK:', m['status'], m['distance_to_goal_m'])
+          "
+
+      - name: Sim-to-sim comparison against committed Webots baseline
+        run: |
+          python3 simulation/sim_to_sim_validate.py --skip-run
+        # Note: Webots itself is not run in CI -- it requires a GUI/extern-
+        # controller session (see docs/README.md). This step compares the
+        # freshly-generated MuJoCo results.json against the Webots
+        # results.json committed to the repo from the last manual run.
+
+  tunnel-payment-gate-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tunnel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tunnel/go.mod
+
+      - name: Install zenoh-c (Cgo dependency of zenoh-go)
+        run: |
+          curl -fsSL -o /tmp/zc.zip \
+            "https://github.com/eclipse-zenoh/zenoh-c/releases/download/1.9.0/zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip"
+          unzip -q /tmp/zc.zip -d /tmp/zenoh-c
+
+      - name: Build
+        env:
+          CGO_CFLAGS: "-I/tmp/zenoh-c/include"
+          CGO_LDFLAGS: "-L/tmp/zenoh-c/lib -lzenohc"
+          LD_LIBRARY_PATH: "/tmp/zenoh-c/lib"
+        run: go build ./...
+
+      - name: Vet
+        env:
+          CGO_CFLAGS: "-I/tmp/zenoh-c/include"
+          CGO_LDFLAGS: "-L/tmp/zenoh-c/lib -lzenohc"
+          LD_LIBRARY_PATH: "/tmp/zenoh-c/lib"
+        run: go vet ./...
+
+      - name: gofmt check
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not gofmt-formatted:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
+      - name: Test (fail-closed gate, idempotency, deferred settlement, e2e)
+        env:
+          CGO_CFLAGS: "-I/tmp/zenoh-c/include"
+          CGO_LDFLAGS: "-L/tmp/zenoh-c/lib -lzenohc"
+          LD_LIBRARY_PATH: "/tmp/zenoh-c/lib"
+        run: go test ./... -v
+        # Covers, among the shared tunnel package's existing tests:
+        # internal/handlers (fail-closed allowlist, async 202/status
+        # contract, durable restart-surviving idempotency, verify-only
+        # x402 gate, deferred-settlement execution watcher) and cmd
+        # (end-to-end wiring against a recording facilitator, proving
+        # settlement happens exactly once and only after a genuine
+        # success result -- see docs/README.md and
+        # docs/task-traceability.md in the booster-k1 profile for the
+        # full breakdown).

@@ -1,0 +1,25 @@
+{
+  "actionId": "act_01HZX3K7N9QW0000000000EXAMPLE",
+  "robotId": "booster-k1-sim-01",
+  "skillId": "k1_navigate_avoid_obstacles",
+  "params": {
+    "goal_x": 5.0,
+    "goal_y": 0.0,
+    "max_time_sec": 60
+  },
+  "paramsHash": "sha256:REPLACED_AT_RUNTIME",
+  "idempotencyKey": "idem_01HZX3K7N9QW0000000000EXAMPLE",
+  "payment": {
+    "provider": "x402",
+    "authorizationId": "auth_EXAMPLE_0000000000000000",
+    "verified": true,
+    "status": "authorized",
+    "settled": false,
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "1000",
+    "payTo": "0xREPLACE_WITH_ROBOT_PAYEE_ADDRESS",
+    "issuedAt": "2026-07-31T10:00:00Z",
+    "expiresAt": "2026-07-31T10:05:00Z"
+  }
+}

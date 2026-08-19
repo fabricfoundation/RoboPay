@@ -1,0 +1,24 @@
+[2026-08-01 12:29:18,907] [booster-k1-bridge] INFO: Opening Zenoh session...
+[2026-08-01 12:29:19,425] [booster-k1-bridge] INFO: Subscribed to robot/tunnel/action, publishing results to robot/tunnel/result
+[2026-08-01 12:29:19,425] [booster-k1-bridge] INFO: Bridge running. Press Ctrl+C to stop.
+[2026-08-01 12:36:30,624] [booster-k1-bridge] INFO: Dispatching action_id=act_12936446e2a44324 to MuJoCo simulator with params={'goal_x': 5.0, 'goal_y': 0.0, 'max_time_sec': 60}
+[2026-08-01 12:36:31,819] [booster-k1-bridge] INFO: Published result actionId=act_12936446e2a44324 status=success
+[2026-08-01 12:42:16,126] [booster-k1-bridge] WARNING: Rejected action_id=act_f5cb658f626443d9: payment_not_verified: payment.verified must be true
+[2026-08-01 12:42:16,126] [booster-k1-bridge] INFO: Published result actionId=act_f5cb658f626443d9 status=rejected
+[2026-08-01 12:43:09,115] [booster-k1-bridge] WARNING: Rejected replay for action_id=act_12936446e2a44324: replay detected (actionId already used): original='act_12936446e2a44324|booster-k1-sim-01|k1_navigate_avoid_obstacles|sha256:ed47843118e1b19a106bf83d9d3433c8ac1c9bd7a93fb80b6431c15cff02b43a|auth_a22de2277e354474' new='act_12936446e2a44324|booster-k1-sim-01|k1_navigate_avoid_obstacles|sha256:ed47843118e1b19a106bf83d9d3433c8ac1c9bd7a93fb80b6431c15cff02b43a|auth_act_12936446e2a44324'
+[2026-08-01 12:43:09,115] [booster-k1-bridge] INFO: Published result actionId=act_12936446e2a44324 status=rejected
+
+# Corresponding client-side results (from demo/send_test_action.py):
+#
+# 1. Valid paid action (act_12936446e2a44324):
+#    status=success, metrics: distance_to_goal_m=0.2979, path_length_m=5.4299,
+#    collision_count=0, sim_time_sec=30.5
+#
+# 2. Unpaid action (act_f5cb658f626443d9, payment.verified=false):
+#    status=rejected, errorCode=payment_not_verified,
+#    errorMessage="payment.verified must be true"
+#    -> simulator was NOT dispatched (no "Dispatching..." log line for this actionId)
+#
+# 3. Replay of act_12936446e2a44324 (same actionId, new idempotencyKey/authorizationId):
+#    status=rejected, errorCode=replay_detected
+#    -> simulator was NOT dispatched a second time (no second "Dispatching..." log line)
