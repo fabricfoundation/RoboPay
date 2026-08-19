@@ -65,6 +65,7 @@ $env:PYTHONPATH = $PSScriptRoot
 $env:AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS = [string]$FinalHoldSeconds
 $env:AGIBOT_X2_TARGET_HOLD_SECONDS = [string]$TargetHoldSeconds
 $env:AGIBOT_X2_VIEWER_START_HOLD_SECONDS = [string]$ViewerStartSeconds
+$env:AGIBOT_X2_TUNNEL_BACKEND = 'wsl'
 $env:ROBO_PAY_COMMIT_SHA = $commitSha
 
 $layoutJob = $null
@@ -161,6 +162,7 @@ if ($layoutJob -ne $null) {
 }
 Remove-Item Env:PRIVATE_KEY -ErrorAction SilentlyContinue
 Remove-Item Env:BASE_SEPOLIA_PRIVATE_KEY -ErrorAction SilentlyContinue
+Remove-Item Env:AGIBOT_X2_TUNNEL_BACKEND -ErrorAction SilentlyContinue
 Remove-Item Env:ROBO_PAY_COMMIT_SHA -ErrorAction SilentlyContinue
 $privateKey = $null
 if ($PauseAfter) {
