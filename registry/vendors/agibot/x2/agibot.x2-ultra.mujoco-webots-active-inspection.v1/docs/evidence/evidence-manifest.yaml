@@ -52,6 +52,7 @@ trusted_json:
 
 binding_note: >-
   The recording executes source commit 85fc5106bc40622985b7a62f7d23f82dbe489a08.
-  The following commit changes only documentation and adds these immutable
-  evidence artifacts; it does not change the Tunnel, controller, simulator,
-  profile contract, or recorded execution path.
+  Later commits only add these immutable evidence artifacts and make official
+  model hash verification invariant to Git LF/CRLF checkout conversion; they
+  do not change the Tunnel, controller, simulator behavior, profile contract,
+  or recorded execution path.

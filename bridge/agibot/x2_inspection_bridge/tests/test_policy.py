@@ -2,19 +2,22 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from download_x2_model import _file_sha256
+from download_x2_model import _file_sha256, _official_text_sha256
 from x2_inspection_bridge.control_core import X2InspectionControlCore, TARGET_POSES
 from x2_inspection_bridge.runner import run_inspection
 
 
 class X2PolicyTests(unittest.TestCase):
-    def test_model_hash_binds_exact_upstream_blob(self):
+    def test_model_hash_normalizes_checkout_line_endings(self):
         with tempfile.TemporaryDirectory() as temporary:
             lf_path = Path(temporary) / "lf.xml"
             crlf_path = Path(temporary) / "crlf.xml"
             lf_path.write_bytes(b"<model>\n  <joint/>\n</model>\n")
             crlf_path.write_bytes(b"<model>\r\n  <joint/>\r\n</model>\r\n")
             self.assertNotEqual(_file_sha256(lf_path), _file_sha256(crlf_path))
+            self.assertEqual(
+                _official_text_sha256(lf_path), _official_text_sha256(crlf_path)
+            )
 
     def test_feedback_is_required_before_target_advances(self):
         policy = X2InspectionControlCore(("left",))

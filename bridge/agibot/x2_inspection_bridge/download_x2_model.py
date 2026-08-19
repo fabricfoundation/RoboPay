@@ -19,6 +19,12 @@ def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _official_text_sha256(path: Path) -> str:
+    """Hash the upstream text blob independent of Git checkout line endings."""
+    content = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(content).hexdigest()
+
+
 def _verify(directory: Path, lock: dict) -> None:
     for filename_key, hash_key in (
         ("mjcf", "mjcfSha256"),
@@ -26,9 +32,10 @@ def _verify(directory: Path, lock: dict) -> None:
         ("webotsUrdf", "webotsUrdfSha256"),
     ):
         path = directory / lock[filename_key]
-        # These hashes bind the exact blobs published by the pinned upstream
-        # commit, including its line endings.
-        actual = _file_sha256(path)
+        # Git may materialize the official XML/URDF blobs with CRLF on Windows.
+        # Canonicalizing that checkout-only difference keeps the lock bound to
+        # the exact LF blobs at the pinned upstream commit on every CI host.
+        actual = _official_text_sha256(path)
         if actual != lock[hash_key]:
             raise RuntimeError(f"Pinned AGIBot X2 hash mismatch for {path.name}: {actual}")
     if not (directory / "LICENSE").is_file():
@@ -51,7 +58,19 @@ def download(destination: Path = DEFAULT_DESTINATION) -> Path:
         )
         subprocess.run(["git", "-C", str(checkout), "fetch", "--depth", "1", "origin", lock["commit"]], check=True)
         subprocess.run(["git", "-C", str(checkout), "checkout", "--detach", lock["commit"]], check=True)
-        subprocess.run(["git", "-C", str(checkout), "sparse-checkout", "set", lock["directory"]], check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(checkout),
+                "sparse-checkout",
+                "set",
+                "--skip-checks",
+                lock["directory"],
+                "LICENSE",
+            ],
+            check=True,
+        )
         source = checkout / lock["directory"]
         if not (source / lock["mjcf"]).is_file() or not (source / lock["urdf"]).is_file():
             raise RuntimeError(f"Pinned AGIBot X2 model is incomplete: {source}")
