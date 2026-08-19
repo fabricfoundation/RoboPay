@@ -1,6 +1,6 @@
 # Atlas MuJoCo Obstacle Navigation — Validation Report
 
-**Profile:** `boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1`
+**Profile:** `boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1`
 **Robot Model:** MuJoCo Humanoid (Atlas locomotion)
 **Date:** 2026-08-18
 

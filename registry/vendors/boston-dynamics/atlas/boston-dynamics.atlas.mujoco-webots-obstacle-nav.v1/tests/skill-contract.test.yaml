@@ -1,5 +1,5 @@
 schemaVersion: skill-contract-test.v1
-profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+profileId: boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1
 tests:
   - name: navigate_obstacles_valid_params
     action: navigate_obstacles

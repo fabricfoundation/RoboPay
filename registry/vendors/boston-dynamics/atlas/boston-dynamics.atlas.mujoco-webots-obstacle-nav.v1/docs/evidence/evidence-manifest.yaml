@@ -1,5 +1,5 @@
 evidence_manifest:
-  profile_id: "boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1"
+  profile_id: "boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1"
   robot_model: "MuJoCo Humanoid (Atlas locomotion)"
   model_source: "google-deepmind/mujoco humanoid.xml"
   model_license: "Apache-2.0"

@@ -1,5 +1,5 @@
 schemaVersion: robot-skills.v1
-profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+profileId: boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1
 skills:
   - skillId: navigate_obstacles
     description: >-

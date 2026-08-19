@@ -1,6 +1,6 @@
 # Atlas MuJoCo Obstacle Navigation
 
-**Profile:** `boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1`
+**Profile:** `boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1`
 
 ## Overview
 
@@ -37,11 +37,11 @@ Client → x402 → Tunnel → Zenoh → bridge.py → runner.py → MuJoCo
 ## Running
 
 ```bash
-python -m bridge.boston_dynamics.atlas_mujoco_bridge.runner --viewer
+python -m bridge.boston-dynamics.atlas_mujoco_bridge.runner --viewer
 ```
 
 ## Tests
 
 ```bash
-python -m pytest bridge/boston_dynamics/atlas_mujoco_bridge/tests/ -v
+python -m pytest bridge/boston-dynamics/atlas_mujoco_bridge/tests/ -v
 ```

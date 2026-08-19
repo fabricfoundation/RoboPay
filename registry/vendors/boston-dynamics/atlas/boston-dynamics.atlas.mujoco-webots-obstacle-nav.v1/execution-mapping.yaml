@@ -1,15 +1,15 @@
 schemaVersion: execution-mapping.v1
-profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+profileId: boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1
 transport:
   type: zenoh
   actionTopic: robot/tunnel/action
   resultTopic: robot/tunnel/result
-  metricsTopic: robot/boston_dynamics_atlas/metrics
-  readyTopic: robot/boston_dynamics_atlas/ready
+  metricsTopic: robot/boston-dynamics_atlas/metrics
+  readyTopic: robot/boston-dynamics_atlas/ready
 bridge:
-  path: bridge/boston_dynamics/atlas_mujoco_bridge
+  path: bridge/boston-dynamics/atlas_mujoco_bridge
   entry: bridge.py:main
-  module: bridge.boston_dynamics.atlas_mujoco_bridge.bridge
+  module: bridge.boston-dynamics.atlas_mujoco_bridge.bridge
 policy:
   type: online
   description: >

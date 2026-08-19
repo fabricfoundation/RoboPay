@@ -1,5 +1,5 @@
 schemaVersion: payment-policy.v1
-profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+profileId: boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1
 network: eip155:84532
 facilitatorUrl: https://x402.org/facilitator
 deferred: true

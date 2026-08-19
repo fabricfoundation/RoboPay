@@ -10,7 +10,7 @@ import yaml
 from bridge.boston_dynamics.atlas_mujoco_bridge.bridge import PROFILE_ID, ROBOT_ID, ALLOWED_ACTIONS
 from bridge.boston_dynamics.atlas_mujoco_bridge.control_core import POLICY_ID, ACTUATOR_ORDER
 
-REGISTRY_DIR = Path(__file__).resolve().parents[4] / "registry" / "boston_dynamics" / "atlas" / PROFILE_ID
+REGISTRY_DIR = Path(__file__).resolve().parents[4] / "registry" / "vendors" / "boston-dynamics" / "atlas" / PROFILE_ID
 
 
 def _load_yaml(name: str) -> dict:
@@ -28,7 +28,7 @@ def _load_json(name: str) -> dict:
 def test_profile_matches_bridge():
     profile = _load_yaml("robot.profile.yaml")
     assert profile["profileId"] == PROFILE_ID
-    assert profile["vendor"] == "boston_dynamics"
+    assert profile["vendor"] == "boston-dynamics"
     assert "robotModel" in profile
 
 

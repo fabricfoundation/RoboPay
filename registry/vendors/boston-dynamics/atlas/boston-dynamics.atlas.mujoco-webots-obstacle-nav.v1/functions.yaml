@@ -1,5 +1,5 @@
 schemaVersion: agent-functions.v1
-profileId: boston_dynamics.atlas.mujoco-webots-obstacle-nav.v1
+profileId: boston-dynamics.atlas.mujoco-webots-obstacle-nav.v1
 functions:
   - name: get_robot_profile
     method: GET
