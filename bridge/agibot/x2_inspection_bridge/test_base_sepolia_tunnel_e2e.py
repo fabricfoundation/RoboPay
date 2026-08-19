@@ -309,6 +309,19 @@ def main(argv: list[str] | None = None) -> int:
                     terminal = response.json(); break
                 time.sleep(2)
             if not terminal or terminal.get("state") != "succeeded" or not terminal.get("settled"):
+                log.flush()
+                tunnel_log = log_path.read_text(encoding="utf-8", errors="replace")
+                failure_log = PACKAGE_ROOT / "artifacts" / "last_base_sepolia_tunnel_failure.log"
+                failure_log.parent.mkdir(parents=True, exist_ok=True)
+                failure_log.write_text(tunnel_log, encoding="utf-8")
+                relevant = [
+                    line for line in tunnel_log.splitlines()
+                    if any(token in line.lower() for token in ("settle", "error", "fail", "warn"))
+                ]
+                if relevant:
+                    print("[TUNNEL FAILURE DETAIL]", flush=True)
+                    print("\n".join(relevant[-20:]), flush=True)
+                print(f"[TUNNEL LOG] {failure_log}", flush=True)
                 raise RuntimeError(f"Execution or settlement failed: {terminal}")
             print("[RESULT] correlated X2 execution state=succeeded")
             settlement = terminal.get("settlement") or {}; tx_hash = settlement.get("transaction") or settlement.get("txHash")
