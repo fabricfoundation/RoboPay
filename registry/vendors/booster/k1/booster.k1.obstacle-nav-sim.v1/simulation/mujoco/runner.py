@@ -50,7 +50,7 @@ def check_collision(model, data):
     return False
 
 
-def run(goal_x, goal_y, max_time_sec, dt=0.01, headless=True):
+def run(goal_x, goal_y, max_time_sec, dt=0.01):
     model = mujoco.MjModel.from_xml_path(SCENE_PATH)
     data = mujoco.MjData(model)
     cfg = DWAConfig()
