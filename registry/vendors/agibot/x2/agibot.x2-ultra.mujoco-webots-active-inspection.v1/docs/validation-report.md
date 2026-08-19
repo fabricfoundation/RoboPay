@@ -59,16 +59,23 @@ The workflow requires:
   returned HTTP 402 with zero ActionEvents, simulator commands, and settlement
   calls; failure, timeout, idempotency replay, and payment replay also made zero
   settlement calls.
-- [x] Real Fabric Gateway dry-run from Windows through the Docker-hosted Tunnel:
+- [x] Real Fabric Gateway dry-run from Windows through the WSL-hosted Tunnel:
   subscriber readiness, no warm-up action, correct skill discovery, and unpaid
   HTTP 402; no payment was signed or submitted.
-- [ ] Trusted Base Sepolia action and settlement: not yet captured.
-- [ ] Continuous current-HEAD visual recording: not yet captured.
+- [x] Trusted Base Sepolia action and settlement: source commit `85fc510`,
+  unpaid HTTP 402, first paid HTTP 202, correlated action
+  `x2-active-inspection-1787121070`, all three targets confirmed, and settlement
+  transaction `0x03032a66...d8d8e5` on Base Sepolia.
+- [x] Continuous source-bound visual recording: 43.966667 s at 1280x720 with
+  the readable terminal and complete native MuJoCo viewer shown together,
+  including the matching BaseScan success page. Recording SHA-256:
+  `66205eb1596fabec391baa84c49bf7734fb1cf3587a23a73202d54c8c4cfcaf6`.
 
 Machine-readable local outputs are written to
-`bridge/agibot/x2_inspection_bridge/artifacts/`. Generated model files, PROTOs,
-runtime receipts, and secrets remain ignored until an evidence run is reviewed
-and intentionally bound in the manifest.
+`bridge/agibot/x2_inspection_bridge/artifacts/`. The reviewed live receipt and
+recording are intentionally copied into `docs/evidence/` and bound by the
+manifest; generated models, PROTOs, unreviewed runtime receipts, and secrets
+remain ignored.
 
 ## Safety and limitations
 

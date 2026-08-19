@@ -177,9 +177,10 @@ in the evidence manifest only after a successful recording.
   derivative and should finish quickly.
 - **Webots is not found on Windows:** set `WEBOTS_EXE` to
   `.../Webots/msys64/mingw64/bin/webots.exe`.
-- **Tunnel binary missing during recording:** start Docker Desktop and rerun the
-  PowerShell launcher; it builds the Linux Tunnel automatically without copying
-  the payer key into the container.
+- **Tunnel binary missing during recording:** build it once with `make build`
+  in Ubuntu 22.04/WSL. The PowerShell launcher then runs that binary through
+  WSL while the Python signer, Zenoh router, bridge, and MuJoCo viewer remain
+  native on Windows; the payer key is not forwarded to the Tunnel process.
 - **Paid request remains HTTP 402:** verify the funded Base Sepolia payer,
   payee address, facilitator URL, network `eip155:84532`, and the
   `PAYMENT-REQUIRED` challenge. Never print the private key.

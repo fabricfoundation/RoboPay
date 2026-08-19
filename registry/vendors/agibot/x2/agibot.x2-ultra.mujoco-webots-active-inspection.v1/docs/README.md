@@ -16,6 +16,9 @@ Price is 0.001 USDC on Base Sepolia (`eip155:84532`). The deployment payee is
 supplied by `ROBO_PAYEE_ADDRESS`; no identity or payment private key is stored
 in this profile.
 
-Future continuous paid-action recording and trusted JSON evidence are tracked
-without fabricated placeholders in
-[`evidence/evidence-manifest.yaml`](evidence/evidence-manifest.yaml).
+The source-bound continuous paid-action recording, trusted JSON receipt,
+action ID, Base Sepolia transaction, and content hashes are recorded in
+[`evidence/evidence-manifest.yaml`](evidence/evidence-manifest.yaml). The
+versioned [recording](evidence/agibot-x2-current-head-85fc510.mp4) keeps the
+terminal and native MuJoCo viewer visible through the complete three-target
+action and matching BaseScan receipt.
