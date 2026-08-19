@@ -128,7 +128,7 @@ class AtlasObstacleCourseEnvironment:
         standing_qpos = np.zeros(self.model.nq)
         standing_qpos[0] = 0.0
         standing_qpos[1] = 0.0
-        standing_qpos[2] = 1.34
+        standing_qpos[2] = 0.92
         standing_qpos[3] = 1.0
         standing_qpos[4] = 0.0
         standing_qpos[5] = 0.0
