@@ -69,6 +69,10 @@ artifacts:
     description: "One real payment: live facilitator acceptance, execution, and 0.001 USDC settled on Base Sepolia, bound to the action_id"
     bytes: 6726
     sha256: b5a69f69115f1b9bccedefa230fba9948f177908a0dbfe0ce8ac6ec8113c6e42
+  - path: docs/evidence/fabric-relay-e2e.json
+    description: "The whole path with nothing stood in for: hosted Fabric relay, robot and skill discovery, priced 402, paid action, Zenoh, Atlas 3/3, relay terminal status, and 0.001 USDC settled bound to the action_id"
+    bytes: 10893
+    sha256: 356d223170ee72d08f3fe91a4979b67e962f807d1eb6469326ecc574a3cb253f
 settlement:
   paid_action:
     note: >-
@@ -93,6 +97,21 @@ settlement:
       which is what EIP-3009 is for and why the payer needs no ETH. It is also
       independent evidence that this settlement went through the live
       facilitator rather than being self-submitted.
+  fabric_relay_action:
+    note: >-
+      The settlement for the action that ran through the hosted Fabric relay.
+      Its nonce is keccak256(action_id) too, so it is bound to that action and
+      not to any other. Settled by the tunnel's own middleware as part of
+      accepting the payment, which on this path happens before the episode runs.
+    action_id: "atlas-inspect-1787183132"
+    transaction: "0x34d34a9d931c92f32ad0e993fc5c72bf730cdadea6826ebf0de821fe41ed4cc5"
+    explorer: https://sepolia.basescan.org/tx/0x34d34a9d931c92f32ad0e993fc5c72bf730cdadea6826ebf0de821fe41ed4cc5
+    block: 45707426
+    transferred: 0.001 USDC
+    payer: "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
+    payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
+    authorization_nonce: "0xf9b407f71dcb43a228accbb062920bf60425237c5bce55c7acf66a9567e08730"
+    submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
   earlier_transfer:
     note: >-
       An earlier 1.0 USDC transfer between two test wallets, kept because the
@@ -117,3 +136,4 @@ reproduce:
   - python -m bridge.boston_dynamics.atlas_bridge.demo_go_tunnel --tunnel <built tunnel>
   - python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence
   - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.real_paid_run --payer <funded wallet>
+  - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e --tunnel <built tunnel>

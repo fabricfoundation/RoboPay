@@ -29,6 +29,7 @@ one rests on.
 | Real Go tunnel | The repository's own tunnel refuses unpaid and forged actions | `go-tunnel-e2e-evidence.json` |
 | Idempotency | A payment-validated action actuates the robot once, across restarts | `tests/test_idempotency.py` |
 | Paid action | A live-facilitator-verified payment executed the skill and settled 0.001 USDC, bound to the `action_id` | `real-paid-run.json` |
+| Full relay path | Discovery, priced 402, paid action, execution and settlement through the **hosted Fabric relay** with nothing stood in for | `fabric-relay-e2e.json` |
 | On-chain settlement | The settlement transaction, re-read from a public RPC | `real-paid-run.json`, `onchain-settlement.json` |
 
 ## 2. Model integrity
@@ -381,7 +382,64 @@ python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence
 The command exits non-zero if the transaction is missing, reverted, or carries
 no USDC `Transfer`.
 
-## 9. Reproducing
+## 9. The whole path, with nothing stood in for
+
+Two substitutions ran through the sections above, and this one removes both.
+`demo_go_tunnel.py` drives the real tunnel but stands in for the hosted Fabric
+backend with a local WebSocket proxy; `real_paid_run.py` settles a real payment
+but reaches the robot over Zenoh directly. `fabric-relay-e2e.json` records a run
+where every component is the real one:
+
+```
+client
+  -> Fabric relay   https://api.fabric.foundation/api/core   (hosted)
+  -> Go tunnel      this repository's binary, dialled out over WSS
+  -> x402 middleware -> live facilitator
+  -> Zenoh          robot/tunnel/action
+  -> Atlas bridge   -> MuJoCo, three inspection targets
+  -> Zenoh          robot/tunnel/result
+  -> Fabric relay   terminal status, correlated by action_id
+  -> settlement     0.001 USDC on Base Sepolia
+```
+
+| Step | Result |
+| --- | --- |
+| Robot discovery | `GET /robots/{id}/skills` → 200, robot connected |
+| Skill discovery | `inspect_shelf`, `stop` |
+| Price discovery | 0.001 USDC — read from the response, not assumed |
+| Unpaid action | **402** from the relay, with payment requirements |
+| Quoted amount | `1000` raw, matching the discovered price |
+| Paid action | accepted |
+| Execution | 3/3 targets |
+| Terminal status | `succeeded`, correlated by `action_id` |
+| Settlement | [`0x34d34a9d…d4cc5`](https://sepolia.basescan.org/tx/0x34d34a9d931c92f32ad0e993fc5c72bf730cdadea6826ebf0de821fe41ed4cc5), block 45707426 |
+| Binding | on-chain nonce = `keccak256("atlas-inspect-1787183132")` |
+
+**The price is discovered, not assumed.** The payment is built from the amount
+the relay returns in its 402, and the run asserts that amount equals the price
+the catalogue advertises. A profile whose published price drifted from what its
+tunnel charges would fail this check rather than pass it quietly.
+
+**Discovery answers from the profile's own catalogue.** `GET /skills` reads
+`skill-catalog.json` — the file the registry publishes — so there is no second
+copy of the price to drift.
+
+**Settlement ordering differs between the two paid paths, and the artifacts say
+which is which.** On the relay path the tunnel's x402 middleware settles as part
+of *accepting* the payment, so settlement precedes execution. In
+`real_paid_run.py` the facilitator is asked to settle only after the episode
+reports every target reached. Both settlements are real and both are bound to
+their `action_id`; they are not the same guarantee, and calling them the same
+would be the more convenient description rather than the true one.
+
+**What the tunnel gained to make this possible.** Three read-only endpoints —
+`GET /robot`, `GET /skills`, `GET /action/:action_id/status`. `POST /action` is
+unchanged. The status endpoint is not synthesised: the tunnel subscribes to the
+same `robot/tunnel/result` topic the simulator publishes on and stores what
+arrives, keyed by `action_id`; an unanswered action reads as `pending` and a
+failed one as `failed`.
+
+## 10. Reproducing
 
 ```bash
 pip install -r bridge/boston_dynamics/atlas_bridge/requirements.txt
