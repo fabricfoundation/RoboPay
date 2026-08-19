@@ -1,0 +1,305 @@
+<mujoco model="atlas">
+  <option timestep="0.005" impratio="10" solver="Newton" iterations="200" />
+  <compiler angle="radian" autolimits="true" />
+
+  <statistic meansize="0.216123" extent="2.3196" center="-0.000225445 0 0.0799605" />
+
+  <worldbody>
+    <body name="pelvis" pos="0 0 0.95">
+      <freejoint />
+      <inertial pos="0.0111 0 0.0271" quat="0.698584 0.713914 0.0424837 -0.0224092" mass="9.509"
+        diaginertia="0.124488 0.116646 0.0957666" />
+      <geom type="capsule" fromto="-0.05 0 0.02 0.1 0 0.02" size="0.0200"
+        condim="1" solimp=".9 .99 .003" solref=".015 1" contype="1" conaffinity="1" />
+      <body name="ltorso" pos="-0.0125 0 0">
+        <inertial pos="-0.0112984 -3.15366e-06 0.0746835"
+          quat="0.997071 0.000128212 0.076485 -0.00012406" mass="2.27"
+          diaginertia="0.003962 0.00341694 0.00169212" />
+        <joint name="back_bkz" pos="0 0 0" axis="0 0 1" range="-0.663225 0.663225"
+          damping="0.2" stiffness="1" armature="0.01" />
+        <geom type="capsule" fromto="0 0 0 0 0 0.06" size="0.0150"
+          condim="1" solimp=".9 .99 .003" solref=".015 1" />
+        <body name="mtorso" pos="0 0 0.162">
+          <inertial pos="-0.00816266 -0.0131245 0.0305974" quat="0.108378 0.49314 0.746335 0.433648"
+            mass="0.799" diaginertia="0.000536243 0.000487378 0.000358057" />
+          <joint name="back_bky" pos="0 0 0" axis="0 1 0" range="-0.219388 0.538783"
+            damping="0.2" stiffness="1" armature="0.01" />
+          <geom type="capsule" fromto="0 0 0 0 0 0.04" size="0.0125"
+            condim="1" solimp=".9 .99 .003" solref=".015 1" />
+          <body name="utorso" pos="0 0 0.05">
+            <inertial pos="-0.0616866 0.00229456 0.316809"
+              quat="0.483464 -0.0233226 -0.0389662 0.874186" mass="84.609"
+              diaginertia="1.67522 1.61265 0.568768" />
+            <joint name="back_bkx" pos="0 0 0" axis="1 0 0" range="-0.523599 0.523599"
+              damping="0.2" stiffness="1" armature="0.01" />
+            <geom type="capsule" fromto="0 0 0 0 0 0.35" size="0.0175"
+              condim="1" solimp=".9 .99 .003" solref=".015 1" />
+            <body name="l_clav" pos="0.1406 0.2256 0.4776" quat="0 0 0 1">
+              <inertial pos="0 0 -0.084" quat="0.684588 0.177029 -0.177029 0.684588" mass="4.466"
+                diaginertia="0.011217 0.011 0.00178301" />
+              <joint name="l_arm_shz" pos="0 0 0" axis="0 0 1" range="-1.5708 0.785398"
+                damping="0.2" stiffness="1" armature="0.01" />
+              <geom type="capsule" fromto="0 0 0 0 0 -0.15" size="0.0075"
+                condim="1" solimp=".9 .99 .003" solref=".015 1" />
+              <body name="l_scap" pos="0 -0.11 -0.245">
+                <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="3.899"
+                  diaginertia="0.00583 0.00583 0.00319" />
+                <joint name="l_arm_shx" pos="0 0 0" axis="-1 0 0" range="-1.5708 1.5708"
+                  damping="0.2" stiffness="1" armature="0.01" />
+                <geom type="capsule" fromto="0 0 0 0 -0.1 0" size="0.0062"
+                  condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                <body name="l_uarm" pos="0 -0.187 -0.016">
+                  <inertial pos="0 0.065 0" quat="0.707107 0.707107 0 0" mass="4.386"
+                    diaginertia="0.00656 0.00656 0.00358" />
+                  <joint name="l_arm_ely" pos="0 0 0" axis="0 -1 0" range="0 3.14159"
+                    damping="0.2" stiffness="1" armature="0.01" />
+                  <geom type="capsule" fromto="0 0 0 0 -0.2 0" size="0.0062"
+                    condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                  <body name="l_larm" pos="0 -0.119 0.0092">
+                    <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="3.248"
+                      diaginertia="0.00446 0.00446 0.00265" />
+                    <joint name="l_arm_elx" pos="0 0 0" axis="-1 0 0" range="0 2.35619"
+                      damping="0.2" stiffness="1" armature="0.01" />
+                    <geom type="capsule" fromto="0 0 0 0 -0.2 0" size="0.0050"
+                      condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                    <body name="l_ufarm" pos="0 -0.29955 -0.00921" quat="0 0 1 0">
+                      <inertial pos="0.00015 0.08296 0.00037" quat="0.707107 0.707107 0 0"
+                        mass="2.4798" diaginertia="0.012731 0.011948 0.002857" />
+                      <joint name="l_arm_uwy" pos="0 0 0" axis="0 -1 0" range="-3.011 3.011"
+                        damping="0.2" stiffness="1" armature="0.01" />
+                      <geom type="capsule" fromto="0 0 0 0 -0.18 0" size="0.0045"
+                        condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                      <body name="l_lfarm">
+                        <inertial pos="0.00017 -0.02515 0.00163" quat="0.5 0.5 -0.5 0.5"
+                          mass="0.648" diaginertia="0.000825 0.000764 0.000429" />
+                        <joint name="l_arm_mwx" pos="0 0 0" axis="1 0 0" range="-1.7628 1.7628"
+                          damping="0.2" stiffness="1" armature="0.01" />
+                        <geom type="capsule" fromto="0 0 0 0 -0.06 0" size="0.0037"
+                          condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                        <body name="l_hand" quat="0 0 1 0">
+                          <inertial pos="0.000136605 -0.0878643 1.70756e-05"
+                            quat="0.706663 0.707538 -0.00305426 -0.0030225" mass="0.6839"
+                            diaginertia="0.000555209 0.000546206 0.000486997" />
+                          <joint name="l_arm_lwy" pos="0 0 0" axis="0 -1 0" range="-2.9671 2.9671"
+                            damping="0.2" stiffness="1" armature="0.01" />
+                          <geom type="capsule" fromto="0 0 0 0 -0.08 0" size="0.0030"
+                            condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+            <body name="head" pos="0.2546 0 0.6215">
+              <inertial pos="-0.0526114 3.39872e-05 0.0260689"
+                quat="-0.00433632 0.59051 -0.00248869 0.807015" mass="2.08756"
+                diaginertia="0.0135173 0.0133409 0.0119567" />
+              <joint name="neck_ay" pos="0 0 0" axis="0 1 0" range="-0.602139 1.14319"
+                damping="0.2" stiffness="1" armature="0.01" />
+              <geom type="capsule" fromto="0 0 0 0 0 0.06" size="0.0100"
+                condim="1" solimp=".9 .99 .003" solref=".015 1" />
+            </body>
+            <body name="r_clav" pos="0.1406 -0.2256 0.4776">
+              <inertial pos="0 0 -0.084" quat="0.684588 0.177029 -0.177029 0.684588" mass="4.466"
+                diaginertia="0.011217 0.011 0.00178301" />
+              <joint name="r_arm_shz" pos="0 0 0" axis="0 0 1" range="-0.785398 1.5708"
+                damping="0.2" stiffness="1" armature="0.01" />
+              <geom type="capsule" fromto="0 0 0 0 0 -0.15" size="0.0075"
+                condim="1" solimp=".9 .99 .003" solref=".015 1" />
+              <body name="r_scap" pos="0 -0.11 -0.245">
+                <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="3.899"
+                  diaginertia="0.00583 0.00583 0.00319" />
+                <joint name="r_arm_shx" pos="0 0 0" axis="1 0 0" range="-1.5708 1.5708"
+                  damping="0.2" stiffness="1" armature="0.01" />
+                <geom type="capsule" fromto="0 0 0 0 -0.1 0" size="0.0062"
+                  condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                <body name="r_uarm" pos="0 -0.187 -0.016">
+                  <inertial pos="0 0.065 0" quat="0.707107 0.707107 0 0" mass="4.386"
+                    diaginertia="0.00656 0.00656 0.00358" />
+                  <joint name="r_arm_ely" pos="0 0 0" axis="0 1 0" range="0 3.14159"
+                    damping="0.2" stiffness="1" armature="0.01" />
+                  <geom type="capsule" fromto="0 0 0 0 -0.2 0" size="0.0062"
+                    condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                  <body name="r_larm" pos="0 -0.119 0.0092">
+                    <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="3.248"
+                      diaginertia="0.00446 0.00446 0.00265" />
+                    <joint name="r_arm_elx" pos="0 0 0" axis="1 0 0" range="-2.35619 0"
+                      damping="0.2" stiffness="1" armature="0.01" />
+                    <geom type="capsule" fromto="0 0 0 0 -0.2 0" size="0.0050"
+                      condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                    <body name="r_ufarm" pos="0 -0.29955 -0.00921">
+                      <inertial pos="0.00015 0.08296 0.00037" quat="0.707107 0.707107 0 0"
+                        mass="2.4798" diaginertia="0.012731 0.011948 0.002857" />
+                      <joint name="r_arm_uwy" pos="0 0 0" axis="0 1 0" range="-3.011 3.011"
+                        damping="0.2" stiffness="1" armature="0.01" />
+                      <geom type="capsule" fromto="0 0 0 0 -0.18 0" size="0.0045"
+                        condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                      <body name="r_lfarm">
+                        <inertial pos="0.00017 -0.02515 0.00163" quat="0.5 0.5 -0.5 0.5"
+                          mass="0.648" diaginertia="0.000825 0.000764 0.000429" />
+                        <joint name="r_arm_mwx" pos="0 0 0" axis="1 0 0" range="-1.7628 1.7628"
+                          damping="0.2" stiffness="1" armature="0.01" />
+                        <geom type="capsule" fromto="0 0 0 0 -0.06 0" size="0.0037"
+                          condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                        <body name="r_hand">
+                          <inertial pos="0.000136605 -0.0878643 1.70756e-05"
+                            quat="0.706663 0.707538 -0.00305426 -0.0030225" mass="0.6839"
+                            diaginertia="0.000555209 0.000546206 0.000486997" />
+                          <joint name="r_arm_lwy" pos="0 0 0" axis="0 1 0" range="-2.9671 2.9671"
+                            damping="0.2" stiffness="1" armature="0.01" />
+                          <geom type="capsule" fromto="0 0 0 0 -0.08 0" size="0.0030"
+                            condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="l_uglut" pos="0 0.089 0">
+        <inertial pos="0.00529262 -0.00344732 0.00313046"
+          quat="0.999122 -7.72169e-05 0.0419028 -0.000305187" mass="1.959"
+          diaginertia="0.000745109 0.000688179 0.000410071" />
+        <joint name="l_leg_hpz" pos="0 0 0" axis="0 0 1" range="-0.174358 0.786794"
+          damping="5" stiffness="10" armature="0.01" />
+        <geom type="capsule" fromto="0 0 0 0 0 -0.06" size="0.0100"
+          condim="1" solimp=".9 .99 .003" solref=".015 1" />
+
+        <body name="l_lglut">
+          <inertial pos="0.0133341 0.0170484 -0.0312052" quat="0.353465 0.600383 0.388609 0.602981"
+            mass="0.898" diaginertia="0.00133867 0.000995812 0.000690275" />
+          <joint name="l_leg_hpx" pos="0 0 0" axis="1 0 0" range="-0.523599 0.523599"
+            damping="5" stiffness="10" armature="0.01" />
+          <geom type="capsule" fromto="0 0 0 0 0 -0.06" size="0.0088"
+            condim="1" solimp=".9 .99 .003" solref=".015 1" />
+          <body name="l_uleg" pos="0.05 0.0225 -0.066">
+            <inertial pos="0 0 -0.21" mass="8.204" diaginertia="0.09 0.09 0.02" />
+            <joint name="l_leg_hpy" pos="0 0 0" axis="0 1 0" range="-1.61234 0.65764"
+              damping="5" stiffness="10" armature="0.01" />
+            <geom type="capsule" fromto="0 0 0 0 0 -0.35" size="0.0125"
+              condim="1" solimp=".9 .99 .003" solref=".015 1" />
+            <body name="l_lleg" pos="-0.05 0 -0.374">
+              <inertial pos="0.001 0 -0.187" quat="0.999751 0 0.0223266 0" mass="4.515"
+                diaginertia="0.0771341 0.076 0.00986594" />
+              <joint name="l_leg_kny" pos="0 0 0" axis="0 1 0" range="0 2.35637"
+                damping="5" stiffness="10" armature="0.01" />
+              <geom type="capsule" fromto="0 0 0 0 0 -0.4" size="0.0100"
+                condim="1" solimp=".9 .99 .003" solref=".015 1" />
+              <body name="l_talus" pos="0 0 -0.422">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="0.125"
+                  diaginertia="1.30101e-05 1.01674e-05 8.42775e-06" />
+                <joint name="l_leg_aky" pos="0 0 0" axis="0 1 0" range="-1 0.7"
+                  damping="5" stiffness="10" armature="0.01" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.03" size="0.0075"
+                  condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                <body name="l_foot">
+                  <inertial pos="0.027 0 -0.067" quat="0 0.707107 0 0.707107" mass="2.41"
+                    diaginertia="0.008 0.007 0.002" />
+                  <joint name="l_leg_akx" pos="0 0 0" axis="1 0 0" range="-0.8 0.8"
+                    damping="5" stiffness="10" armature="0.01" />
+                  <geom type="capsule" fromto="-.07 -.06 -0.08 0.14 -0.06 -0.08" size="0.0075"
+                    condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                  <geom type="capsule" fromto="-.07 0.06 -0.08 0.14 0.06 -0.08" size="0.0075"
+                    condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="r_uglut" pos="0 -0.089 0">
+        <inertial pos="0.00529262 0.00344732 0.00313046"
+          quat="0.999122 7.72169e-05 0.0419028 0.000305187" mass="1.959"
+          diaginertia="0.000745109 0.000688179 0.000410071" />
+        <joint name="r_leg_hpz" pos="0 0 0" axis="0 0 1" range="-0.786794 0.174358"
+          damping="5" stiffness="10" armature="0.01" />
+        <geom type="capsule" fromto="0 0 0 0 0 -0.06" size="0.0100"
+          condim="1" solimp=".9 .99 .003" solref=".015 1" />
+
+        <body name="r_lglut">
+          <inertial pos="0.0133341 -0.0170484 -0.0312052" quat="0.602981 0.388609 0.600383 0.353465"
+            mass="0.898" diaginertia="0.00133867 0.000995812 0.000690275" />
+          <joint name="r_leg_hpx" pos="0 0 0" axis="1 0 0" range="-0.523599 0.523599"
+            damping="5" stiffness="10" armature="0.01" />
+          <geom type="capsule" fromto="0 0 0 0 0 -0.06" size="0.0088"
+            condim="1" solimp=".9 .99 .003" solref=".015 1" />
+          <body name="r_uleg" pos="0.05 -0.0225 -0.066">
+            <inertial pos="0 0 -0.21" mass="8.204" diaginertia="0.09 0.09 0.02" />
+            <joint name="r_leg_hpy" pos="0 0 0" axis="0 1 0" range="-1.61234 0.65764"
+              damping="5" stiffness="10" armature="0.01" />
+            <geom type="capsule" fromto="0 0 0 0 0 -0.35" size="0.0125"
+              condim="1" solimp=".9 .99 .003" solref=".015 1" />
+            <body name="r_lleg" pos="-0.05 0 -0.374">
+              <inertial pos="0.001 0 -0.187" quat="0.999751 0 0.0223266 0" mass="4.515"
+                diaginertia="0.0771341 0.076 0.00986594" />
+              <joint name="r_leg_kny" pos="0 0 0" axis="0 1 0" range="0 2.35637"
+                damping="5" stiffness="10" armature="0.01" />
+              <geom type="capsule" fromto="0 0 0 0 0 -0.4" size="0.0100"
+                condim="1" solimp=".9 .99 .003" solref=".015 1" />
+              <body name="r_talus" pos="0 0 -0.422">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="0.125"
+                  diaginertia="1.30101e-05 1.01674e-05 8.42775e-06" />
+                <joint name="r_leg_aky" pos="0 0 0" axis="0 1 0" range="-1 0.7"
+                  damping="5" stiffness="10" armature="0.01" />
+                <geom type="capsule" fromto="0 0 0 0 0 -0.03" size="0.0075"
+                  condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                <body name="r_foot">
+                  <inertial pos="0.027 0 -0.067" quat="0 0.707107 0 0.707107" mass="2.41"
+                    diaginertia="0.008 0.007 0.002" />
+                  <joint name="r_leg_akx" pos="0 0 0" axis="1 0 0" range="-0.8 0.8"
+                    damping="5" stiffness="10" armature="0.01" />
+                  <geom type="capsule" fromto="-.07 -.06 -0.08 0.14 -0.06 -0.08" size="0.0075"
+                    condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                  <geom type="capsule" fromto="-.07 0.06 -0.08 0.14 0.06 -0.08" size="0.0075"
+                    condim="1" solimp=".9 .99 .003" solref=".015 1" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="back_bkz_motor" joint="back_bkz" gear="40" />
+    <motor name="back_bky_motor" joint="back_bky" gear="40" />
+    <motor name="back_bkx_motor" joint="back_bkx" gear="40" />
+    <motor name="l_arm_shz_motor" joint="l_arm_shz" gear="20" />
+    <motor name="l_arm_shx_motor" joint="l_arm_shx" gear="20" />
+    <motor name="l_arm_ely_motor" joint="l_arm_ely" gear="20" />
+    <motor name="l_arm_elx_motor" joint="l_arm_elx" gear="20" />
+    <motor name="l_arm_uwy_motor" joint="l_arm_uwy" gear="20" />
+    <motor name="l_arm_mwx_motor" joint="l_arm_mwx" gear="20" />
+    <motor name="l_arm_lwy_motor" joint="l_arm_lwy" gear="20" />
+    <motor name="neck_ay_motor" joint="neck_ay" gear="20" />
+    <motor name="r_arm_shz_motor" joint="r_arm_shz" gear="20" />
+    <motor name="r_arm_shx_motor" joint="r_arm_shx" gear="20" />
+    <motor name="r_arm_ely_motor" joint="r_arm_ely" gear="20" />
+    <motor name="r_arm_elx_motor" joint="r_arm_elx" gear="20" />
+    <motor name="r_arm_uwy_motor" joint="r_arm_uwy" gear="20" />
+    <motor name="r_arm_mwx_motor" joint="r_arm_mwx" gear="20" />
+    <motor name="r_arm_lwy_motor" joint="r_arm_lwy" gear="20" />
+    <motor name="l_leg_hpz_motor" joint="l_leg_hpz" gear="40" />
+    <motor name="l_leg_hpx_motor" joint="l_leg_hpx" gear="40" />
+    <motor name="l_leg_hpy_motor" joint="l_leg_hpy" gear="80" />
+    <motor name="l_leg_kny_motor" joint="l_leg_kny" gear="80" />
+    <motor name="l_leg_aky_motor" joint="l_leg_aky" gear="20" />
+    <motor name="l_leg_akx_motor" joint="l_leg_akx" gear="20" />
+    <motor name="r_leg_hpz_motor" joint="r_leg_hpz" gear="40" />
+    <motor name="r_leg_hpx_motor" joint="r_leg_hpx" gear="40" />
+    <motor name="r_leg_hpy_motor" joint="r_leg_hpy" gear="80" />
+    <motor name="r_leg_kny_motor" joint="r_leg_kny" gear="80" />
+    <motor name="r_leg_aky_motor" joint="r_leg_aky" gear="20" />
+    <motor name="r_leg_akx_motor" joint="r_leg_akx" gear="20" />
+  </actuator>
+
+  <contact>
+    <exclude body1="pelvis" body2="l_uglut"/>
+    <exclude body1="pelvis" body2="r_uglut"/>
+  </contact>
+</mujoco>

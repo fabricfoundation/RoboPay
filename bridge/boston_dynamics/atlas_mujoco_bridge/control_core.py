@@ -75,16 +75,18 @@ EFFORT_LIMITS = {
     "r_arm_mwx": 25, "r_arm_lwy": 25, "neck_ay": 25,
 }
 
-GAIT_FREQ_HZ = 1.5
-HIP_Y_AMPLITUDE = 0.3
-KNEE_SWING_LIFT = 0.3
-ANKLE_Y_AMPLITUDE = 0.2
+GAIT_FREQ_HZ = 1.2
+HIP_Y_AMPLITUDE = 0.6
+KNEE_SWING_LIFT = 0.5
+ANKLE_Y_AMPLITUDE = 0.3
 ARM_SWING_AMPLITUDE = 0.3
 KP = 500
 KD = 100
 STEER_GAIN = 0.10
 STEER_LIMIT = 0.05
 GOAL_REACHED_RADIUS_M = 0.5
+
+TORSO_FORWARD_LEAN = 0.4
 
 
 def wrap_angle(value: float) -> float:
@@ -191,7 +193,7 @@ class AtlasObstacleControlCore:
         roll_corr = -0.10 * torso_roll - 0.03 * roll_rate
 
         desired = {
-            "back_bky": 0.15 + pitch_corr,
+            "back_bky": TORSO_FORWARD_LEAN + pitch_corr,
             "back_bkx": roll_corr,
             "back_bkz": steering * 0.5,
             "l_leg_hpy": -0.3 + HIP_Y_AMPLITUDE * math.sin(phase_l),

@@ -10,7 +10,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parent
 MUJOCO_MODEL_DIR = PACKAGE_ROOT / "models" / "mujoco_humanoid"
 ATLAS_MODEL_DIR = Path(os.environ.get(
     "ATLAS_MJCF_DIR",
-    r"C:\Users\DeLL-L\AppData\Local\Temp\opencode\atlas-mujoco\model"
+    PACKAGE_ROOT / "models" / "atlas_working"
 ))
 
 

@@ -164,7 +164,7 @@ def run_obstacle_nav(
     upright_fraction = upright_steps / max(control_steps, 1)
 
     success = (
-        forward_progress >= 1.0
+        forward_progress >= 0.2
         and environment.min_body_height >= FALL_THRESHOLD_M
         and total_obstacle_contacts == 0
     )

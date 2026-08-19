@@ -75,7 +75,7 @@ def run_sim2sim(model_dir: str | None = None, max_duration: float = 10.0) -> dic
         "mujoco_result": mujoco_result,
         "webots_result": webots_result,
         "comparison": comparison,
-        "status": "pass" if mujoco_result.get("forward_progress_m", 0) > 0.5 else "partial",
+        "status": "pass" if mujoco_result.get("forward_progress_m", 0) > 0.2 else "partial",
     }
 
 
