@@ -1,0 +1,39 @@
+{
+  "paid_success": {
+    "schemaVersion": "robot-action-result.v1",
+    "actionId": "demo-action-001",
+    "status": "success",
+    "publishedAt": "2026-08-15T22:13:49Z",
+    "robotId": "deep-robotics-m20-pro-sim-01",
+    "skillId": "m20_pro_obstacle_navigation",
+    "simulatorStatus": "goal_reached",
+    "metrics": {
+      "status": "goal_reached",
+      "displacement_m": 7.6507,
+      "path_length_m": 7.6511,
+      "collisions": 0,
+      "target_distance_remaining_m": 0.3493,
+      "sim_steps": 2935,
+      "sim_seconds": 5.868,
+      "avoidance_events": 1
+    }
+  },
+  "replay_rejected": {
+    "schemaVersion": "robot-action-result.v1",
+    "actionId": "demo-action-001",
+    "status": "rejected",
+    "publishedAt": "2026-08-15T22:13:49Z",
+    "errorCode": "replay_detected",
+    "errorMessage": "replay detected (actionId already used): original='demo-action-001|deep-robotics-m20-pro-sim-01|m20_pro_obstacle_navigation|{\"max_episode_steps\": 50000, \"target_xy\": [8.0, 0.0]}' new='demo-action-001|deep-robotics-m20-pro-sim-01|m20_pro_obstacle_navigation|{\"max_episode_steps\": 50000, \"target_xy\": [8.0, 0.0]}'"
+  },
+  "stop": {
+    "schemaVersion": "robot-action-result.v1",
+    "actionId": "demo-action-002",
+    "status": "success",
+    "publishedAt": "2026-08-15T22:13:49Z",
+    "robotId": "deep-robotics-m20-pro-sim-01",
+    "skillId": "m20_pro_obstacle_navigation",
+    "reason": "stopped"
+  },
+  "wall_clock_episode_seconds": 0.053
+}

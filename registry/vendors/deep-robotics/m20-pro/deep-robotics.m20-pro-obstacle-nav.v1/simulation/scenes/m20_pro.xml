@@ -1,0 +1,124 @@
+<mujoco model="deep_robotics_m20_pro_obstacle_nav">
+  <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <default>
+    <joint damping="2.0" armature="0.02"/>
+    <geom contype="1" conaffinity="1" friction="1.2 0.2 0.1" rgba="0.7 0.7 0.7 1"/>
+    <position kp="60" ctrllimited="true"/>
+  </default>
+
+  <worldbody>
+    <light diffuse=".6 .6 .6" pos="0 0 5" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="12 12 0.1" rgba="0.9 0.9 0.9 1"/>
+
+    <!-- M20 Pro quadruped base: 18kg, 0.35m nominal standing height.
+         Base moves on a planar (slide-x, slide-y, hinge-yaw) mount driven
+         by velocity actuators from the navigation policy; legs are
+         independently position-actuated for a real (non-canned) trot gait
+         each step. Obstacle collisions are judged against base_geom using
+         MuJoCo's own contact detection (leg geoms are non-colliding to
+         avoid destabilizing whole-body balance, which is out of scope for
+         a Tier 1 navigation skill). -->
+    <body name="m20_pro_slider_x" pos="0 0 0">
+      <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
+      <joint name="base_x" type="slide" axis="1 0 0" damping="5"/>
+      <body name="m20_pro_slider_y">
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
+        <joint name="base_y" type="slide" axis="0 1 0" damping="5"/>
+        <body name="m20_pro_base" pos="0 0 0.35">
+          <joint name="base_yaw" type="hinge" axis="0 0 1" damping="5"/>
+          <inertial pos="0 0 0" mass="18.0" diaginertia="0.30 0.60 0.70"/>
+          <geom name="base_geom" type="box" size="0.30 0.15 0.08" rgba="0.2 0.2 0.2 1"/>
+
+          <!-- Four legs, 3 actuated joints each (hip, thigh, calf) -->
+          <body name="fl_hip" pos="0.25 0.12 0">
+            <joint name="fl_hip_joint" type="hinge" axis="1 0 0" range="-30 30"/>
+            <geom type="cylinder" size="0.03 0.04" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+            <body name="fl_thigh" pos="0 0.06 0">
+              <joint name="fl_thigh_joint" type="hinge" axis="0 1 0" range="-90 90"/>
+              <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.025" contype="0" conaffinity="0"/>
+              <body name="fl_calf" pos="0 0 -0.22">
+                <joint name="fl_calf_joint" type="hinge" axis="0 1 0" range="-150 -10"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.02" contype="0" conaffinity="0"/>
+              </body>
+            </body>
+          </body>
+
+          <body name="fr_hip" pos="0.25 -0.12 0">
+            <joint name="fr_hip_joint" type="hinge" axis="1 0 0" range="-30 30"/>
+            <geom type="cylinder" size="0.03 0.04" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+            <body name="fr_thigh" pos="0 -0.06 0">
+              <joint name="fr_thigh_joint" type="hinge" axis="0 1 0" range="-90 90"/>
+              <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.025" contype="0" conaffinity="0"/>
+              <body name="fr_calf" pos="0 0 -0.22">
+                <joint name="fr_calf_joint" type="hinge" axis="0 1 0" range="-150 -10"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.02" contype="0" conaffinity="0"/>
+              </body>
+            </body>
+          </body>
+
+          <body name="rl_hip" pos="-0.25 0.12 0">
+            <joint name="rl_hip_joint" type="hinge" axis="1 0 0" range="-30 30"/>
+            <geom type="cylinder" size="0.03 0.04" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+            <body name="rl_thigh" pos="0 0.06 0">
+              <joint name="rl_thigh_joint" type="hinge" axis="0 1 0" range="-90 90"/>
+              <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.025" contype="0" conaffinity="0"/>
+              <body name="rl_calf" pos="0 0 -0.22">
+                <joint name="rl_calf_joint" type="hinge" axis="0 1 0" range="-150 -10"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.02" contype="0" conaffinity="0"/>
+              </body>
+            </body>
+          </body>
+
+          <body name="rr_hip" pos="-0.25 -0.12 0">
+            <joint name="rr_hip_joint" type="hinge" axis="1 0 0" range="-30 30"/>
+            <geom type="cylinder" size="0.03 0.04" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+            <body name="rr_thigh" pos="0 -0.06 0">
+              <joint name="rr_thigh_joint" type="hinge" axis="0 1 0" range="-90 90"/>
+              <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.025" contype="0" conaffinity="0"/>
+              <body name="rr_calf" pos="0 0 -0.22">
+                <joint name="rr_calf_joint" type="hinge" axis="0 1 0" range="-150 -10"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.22" size="0.02" contype="0" conaffinity="0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Obstacles for obstacle-avoidance navigation -->
+    <body name="obstacle_1" pos="3.0 0.9 0.3">
+      <geom type="box" size="0.2 0.2 0.3" rgba="0.8 0.2 0.2 1"/>
+    </body>
+    <body name="obstacle_2" pos="5.0 -1.0 0.3">
+      <geom type="cylinder" size="0.25 0.3" rgba="0.8 0.2 0.2 1"/>
+    </body>
+    <body name="obstacle_3" pos="6.5 0.9 0.3">
+      <geom type="box" size="0.2 0.3 0.3" rgba="0.8 0.2 0.2 1"/>
+    </body>
+
+    <!-- Goal marker -->
+    <body name="goal_marker" pos="8.0 0.0 0.05">
+      <geom type="cylinder" size="0.15 0.02" rgba="0.1 0.8 0.1 0.6" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <velocity name="base_vx"  joint="base_x"   kv="200" ctrlrange="-1.5 1.5"/>
+    <velocity name="base_vy"  joint="base_y"   kv="200" ctrlrange="-1.5 1.5"/>
+    <velocity name="base_wz"  joint="base_yaw" kv="80"  ctrlrange="-1.0 1.0"/>
+    <position name="fl_hip"   joint="fl_hip_joint"   ctrlrange="-30 30"/>
+    <position name="fl_thigh" joint="fl_thigh_joint" ctrlrange="-90 90"/>
+    <position name="fl_calf"  joint="fl_calf_joint"  ctrlrange="-150 -10"/>
+    <position name="fr_hip"   joint="fr_hip_joint"   ctrlrange="-30 30"/>
+    <position name="fr_thigh" joint="fr_thigh_joint" ctrlrange="-90 90"/>
+    <position name="fr_calf"  joint="fr_calf_joint"  ctrlrange="-150 -10"/>
+    <position name="rl_hip"   joint="rl_hip_joint"   ctrlrange="-30 30"/>
+    <position name="rl_thigh" joint="rl_thigh_joint" ctrlrange="-90 90"/>
+    <position name="rl_calf"  joint="rl_calf_joint"  ctrlrange="-150 -10"/>
+    <position name="rr_hip"   joint="rr_hip_joint"   ctrlrange="-30 30"/>
+    <position name="rr_thigh" joint="rr_thigh_joint" ctrlrange="-90 90"/>
+    <position name="rr_calf"  joint="rr_calf_joint"  ctrlrange="-150 -10"/>
+  </actuator>
+</mujoco>

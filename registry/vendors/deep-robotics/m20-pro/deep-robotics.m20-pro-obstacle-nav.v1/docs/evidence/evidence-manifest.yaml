@@ -1,0 +1,19 @@
+schemaVersion: evidence-manifest.v1
+profileId: deep-robotics.m20-pro-obstacle-nav.v1
+tier: 1
+scope: simulator-only
+
+evidence:
+  - file: terminal_log.txt
+    description: Full terminal trace of demo/run_demo.py (unpaid, success, replay, stop)
+  - file: m20_pro_metrics.json
+    description: Raw JSON results from the successful goal-reaching episode
+  - file: failure_terminal_log.txt
+    description: Terminal trace of demo/run_failure_demo.py (deliberate timeout)
+  - file: m20_pro_failure_metrics.json
+    description: Raw JSON result from the deliberate-failure/timeout episode
+
+disclosures:
+  - No physical robot was used or controlled; this is a Tier 1 simulator-only submission.
+  - No wallet secrets, private keys, or complete payment payloads are included.
+  - All metrics were produced locally by running the included scripts against simulation/scenes/m20_pro.xml.

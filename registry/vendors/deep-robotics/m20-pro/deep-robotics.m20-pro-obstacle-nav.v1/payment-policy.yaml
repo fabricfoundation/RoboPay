@@ -1,0 +1,37 @@
+schemaVersion: payment-policy.v1
+profileId: deep-robotics.m20-pro-obstacle-nav.v1
+provider: x402
+network: eip155:84532
+asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+assetSymbol: USDC
+assetDecimals: 6
+amountUnit: smallest
+payeeEnv: ROBOT_PAYEE_ADDRESS
+
+# Enforcement note: every field/rule below is enforced entirely by the
+# Go tunnel (tunnel/internal/handlers), not by this registry profile's
+# bridge. See:
+#   - X402VerifyOnly (payment_gate.go): verifies the payment against
+#     this network/asset/amount before ANY ActionEvent is published;
+#     never settles at accept-time.
+#   - ExecutionWatcher (settlement_watcher.go): the only code path
+#     that calls ProcessSettlement, and only after a terminal
+#     robot/tunnel/result with status=success for the matching
+#     actionId.
+policies:
+  - skillId: m20_pro_obstacle_navigation
+    required: true
+    amount: "2000"
+    displayAmount: "0.002 USDC"
+    paymentHeader: PAYMENT-SIGNATURE
+    executionGate:
+      requiredPaymentState: verified-not-settled
+      enforcedBy: tunnel/internal/handlers/payment_gate.go::X402VerifyOnly
+    settlement:
+      eligibleOnlyAfterResultStatus: success
+      noSettleResultStatuses:
+        - error
+        - pending
+        - timeout
+        - rejected
+      enforcedBy: tunnel/internal/handlers/settlement_watcher.go::ExecutionWatcher
