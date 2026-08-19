@@ -28,7 +28,8 @@ one rests on.
 | Facilitator | A forged authorization is refused by the live x402 facilitator | `tunnel-e2e-evidence.json`, `tests/test_facilitator.py` |
 | Real Go tunnel | The repository's own tunnel refuses unpaid and forged actions | `go-tunnel-e2e-evidence.json` |
 | Idempotency | A payment-validated action actuates the robot once, across restarts | `tests/test_idempotency.py` |
-| On-chain settlement | A settlement of this skill really happened on Base Sepolia | `onchain-settlement.json` |
+| Paid action | A live-facilitator-verified payment executed the skill and settled 0.001 USDC, bound to the `action_id` | `real-paid-run.json` |
+| On-chain settlement | The settlement transaction, re-read from a public RPC | `real-paid-run.json`, `onchain-settlement.json` |
 
 ## 2. Model integrity
 
@@ -283,9 +284,69 @@ python -m bridge.boston_dynamics.atlas_bridge.demo_tunnel
 
 ## 8. On-chain settlement
 
-The gate above decides *whether* an action may settle. This is the receipt that
-a settlement actually happened, re-read from a public Base Sepolia RPC by
-`settlement_evidence.py` rather than transcribed:
+The gate above decides *whether* an action may settle. This section is the
+receipt that one actually did — for a specific action, not in general.
+
+### 8.1 The paid action
+
+`real-paid-run.json` records one action carried the whole way: an EIP-3009
+authorization signed by a funded wallet, accepted by the **live** x402
+facilitator, executed on the robot, and settled only after the episode reported
+every target reached.
+
+| Field | Value |
+| --- | --- |
+| Action | `act-paid-de66513f791b` |
+| Facilitator verdict | `isValid: true` — live, at `https://x402.org/facilitator` |
+| Robot | success, 3/3 targets, 0 shelf contacts, correlated by `action_id` |
+| Settlement tx | [`0x2b3b71d0…c0f39`](https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39) |
+| Status | success (`0x1`), block 45706216, gas 85696 |
+| Amount | 0.001 USDC (`1000` raw) — the price the profile declares |
+| Payer | [`0xa0597a74…Fc2Dc`](https://sepolia.basescan.org/address/0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc) |
+| Payee | [`0x7b916325…C3e8`](https://sepolia.basescan.org/address/0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8) |
+| Submitted by | [`0xd407e409…f1bf`](https://sepolia.basescan.org/address/0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf) |
+
+Three things about this are worth more than the transaction itself.
+
+**The settlement is bound to the action, cryptographically.** EIP-3009 lets the
+signer pick the 32-byte authorization nonce, so this run sets it to
+`keccak256(action_id)`. The token emits that nonce in its `AuthorizationUsed`
+event, so the binding is on chain and anyone can check it:
+
+```
+keccak256("act-paid-de66513f791b")
+  = 0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de
+AuthorizationUsed nonce in block 45706216
+  = 0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de
+```
+
+Without this, a receipt and an execution are two facts sitting next to each
+other; with it, this transfer is provably the one that paid for this action.
+
+**The facilitator submitted the transaction, not us.** The sender is the
+facilitator's own address, the one its `/supported` endpoint advertises. That is
+independent evidence the payment went through the live facilitator rather than
+being self-submitted — and it is why the payer holds no ETH: under EIP-3009 the
+payer only signs, and the facilitator pays the gas.
+
+**Settlement followed execution.** `/verify` ran first, the robot ran second,
+and `/settle` was called only because the episode reached every target. A failed
+episode leaves the authorization signed and unspent, which is the behaviour the
+payment policy claims.
+
+Re-verify the whole chain from the transaction hash alone — no trust in this
+document required:
+
+```bash
+python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence
+```
+
+### 8.2 An earlier transfer
+
+An earlier 1.0 USDC transfer is kept because the profile's first settlement
+evidence referred to it. It is **not** bound to any `action_id` and proves only
+that the asset and the network are real — 8.1 is the one that proves a paid
+action. Re-read from a public RPC rather than transcribed:
 
 | Field | Value |
 | --- | --- |

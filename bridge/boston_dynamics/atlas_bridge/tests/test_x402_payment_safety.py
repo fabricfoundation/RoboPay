@@ -405,11 +405,11 @@ class TestPaymentContractConsistency:
         assert policy["network"] == PAYMENT_NETWORK
 
     def test_settlement_layers_share_one_asset_address(self):
-        from bridge.boston_dynamics.atlas_bridge.settlement import USDC_BASE_SEPOLIA as ledger
+        from bridge.boston_dynamics.atlas_bridge.real_paid_run import USDC_BASE_SEPOLIA as paying
         from bridge.boston_dynamics.atlas_bridge.settlement_evidence import USDC_ADDRESS as evidence
         from bridge.boston_dynamics.atlas_bridge.task import USDC_BASE_SEPOLIA as declared
 
-        assert ledger == evidence == declared
+        assert paying == evidence == declared
 
 
 class TestTransactionHashValidation:

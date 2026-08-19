@@ -65,17 +65,47 @@ artifacts:
     description: "Rendered MuJoCo episode, same run as the metrics"
     bytes: 2413354
     sha256: b115c21d8b917afd3067d16de8ae01ca7b405cbe2c8e35436d03da63329001c5
+  - path: docs/evidence/real-paid-run.json
+    description: "One real payment: live facilitator acceptance, execution, and 0.001 USDC settled on Base Sepolia, bound to the action_id"
+    bytes: 6726
+    sha256: b5a69f69115f1b9bccedefa230fba9948f177908a0dbfe0ce8ac6ec8113c6e42
 settlement:
-  network: Base Sepolia (eip155:84532)
-  asset: USDC 0x036CbD53842c5426634e7929541eC2318f3dCF7e
-  transaction: "0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e"
-  explorer: https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e
-  transferred: 1.0 USDC
-  payer: "0x520C3Ff276456A217c0dFadABeEb2d7081d6cCd4"
-  payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
+  paid_action:
+    note: >-
+      The settlement for the demonstrated action. The authorization nonce is
+      keccak256(action_id), so this transfer is verifiably the one that paid for
+      this action rather than any other; the same value appears in the token's
+      AuthorizationUsed event.
+    action_id: "act-paid-de66513f791b"
+    network: Base Sepolia (eip155:84532)
+    asset: USDC 0x036CbD53842c5426634e7929541eC2318f3dCF7e
+    transaction: "0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39"
+    explorer: https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39
+    block: 45706216
+    transferred: 0.001 USDC
+    payer: "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
+    payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
+    authorization_nonce: "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de"
+    submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+    submitted_by_note: >-
+      The x402 facilitator's own address, as advertised by its /supported
+      endpoint. The facilitator submitted the transaction and paid the gas,
+      which is what EIP-3009 is for and why the payer needs no ETH. It is also
+      independent evidence that this settlement went through the live
+      facilitator rather than being self-submitted.
+  earlier_transfer:
+    note: >-
+      An earlier 1.0 USDC transfer between two test wallets, kept because the
+      profile's first settlement evidence referred to it. It is not bound to any
+      action_id and proves only that the asset and network are real.
+    transaction: "0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e"
+    explorer: https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e
+    transferred: 1.0 USDC
+    payer: "0x520C3Ff276456A217c0dFadABeEb2d7081d6cCd4"
   note: >-
-    Testnet only, no monetary value. The payer is a disposable test wallet and is
-    treated as compromised; no key material is stored in this repository.
+    Testnet only, no monetary value. Both payer wallets are disposable test
+    wallets and are treated as compromised; no key material is stored in this
+    repository.
 reproduce:
   - pip install -r bridge/boston_dynamics/atlas_bridge/requirements.txt
   - python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
@@ -86,3 +116,4 @@ reproduce:
   - python -m bridge.boston_dynamics.atlas_bridge.demo_tunnel
   - python -m bridge.boston_dynamics.atlas_bridge.demo_go_tunnel --tunnel <built tunnel>
   - python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence
+  - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.real_paid_run --payer <funded wallet>
