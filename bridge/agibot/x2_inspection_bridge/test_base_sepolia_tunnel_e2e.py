@@ -257,9 +257,9 @@ def main(argv: list[str] | None = None) -> int:
             "PYTHONPATH": str(PACKAGE_ROOT), "ZENOH_CONFIG": str(zenoh_config),
             "ROBOT_ID": robot_id, "AGIBOT_X2_READY_FILE": str(ready_path),
             "AGIBOT_X2_MUJOCO_VIEWER": "true" if args.visual else "false",
-            "AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS": os.environ.get("AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS", "3"),
-            "AGIBOT_X2_TARGET_HOLD_SECONDS": os.environ.get("AGIBOT_X2_TARGET_HOLD_SECONDS", "2"),
-            "AGIBOT_X2_VIEWER_START_HOLD_SECONDS": os.environ.get("AGIBOT_X2_VIEWER_START_HOLD_SECONDS", "8"),
+            "AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS": os.environ.get("AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS", "2"),
+            "AGIBOT_X2_TARGET_HOLD_SECONDS": os.environ.get("AGIBOT_X2_TARGET_HOLD_SECONDS", "1"),
+            "AGIBOT_X2_VIEWER_START_HOLD_SECONDS": os.environ.get("AGIBOT_X2_VIEWER_START_HOLD_SECONDS", "4"),
         })
         bridge = subprocess.Popen(
             [sys.executable, "-m", "x2_inspection_bridge.bridge"], cwd=PACKAGE_ROOT,
@@ -270,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
         tunnel_env = clean_env.copy(); tunnel_env.update({
             "PROXY_WS_URL": PROXY_WS_URL, "FACILITATOR_URL": FACILITATOR_URL, "AIP_ENABLED": "false",
             "SKILL_CATALOG_PATH": str(SKILL_CATALOG), "ALLOWED_ACTIONS": "inspect_target_sequence,stop",
-            "EXECUTION_TIMEOUT_SECONDS": "45", "ZENOH_CONFIG": str(zenoh_config),
+            "EXECUTION_TIMEOUT_SECONDS": "75", "ZENOH_CONFIG": str(zenoh_config),
         })
         log = log_path.open("w", encoding="utf-8")
         tunnel = start_tunnel(tunnel_config, tunnel_zenoh_config, tunnel_env, log)

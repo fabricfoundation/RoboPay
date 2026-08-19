@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
-    [ValidateRange(0, 20)][int]$FinalHoldSeconds = 3,
-    [ValidateRange(0, 10)][int]$TargetHoldSeconds = 2,
-    [ValidateRange(0, 20)][int]$ViewerStartSeconds = 8,
+    [ValidateRange(0, 20)][int]$FinalHoldSeconds = 2,
+    [ValidateRange(0, 10)][int]$TargetHoldSeconds = 1,
+    [ValidateRange(0, 20)][int]$ViewerStartSeconds = 4,
     [switch]$DryRun,
     [switch]$NoOpenBaseScan,
     [switch]$PauseAfter,
