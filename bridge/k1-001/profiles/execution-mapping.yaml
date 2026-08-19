@@ -1,0 +1,122 @@
+# k1-001 --- skill -> robot execution mapping
+#
+# Acceptance criteria covered: #1 (end-to-end flow), #2 (Zenoh bridge),
+# #5 (success/failure semantics).
+#
+# This is the layer a reviewer reads to answer "what actually moves?".
+# Every joint target below is produced by the closed-form solver in
+# arm_spec.solve_inspection_pose() at import time; tests/test_profiles.py re-solves them and
+# fails if this file drifts by more than 1e-3 rad.
+apiVersion: robopay.k1/v1
+kind: ExecutionMapping
+
+robotId: k1-001
+profileId: laok.k1-001.active-inspection.v1
+
+# ----------------------------------------------------------------- transport
+transport:
+  protocol: zenoh
+  subscribe:
+    topic: robot/tunnel/action
+    handler: flow/zenoh_transport.py::RobotHandler.handle
+    payload: six-field task envelope + params
+  publish:
+    topic: robot/tunnel/result
+    producer: flow/zenoh_transport.py::ZenohRobotNode
+    payload: '{actionId, status, message, metrics}'
+  correlation:
+    field: actionId
+    rule: A result is only accepted by the relay when actionId matches the dispatched action.
+
+# ------------------------------------------------------------------ dispatch
+dispatch:
+  router: flow/executor.py::SimExecutor
+  backendFactory: flow/executor.py::make_simulator
+  backends:
+    mujoco: simulator.py::MuJoCoSimulator
+    pybullet: simulator_pybullet.py::PyBulletSimulator
+  unsupportedSkill:
+    result: '{"success": false, "message": "unsupported_skill:<id>"}'
+    settles: false
+
+# -------------------------------------------------------------------- skill
+mappings:
+  - skillId: active_inspection
+    controller:
+      type: deterministic-trajectory
+      solver: arm_spec.py::solve_inspection_pose   # closed-form IK, evaluated at import
+      runtimeIteration: none                # no IK loop, no PD tuning, no RL policy
+      interpolation: smoothstep
+      jointOrder: [base_rot, shoulder, elbow, wrist_pitch, wrist_roll, cam_pan]
+      actuation: kinematic-pinning
+      actuationNote: >
+        Arm joints are pinned to the interpolated trajectory each step
+        (qpos set, qvel zeroed) while the camera and targets remain fully
+        dynamic. The camera position is computed from forward kinematics.
+
+    keyframes:                              # radians, derived from arm_spec.KEYFRAMES
+      home:    {base_rot: 1.5708, shoulder: -0.8000, elbow: 1.6000, wrist_pitch: 0.5000, wrist_roll: 0.0000, cam_pan: 0.0000}
+      target_left:   {base_rot: 1.5000, shoulder: -1.4000, elbow: 1.4000, wrist_pitch: 1.4000, wrist_roll: 0.0000, cam_pan: 0.0000}
+      target_center: {base_rot: 1.5000, shoulder: -1.4000, elbow: 1.4000, wrist_pitch: 1.4000, wrist_roll: 0.0000, cam_pan: 0.0000}
+      target_right:  {base_rot: 1.5000, shoulder: -1.4000, elbow: 1.4000, wrist_pitch: 1.4000, wrist_roll: 0.0000, cam_pan: 0.0000}
+
+    stages:                                 # arm_spec.STAGE_STEPS, 2 ms per step
+      - {name: move_to_left,   from: home,      to: target_left,   steps: 80}
+      - {name: confirm_left,   hold: target_left,             steps: 40}
+      - {name: move_to_center, from: target_left, to: target_center, steps: 80}
+      - {name: confirm_center, hold: target_center,             steps: 40}
+      - {name: move_to_right,  from: target_center, to: target_right, steps: 80}
+      - {name: confirm_right,  hold: target_right,              steps: 40}
+    nominalSteps: 360
+    defaultStepBudget: 500
+
+    decision:                               # thresholds live in arm_spec.py
+      success:
+        fovCentered: true
+        distanceMax: 0.35                   # m, arm_spec.CONFIRM_DISTANCE_MAX
+      failure:
+        - reason: timeout
+          test: step budget exhausted before all targets confirmed
+        - reason: partial
+          test: some but not all targets confirmed within budget
+        - reason: unreachable
+          test: IK solver returns None for a target position
+
+# ------------------------------------------------------------------- scenes
+# A parameter value selects a physical scene, never a code branch.
+scenes:
+  inspection:
+    targets:
+      - {name: left,   y: 0.30, z: 0.10}
+      - {name: center, y: 0.30, z: 0.18}
+      - {name: right,  y: 0.30, z: 0.26}
+    stepBudget: 500
+    expect: success
+  timeout:
+    targets:
+      - {name: left,   y: 0.30, z: 0.10}
+      - {name: center, y: 0.30, z: 0.18}
+      - {name: right,  y: 0.30, z: 0.26}
+    stepBudget: 60
+    expect: 'failure:timeout'
+  single_target:
+    targets:
+      - {name: center, y: 0.30, z: 0.18}
+    stepBudget: 500
+    expect: success
+aliases:
+  full_inspection: inspection
+  three_targets: inspection
+  fast_inspection: timeout
+  one_target: single_target
+
+# ------------------------------------------------------------------ results
+resultMapping:
+  robotToRelay:
+    successReason: all_targets_confirmed
+    statusField: status
+    completedWhen: 'success == true'
+    metrics: arm_spec.py::build_metrics      # identical schema on both engines
+  relayToClient:
+    completed: settle payment, status `completed`, paymentState SUCCESS
+    failed: skip settlement, status `failed`, paymentState FAILED

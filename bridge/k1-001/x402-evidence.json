@@ -1,0 +1,17 @@
+{
+  "robot": "k1-001",
+  "skill": "active_inspection",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1D212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "amount_usdc": "0.1",
+  "txs": [
+    "0x3efc718ad7d7f4adb9b0fc692b81cca77b5be62a4ac1792ac8f48094b6ddc1c6"
+  ],
+  "settled": true,
+  "note": "real Base Sepolia USDC transfer; audited by verify_settlement.py (criterion #7)",
+  "settledAt": "block 45648709",
+  "profileId": "laok.k1-001.active-inspection.v1"
+}

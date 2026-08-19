@@ -1,0 +1,25 @@
+[
+  {
+    "skill_id": "active_inspection",
+    "description": "Move the K1 camera to inspect three targets (left, center, right) in sequence and confirm each is within FOV.",
+    "params": {
+      "scenario": {
+        "type": "string",
+        "values": [
+          "inspection",
+          "full_inspection",
+          "three_targets",
+          "timeout",
+          "fast_inspection",
+          "single_target",
+          "one_target"
+        ]
+      },
+      "maxSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2000
+      }
+    }
+  }
+]

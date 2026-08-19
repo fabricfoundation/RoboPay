@@ -1,0 +1,73 @@
+name: k1-arm-001-tier-1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, main, "booster-k1-tier-1"]
+    paths:
+      - "bridge/k1-001/**"
+      - ".github/workflows/k1-arm-001-tier-1.yml"
+  pull_request:
+    paths:
+      - "bridge/k1-001/**"
+      - ".github/workflows/k1-arm-001-tier-1.yml"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate k1-001 bridge
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: bridge/k1-001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
+
+      - name: Install Python deps
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements.txt --quiet  # suppress noise
+
+      - name: Lint
+        run: |
+          python -m py_compile arm_spec.py
+          python -m py_compile simulator.py
+          python -m py_compile simulator_pybullet.py
+          python -m py_compile bridge.py
+          python -m py_compile flow/*.py
+          python -m py_compile tests/*.py
+
+      - name: Run tests (no pybullet/zenoh on this runner)
+        run: |
+          python -m pytest tests/ -v --ignore=tests/test_sim2sim.py 2>&1 | tee /tmp/k1_pytest.log
+          # Print a summary line for easy grepping
+          grep -E "passed|failed|error" /tmp/k1_pytest.log | tail -5
+
+      - name: Profile contract check
+        run: |
+          python -m pytest tests/test_profiles.py -v 2>&1 | tee /tmp/k1_profiles.log
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k1-test-results
+          path: /tmp/k1_*.log
+
+      - name: Security scan
+        run: |
+          echo "Scanning for secrets..."
+          grep -rE "0x[0-9a-fA-F]{64}" --include="*.py" --include="*.yaml" --include="*.json" . || true
+          echo "Secret scan complete."

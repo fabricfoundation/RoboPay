@@ -1,0 +1,118 @@
+# k1-001 --- RoboPay Fabric robot profile
+#
+# Acceptance criteria covered: #2 (Zenoh bridge), #6 (scope classification),
+# #8 (robot identity & wallet binding).
+apiVersion: robopay.k1/v1
+kind: RobotProfile
+
+profileId: laok.k1-001.active-inspection.v1
+robotId: k1-001
+displayName: Booster K1 (MuJoCo simulated active inspection arm)
+version: 1.0.0
+
+vendor:
+  name: laok
+  robotModel: booster-k1
+  hardwareRevision: "n/a (simulated)"
+
+# --------------------------------------------------------------------- scope
+# Criterion #6. Stated once, machine-readable, and repeated in README.md.
+scope:
+  classification: simulator          # simulator | real-hardware | hybrid
+  tier: 1
+  simulationOnly: true
+  realWorldActuation: false
+  gpuRequired: false
+  networkEgressDuringExecution: false
+  safetyNote: >
+    This profile never drives physical hardware. Every action is executed by a
+    physics engine on CPU inside the robot process. No motor command, no
+    teleop channel and no hardware driver exists in this bridge.
+
+# ---------------------------------------------------------------- embodiment
+embodiment:
+  type: manipulator
+  degreesOfFreedom: 6
+  specSource: ../arm_spec.py         # single source of truth for BOTH engines
+  kinematics:
+    baseHeight: 0.15                 # arm_spec.BASE_H
+    link1: 0.30                      # arm_spec.LINK1
+    link2: 0.28                      # arm_spec.LINK2
+    link3: 0.08                      # arm_spec.LINK3
+    maxReach: 0.66                   # arm_spec.MAX_REACH
+    workRadius: 0.40                 # arm_spec.WORK_R
+    units: meters
+  joints:
+    - {name: base_rot,     type: hinge, axis: z, limitRad: 3.14}
+    - {name: shoulder,     type: hinge, axis: y, limitRad: 2.0}
+    - {name: elbow,        type: hinge, axis: y, limitRad: 2.6}
+    - {name: wrist_pitch,  type: hinge, axis: y, limitRad: 2.8}
+    - {name: wrist_roll,   type: hinge, axis: x, limitRad: 3.14}
+    - {name: cam_pan,      type: hinge, axis: z, limitRad: 1.57}
+  camera:
+    type: wrist-mounted
+    fov: 1.22                        # arm_spec.CAM_FOV
+    zOffset: 0.02                    # arm_spec.CAM_Z_OFFSET
+
+# ---------------------------------------------------------------- simulation
+simulation:
+  primaryEngine:
+    name: mujoco
+    versionSpec: ">=3.1,<4"
+    module: simulator.py
+    headless: true
+    timestep: 0.002                  # arm_spec.TIMESTEP
+  secondaryEngine:                   # Tier 1 sim-to-sim requirement
+    name: pybullet
+    versionSpec: ">=3.2.5"
+    module: simulator_pybullet.py
+    headless: true
+  determinism:
+    controller: deterministic-trajectory
+    closedFormKeyframes: true        # solved once at import, no runtime IK loop
+    randomSeeds: false               # nothing stochastic in the pipeline
+    replayedAnimation: false         # camera motion comes from forward kinematics
+  physicsEvidence:                   # what makes this a real execution, not a mock
+    - gravity
+    - rigid-body-collision
+    - friction
+    - contact-normal-force
+
+# ----------------------------------------------------------------- transport
+# Criterion #2. Topic names match flow/zenoh_transport.py exactly.
+transport:
+  protocol: zenoh
+  mode: peer
+  endpoint: tcp/127.0.0.1:17447      # flow/zenoh_transport.py::DEFAULT_ENDPOINT
+  encoding: application/json
+  correlationField: actionId
+  topics:
+    action: robot/tunnel/action      # tunnel -> robot
+    result: robot/tunnel/result      # robot  -> tunnel
+  node: flow/node.py
+  fallback:
+    name: loopback
+    reason: >
+      In-process transport used by unit tests and by platforms without zenoh
+      wheels. Same envelope, same handler, no payment shortcuts.
+
+# ------------------------------------------------------------------ identity
+# Criterion #8. Nothing secret is stored in this repository.
+identity:
+  walletAddressEnv: K1_WALLET_ADDRESS
+  privateKeyEnv: K1_PRIVATE_KEY
+  payToAddressEnv: K1_PAYTO_ADDRESS
+  keyMaterialInRepo: false
+  bindingRule: >
+    An action is only executed when its envelope carries robotId
+    `k1-001`; the settlement receipt is bound to the same robotId and
+    to the payTo address resolved from the environment at runtime.
+
+# ------------------------------------------------------------- capabilities
+capabilities:
+  skills: [active_inspection]
+manifests:
+  skills: profiles/skills.yaml
+  functions: profiles/functions.yaml
+  paymentPolicy: profiles/payment-policy.yaml
+  executionMapping: profiles/execution-mapping.yaml

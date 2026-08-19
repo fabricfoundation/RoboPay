@@ -1,0 +1,114 @@
+# k1-001 --- skill catalogue and pricing
+#
+# Acceptance criteria covered: #4 (skill registration & pricing),
+# #5 (success/failure semantics).
+#
+# This file is LOADED AT RUNTIME by flow/profiles.py: the price advertised in
+# the HTTP 402 challenge and the parameter validation both come from here.
+apiVersion: robopay.k1/v1
+kind: SkillCatalog
+
+robotId: k1-001
+profileId: laok.k1-001.active-inspection.v1
+
+skills:
+  - skillId: active_inspection
+    displayName: Active Inspection
+    category: inspection
+    version: 1.0.0
+    description: >
+      Move the K1 wrist-mounted camera to inspect three targets (left, center,
+      right) in sequence. Each target is confirmed when the camera is within
+      the FOV and at a valid distance. Success requires all targets confirmed.
+
+    pricing:
+      model: per-execution
+      amount: "0.10"
+      currency: USDC
+      decimals: 6
+      amountAtomic: "100000"
+      network: base-sepolia
+      settlement: on-success-only     # criterion #7
+
+    execution:
+      idempotent: true
+      idempotencyKeyRequired: true
+      estimatedDurationSec: 2
+      maxDurationSec: 30
+      defaultStepBudget: 500
+      nominalSteps: 450
+      concurrency: 1
+
+    paramsSchema:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        scenario:
+          type: string
+          default: inspection
+          description: Named scenario to run.
+          enum:
+            - inspection
+            - full_inspection
+            - three_targets
+            - timeout
+            - fast_inspection
+            - single_target
+            - one_target
+        maxSteps:
+          type: integer
+          minimum: 1
+          maximum: 2000
+          description: Override the hard step budget; exceeding it fails as `timeout`.
+
+    successCriteria:                  # all must hold; enforced in simulator.py
+      - key: fovCentered
+        op: eq
+        value: true
+      - key: distance
+        op: lte
+        value: 0.35
+
+    failureModes:                     # criterion #5 -- every one is reproducible
+      - reason: timeout
+        trigger: The step budget runs out before all targets confirmed.
+        example: '{"scenario": "timeout"}'
+        settles: false
+      - reason: partial
+        trigger: Only some targets confirmed within budget.
+        example: '{"scenario": "inspection", "maxSteps": 100}'
+        settles: false
+      - reason: unreachable
+        trigger: IK solver returns None for a target position.
+        example: '{"scenario": "inspection", "maxSteps": 1}'
+        settles: false
+
+    resultSchema:
+      type: object
+      required: [success, reason, metrics]
+      properties:
+        success: {type: boolean}
+        reason:
+          type: string
+          enum: [all_targets_confirmed, timeout, partial, unreachable, no_targets]
+        metrics:
+          type: object
+          required:
+            - robotId
+            - skillId
+            - engine
+            - target
+            - scene
+            - stage
+            - cameraState
+            - cameraStart
+            - cameraEnd
+            - cameraDelta
+            - fovCentered
+            - distance
+            - collisionCount
+            - stepsUsed
+            - stepBudget
+            - simTime
+            - wallTime
