@@ -19,20 +19,20 @@ engines:
 artifacts:
   - path: docs/evidence/mujoco-inspection-episode.json
     description: "MuJoCo episode metrics for the free-standing inspection run"
-    bytes: 1971
-    sha256: 71e24558d1355adec4271e775bf83042e05cf61f24e07e3cb7ef2a8109334394
+    bytes: 2021
+    sha256: 891589272615182bb67cf1a6f19ced3251d62a40fcb227055c54b9f724f2e5bf
   - path: docs/evidence/pybullet-inspection-episode.json
     description: "PyBullet episode metrics for the same task and controller"
-    bytes: 1974
-    sha256: 3f8ddbe46116430a8798cb09f6dc6e4af8f81e9a79d4f914b6b635f169b14d35
+    bytes: 2026
+    sha256: 3be0e9ffac131bcac884381b7a62d710114d182ef7f2aae69008f22f86722d86
   - path: docs/evidence/webots-inspection-episode.json
     description: "Webots R2025a episode metrics for the same task and controller"
-    bytes: 1942
-    sha256: 41968318929b4c7840f07aa5e522f80a72c5e28379fa5188126abce69b5495bc
+    bytes: 1994
+    sha256: 8d3115316ec9dbb33d1b139bdfd5f8c33607e9fc9d0b1d9221c7cfdd88bcaca8
   - path: docs/evidence/sim2sim-validation.json
     description: "Cross-simulator comparison and verdict"
-    bytes: 10261
-    sha256: 1e0501370ad9616123b67bed7c64ef29fd13f281b5eca15e5d45a782ef92f53e
+    bytes: 10430
+    sha256: f95dcb9b315c107157fdb09d8ef7d11767bd4e6a6912969296afbf8b55b6579f
   - path: docs/evidence/reach-envelope.json
     description: "Measured reach envelope the shelf targets are chosen from"
     bytes: 12552

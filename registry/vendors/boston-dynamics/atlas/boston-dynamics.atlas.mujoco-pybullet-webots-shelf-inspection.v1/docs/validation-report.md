@@ -23,11 +23,11 @@ one rests on.
 | Reach envelope | Where free-standing Atlas can reach without losing balance | `reach-envelope.json` |
 | Free-standing task | The full inspection sequence succeeds on its own feet | `mujoco-inspection-episode.json` |
 | Cross-simulator | The same robot, task and controller agree on two further engines | `pybullet-inspection-episode.json`, `webots-inspection-episode.json`, `sim2sim-validation.json` |
-| Paid action | Execution is gated by x402 and settles only on success | `demo-e2e-evidence.json` |
-| Tunnel flow | A paid action reaches the robot over the real Zenoh transport | `tunnel-e2e-evidence.json` |
+| Payment gate | Execution is gated by x402 and settles only on success | `demo-e2e-evidence.json` |
+| Tunnel flow | A payment-validated action reaches the robot over the real Zenoh transport | `tunnel-e2e-evidence.json` |
 | Facilitator | A forged authorization is refused by the live x402 facilitator | `tunnel-e2e-evidence.json`, `tests/test_facilitator.py` |
 | Real Go tunnel | The repository's own tunnel refuses unpaid and forged actions | `go-tunnel-e2e-evidence.json` |
-| Idempotency | A paid action actuates the robot once, across restarts | `tests/test_idempotency.py` |
+| Idempotency | A payment-validated action actuates the robot once, across restarts | `tests/test_idempotency.py` |
 | On-chain settlement | A settlement of this skill really happened on Base Sepolia | `onchain-settlement.json` |
 
 ## 2. Model integrity
@@ -135,7 +135,44 @@ places the three runs differ:
 Everything above the servo — the robot, the task geometry, the state machine,
 the Jacobian and the gravity feedforward — is shared code.
 
-## 6. Paid action
+### 5.1 End-effector speed
+
+An earlier revision of this report quoted 5.76 m/s for MuJoCo. That number was
+wrong, and the way it was wrong is worth recording. It read
+`data.cvel[hand][:3]`; MuJoCo lays `cvel` out as `[angular; linear]`, so it
+reported the hand's angular rate in rad/s as a speed in m/s. All three engines
+now measure the same thing — how far the hand actually moved in one control
+step — and `test_reported_speed_matches_the_hand_actually_moving` checks the
+reported figure against the hand's own displacement, because nothing in the task
+fails when this metric is wrong.
+
+| Engine | While inspecting (REACH/VERIFY) | Episode peak | Shelf contacts |
+| --- | --- | --- | --- |
+| MuJoCo | 0.336 m/s | 1.134 m/s | 0 |
+| PyBullet | 0.366 m/s | 3.109 m/s | 0 |
+| Webots R2025a | 2.817 m/s | 6.204 m/s | 0 |
+
+Two separate effects, neither of them a physical claim about Atlas:
+
+* **The episode peak is a RETURN artefact.** `RETURN` assigns the stance pose
+  straight into the joint targets instead of going through `_servo`, so the
+  rate limit that shapes `REACH` does not apply and only the actuator effort
+  limits bound the retraction. That peak happens after the last target has been
+  verified, so it is reported separately from the speed reached near the shelf.
+* **The spread between engines is servo stiffness, not motion planning.** The
+  rate limit is `MAX_JOINT_STEP` = 0.01 rad per 2 ms control step — 5 rad/s in
+  joint space, which at the ~0.6 m shoulder-to-hand lever is a ceiling of about
+  3 m/s at the hand. Webots' stiff position servo tracks the rate-limited target
+  closely enough to reach that ceiling; the softer PD servos in MuJoCo and
+  PyBullet lag well behind it. The bound is the same in all three; how much of
+  it gets used is an engine property.
+
+So the ceiling is set in joint space by the controller, not by a Cartesian speed
+limit, and it is not tuned per engine. What is asserted here is only what was
+measured: no engine touched the shelf, and the closest the hand came to a target
+without contact was 4.9 mm (MuJoCo) and 6.7 mm (PyBullet).
+
+## 6. Payment gate
 
 `demo-e2e-evidence.json` walks the full gate:
 
@@ -150,13 +187,13 @@ the Jacobian and the gravity feedforward — is shared code.
 the relay gating. A safely stopped episode returns `completion_reason:
 safe_stopped` and `success: false`, so it can never settle.
 
-## 7. Paid action over the tunnel
+## 7. Payment-validated action over the tunnel
 
 `demo_e2e.py` proves the payment invariants in-process. `demo_tunnel.py` proves
 the transport, with nothing stubbed between the gate and the simulator:
 
 ```
-paid action request
+payment-validated action request
     -> x402 verification (tunnel side)
     -> Zenoh  robot/tunnel/action
     -> Atlas bridge
@@ -203,7 +240,7 @@ protocol layer only, and the evidence file records that explicitly as
 
 ### Idempotency
 
-A paid action actuates the robot once. The store is keyed on
+A payment-validated action actuates the robot once. The store is keyed on
 `robot_id + skill_id + idempotency_key`, records the parameters and a payment
 fingerprint alongside it, and is appended to disk so the guarantee survives a
 restart:

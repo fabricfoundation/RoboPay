@@ -1,9 +1,9 @@
-"""End-to-end paid action over the real Zenoh transport.
+"""End-to-end payment-validated action over the real Zenoh transport.
 
 This is the flow the RoboPay README describes, with nothing stubbed between the
 payment gate and the simulator::
 
-    paid action request
+    payment-validated action request
         -> x402 verification (tunnel side)
         -> Zenoh  robot/tunnel/action
         -> Atlas bridge
@@ -205,7 +205,7 @@ def run_demo(json_output: Path | None = None) -> dict:
     import zenoh
 
     print("=" * 68)
-    print("  Atlas paid action over the real Zenoh transport")
+    print("  Atlas payment-validated action over the real Zenoh transport")
     print("=" * 68)
 
     bridge = AtlasZenohBridge()

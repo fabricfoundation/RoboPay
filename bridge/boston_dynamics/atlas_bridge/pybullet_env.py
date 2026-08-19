@@ -85,8 +85,10 @@ class AtlasInspectionPyBulletEnvironment:
 
         self.min_pelvis_height = math.inf
         self.max_end_effector_speed = 0.0
+        self.control_timestep = TIME_STEP_S
         self.shelf_contacts = 0
         self.fall_detected = False
+        self._previous_hand: np.ndarray | None = None
         self._time = 0.0
 
     # -- episode -----------------------------------------------------------
@@ -125,6 +127,7 @@ class AtlasInspectionPyBulletEnvironment:
         self.max_end_effector_speed = 0.0
         self.shelf_contacts = 0
         self.fall_detected = False
+        self._previous_hand = None
         self._time = 0.0
         return self.observe()
 
@@ -204,10 +207,13 @@ class AtlasInspectionPyBulletEnvironment:
             )
         self.shelf_contacts += contacts
 
-        velocity = pybullet.getLinkState(
-            self.robot, self.hand_index, computeLinkVelocity=1, physicsClientId=self.client
-        )[6]
-        speed = float(np.linalg.norm(velocity))
+        # Same finite difference as the other engines, so the three reported
+        # speeds are measured identically.
+        hand = self.end_effector()
+        speed = 0.0
+        if self._previous_hand is not None:
+            speed = float(np.linalg.norm(hand - self._previous_hand)) / TIME_STEP_S
+        self._previous_hand = hand
         self.max_end_effector_speed = max(self.max_end_effector_speed, speed)
         roll, pitch, _ = pybullet.getEulerFromQuaternion(orientation)
 

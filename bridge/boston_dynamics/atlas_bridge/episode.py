@@ -25,6 +25,7 @@ MODEL_SOURCE = "openai/roboschool @ d32bcb2 — atlas_v4_with_multisense.urdf (M
 class InspectionEnvironment(Protocol):
     """The surface every simulator backend has to provide."""
 
+    control_timestep: float
     min_pelvis_height: float
     max_end_effector_speed: float
     shelf_contacts: int
@@ -55,6 +56,12 @@ def run_episode(
     control_steps = 0
     safe_stopped = False
     plan = None
+    # The episode maximum is dominated by RETURN, where the controller commands
+    # the stance pose as a step and only the actuators bound the motion. That
+    # says nothing about how fast the arm moves near the shelf, so the speed
+    # reached while reaching and verifying is reported separately.
+    max_task_phase_speed = 0.0
+    previous_hand = None
 
     while observation["sim_time"] < max_duration_seconds:
         if should_stop():
@@ -68,7 +75,15 @@ def run_episode(
         plan = controller.step(
             environment.end_effector(), jacobian, observation["sim_time"], angles
         )
+        phase = controller.state.phase
         observation = environment.step(plan.joint_targets)
+        hand = environment.end_effector()
+        if previous_hand is not None and phase in ("REACH", "VERIFY"):
+            travelled = float(np.linalg.norm(hand - previous_hand))
+            max_task_phase_speed = max(
+                max_task_phase_speed, travelled / environment.control_timestep
+            )
+        previous_hand = hand
         control_steps += 1
         if on_step is not None:
             on_step(control_steps, observation)
@@ -119,6 +134,7 @@ def run_episode(
         "fall_detected": environment.fall_detected,
         "shelf_contacts": environment.shelf_contacts,
         "max_end_effector_speed_mps": round(environment.max_end_effector_speed, 4),
+        "max_end_effector_speed_inspecting_mps": round(max_task_phase_speed, 4),
         "final_torso_roll_rad": round(float(observation["torso_roll"]), 4),
         "final_torso_pitch_rad": round(float(observation["torso_pitch"]), 4),
         "final_phase": plan.phase if plan else "STAND",

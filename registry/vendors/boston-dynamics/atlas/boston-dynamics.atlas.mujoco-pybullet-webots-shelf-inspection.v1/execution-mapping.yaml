@@ -31,6 +31,7 @@ mappings:
       - fall_detected
       - shelf_contacts
       - max_end_effector_speed_mps
+      - max_end_effector_speed_inspecting_mps
       - sim_duration_seconds
       - policy_id
     limits:

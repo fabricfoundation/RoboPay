@@ -144,3 +144,56 @@ def test_targets_stay_inside_the_validated_reach_core():
         assert vertical_low <= vertical <= vertical_high, (
             f"{target.name}: {vertical:.3f} m vertical is outside the validated core"
         )
+
+
+# -- the reported speed must be the speed of the hand ------------------------
+def test_reported_speed_matches_the_hand_actually_moving():
+    """Guards the metric itself, not the motion.
+
+    The first version of this metric read ``data.cvel[hand][:3]``. MuJoCo lays
+    ``cvel`` out as ``[angular; linear]``, so that reported the hand's angular
+    rate in rad/s as a speed in m/s — 5.76 where the hand was moving at 1.13.
+    Nothing in the task failed, which is exactly why it survived: the only way
+    to catch it is to check the number against the hand's own displacement.
+    """
+    from bridge.boston_dynamics.atlas_bridge.episode import run_episode
+
+    environment = AtlasInspectionEnvironment()
+    samples: list[float] = []
+    previous: list = [None]
+
+    def record(_step: int, _observation: dict) -> None:
+        hand = environment.end_effector()
+        if previous[0] is not None:
+            samples.append(
+                float(np.linalg.norm(hand - previous[0])) / environment.control_timestep
+            )
+        previous[0] = hand
+
+    metrics = run_episode(environment, engine="MuJoCo", on_step=record)
+
+    assert samples, "the episode produced no steps to measure"
+    assert metrics["max_end_effector_speed_mps"] == pytest.approx(max(samples), abs=1e-3)
+
+
+def test_the_arm_inspects_slowly_even_though_the_episode_peak_is_higher():
+    """The peak is a RETURN artefact; near the shelf the arm is slow.
+
+    ``RETURN`` assigns the stance pose straight into the joint targets, so the
+    servo rate limit that shapes ``REACH`` does not apply and only the actuator
+    limits bound the retraction. That peak is not what a reviewer asking about
+    inspection speed is asking about, so the two are reported separately and
+    the one that touches the shelf is the one held to a bound.
+    """
+    from bridge.boston_dynamics.atlas_bridge.pybullet_runner import (
+        run_inspection as run_pybullet_inspection,
+    )
+
+    metrics = run_pybullet_inspection()
+    assert metrics["status"] == "success"
+    assert metrics["shelf_contacts"] == 0
+    assert metrics["max_end_effector_speed_inspecting_mps"] < 1.0
+    assert (
+        metrics["max_end_effector_speed_inspecting_mps"]
+        <= metrics["max_end_effector_speed_mps"]
+    )

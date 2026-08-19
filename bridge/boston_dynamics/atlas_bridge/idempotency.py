@@ -1,6 +1,6 @@
-"""Durable idempotency for paid actions.
+"""Durable idempotency for payment-validated actions.
 
-A paid action must actuate the robot **once**. Replay protection on the payment
+A payment-validated action must actuate the robot **once**. Replay protection on the payment
 alone is not enough: the same idempotency key can arrive with a different
 payment, and an in-memory guard forgets everything the moment the bridge
 restarts — which is exactly when a client is most likely to retry.
@@ -55,7 +55,7 @@ class ConflictingRequest(ValueError):
 
 
 class IdempotencyStore:
-    """File-backed store of which paid actions have already actuated."""
+    """File-backed store of which actions have already actuated."""
 
     def __init__(self, path: Path | str | None = DEFAULT_STORE_PATH) -> None:
         self.path = Path(path) if path is not None else None

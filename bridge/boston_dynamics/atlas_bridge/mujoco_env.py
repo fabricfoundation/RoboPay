@@ -90,6 +90,7 @@ class AtlasInspectionEnvironment:
         self._floor_geom = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
         self._jacp = np.zeros((3, self.model.nv))
 
+        self.control_timestep = float(self.model.opt.timestep)
         self.min_pelvis_height = math.inf
         self.max_end_effector_speed = 0.0
         self.shelf_contacts = 0
@@ -119,6 +120,7 @@ class AtlasInspectionEnvironment:
         self.max_end_effector_speed = 0.0
         self.shelf_contacts = 0
         self.fall_detected = False
+        self._previous_hand = None
         return self.observe()
 
     def _lowest_point(self) -> float:
@@ -187,7 +189,15 @@ class AtlasInspectionEnvironment:
                 contacts += 1
         self.shelf_contacts += contacts
 
-        speed = float(np.linalg.norm(self.data.cvel[self.hand_id][:3]))
+        # Measured as the distance the hand actually travelled this control
+        # step. MuJoCo's cvel is [angular; linear] in a com-based frame, so
+        # reading cvel[:3] reported rad/s as m/s; a finite difference is both
+        # correct and identical to how the other two engines measure it.
+        hand = self.end_effector()
+        speed = 0.0
+        if self._previous_hand is not None:
+            speed = float(np.linalg.norm(hand - self._previous_hand)) / self.model.opt.timestep
+        self._previous_hand = hand
         self.max_end_effector_speed = max(self.max_end_effector_speed, speed)
         roll, pitch = _quaternion_to_rpy(self.data.qpos[3:7])
 

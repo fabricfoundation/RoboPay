@@ -21,6 +21,7 @@
   "fall_detected": false,
   "shelf_contacts": 0,
   "max_end_effector_speed_mps": 6.2037,
+  "max_end_effector_speed_inspecting_mps": 2.8167,
   "final_torso_roll_rad": -0.0011,
   "final_torso_pitch_rad": -0.0023,
   "final_phase": "DONE",

@@ -40,7 +40,7 @@ ROBOT_ID = "atlas-sim-01"
 INSPECT_ACTION = "inspect_shelf"
 STOP_ACTION = "stop"
 ALLOWED_ACTIONS = {INSPECT_ACTION, STOP_ACTION}
-#: Identity a paid action must carry. Without these the tunnel cannot correlate
+#: Identity a payment-validated action must carry. Without these the tunnel cannot correlate
 #: a result with the request that paid for it, and the action cannot be
 #: deduplicated, so it is refused rather than executed on a guess.
 REQUIRED_IDENTITY_FIELDS = ("action_id", "robot_id", "skill_id", "idempotency_key")
@@ -236,7 +236,7 @@ class AtlasActionHandler:
             })
             return "failure"
 
-        # A paid action actuates the robot once. The same key replays its
+        # A payment-validated action actuates the robot once. The same key replays its
         # recorded outcome; the same key describing a different request is a
         # conflict, not a retry.
         fingerprint = _payment_fingerprint(event)

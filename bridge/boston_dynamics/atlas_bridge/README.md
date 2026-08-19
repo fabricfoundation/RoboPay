@@ -170,7 +170,7 @@ Every setting has a working default; none is required for the simulator runs.
 | `ROBOT_ID` | `atlas-sim-01` | Identity this bridge answers for; actions for other robots are ignored |
 | `ZENOH_ENDPOINT` | *(peer mode)* | Router to connect to, e.g. `tcp/127.0.0.1:7447` |
 | `ZENOH_CONFIG` | — | Path to a Zenoh config file; takes precedence over the endpoint |
-| `ZENOH_ACTION_TOPIC` | `robot/tunnel/action` | Where paid actions arrive |
+| `ZENOH_ACTION_TOPIC` | `robot/tunnel/action` | Where payment-validated actions arrive |
 | `ZENOH_RESULT_TOPIC` | `robot/tunnel/result` | Where correlated results are published |
 | `ZENOH_METRICS_TOPIC` | `robot/boston_dynamics_atlas/metrics` | Simulator metrics stream |
 | `ZENOH_READY_TOPIC` | `robot/boston_dynamics_atlas/ready` | Announced once on startup |

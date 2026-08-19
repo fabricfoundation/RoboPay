@@ -1,4 +1,4 @@
-"""A paid action must actuate the robot exactly once — including after a restart.
+"""A payment-validated action must actuate the robot exactly once — including after a restart.
 
 Replay protection on the payment is not the same guarantee: the same
 idempotency key can arrive carrying a different payment, and an in-memory guard

@@ -1,4 +1,4 @@
-"""End-to-end paid action through the repository's real Go tunnel.
+"""End-to-end payment enforcement through the repository's real Go tunnel.
 
 ``demo_tunnel.py`` exercises the Zenoh transport with a Python client. This
 module goes one layer further out and drives the **actual Go tunnel binary from
@@ -153,7 +153,7 @@ async def _run(tunnel_binary: Path, duration: float) -> dict:
 
     server = await websockets.serve(proxy.handler, PROXY_HOST, PROXY_PORT)
     print("=" * 70)
-    print("  Atlas paid action through the real Go tunnel")
+    print("  Atlas payment enforcement through the real Go tunnel")
     print("=" * 70)
     print(f"  proxy listening on ws://{PROXY_HOST}:{PROXY_PORT}{PROXY_PATH}")
     print(f"  bridge listening on {ACTION_TOPIC} as {bridge.robot_id}")

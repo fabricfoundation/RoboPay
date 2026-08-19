@@ -184,13 +184,26 @@ def run(max_duration_seconds: float) -> dict:
 
     control_steps = 0
     plan = None
+    # Measured exactly as episode.py measures it, so the three engines report
+    # the same quantity: the episode peak lands in RETURN, where the stance
+    # pose is commanded as a step, so the inspecting speed is reported too.
+    max_task_phase_speed = 0.0
+    previous_hand = None
     while observation["sim_time"] < max_duration_seconds:
         angles = environment.joint_angles()
         jacobian = kinematics.jacobian(angles, base_rotation=environment.base_rotation())
         plan = controller.step(
             environment.end_effector(), jacobian, observation["sim_time"], angles
         )
+        phase = controller.state.phase
         observation = environment.step(plan.joint_targets)
+        hand = environment.end_effector()
+        if previous_hand is not None and phase in ("REACH", "VERIFY"):
+            travelled = float(np.linalg.norm(hand - previous_hand))
+            max_task_phase_speed = max(
+                max_task_phase_speed, travelled / (environment.timestep / 1000.0)
+            )
+        previous_hand = hand
         control_steps += 1
         if environment.fall_detected or controller.finished:
             break
@@ -231,6 +244,7 @@ def run(max_duration_seconds: float) -> dict:
         "fall_detected": environment.fall_detected,
         "shelf_contacts": environment.shelf_contacts,
         "max_end_effector_speed_mps": round(environment.max_end_effector_speed, 4),
+        "max_end_effector_speed_inspecting_mps": round(max_task_phase_speed, 4),
         "final_torso_roll_rad": round(float(observation["torso_roll"]), 4),
         "final_torso_pitch_rad": round(float(observation["torso_pitch"]), 4),
         "final_phase": plan.phase if plan else "STAND",
