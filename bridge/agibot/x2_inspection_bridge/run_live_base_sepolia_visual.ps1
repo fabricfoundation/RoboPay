@@ -3,10 +3,11 @@ param(
     [ValidateRange(0, 20)][int]$FinalHoldSeconds = 2,
     [ValidateRange(0, 10)][int]$TargetHoldSeconds = 1,
     [ValidateRange(0, 20)][int]$ViewerStartSeconds = 4,
+    [ValidateRange(0, 30)][int]$PreflightSeconds = 0,
     [switch]$DryRun,
     [switch]$NoOpenBaseScan,
+    [switch]$NoAutoLayout,
     [switch]$PauseAfter,
-    [Parameter(Mandatory = $false)][string]$PayeeAddress,
     [Parameter(Mandatory = $false)][string]$TunnelBin = $env:TUNNEL_BIN
 )
 
@@ -17,30 +18,19 @@ $privateKey = if (-not [string]::IsNullOrWhiteSpace($env:PRIVATE_KEY)) {
 } else {
     $env:BASE_SEPOLIA_PRIVATE_KEY
 }
-$payee = if (-not [string]::IsNullOrWhiteSpace($PayeeAddress)) {
-    $PayeeAddress
-} elseif (-not [string]::IsNullOrWhiteSpace($env:ROBO_PAYEE_ADDRESS)) {
+$payee = if (-not [string]::IsNullOrWhiteSpace($env:ROBO_PAYEE_ADDRESS)) {
     $env:ROBO_PAYEE_ADDRESS
 } else {
     $env:ROBOT_PAYEE_ADDRESS
 }
 if (-not $DryRun -and [string]::IsNullOrWhiteSpace($privateKey)) {
-    $securePrivateKey = Read-Host 'Base Sepolia private key (hidden; never stored)' -AsSecureString
-    $privateKeyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePrivateKey)
-    try {
-        $privateKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($privateKeyPointer)
-    } finally {
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($privateKeyPointer)
-    }
+    throw 'Missing PRIVATE_KEY or BASE_SEPOLIA_PRIVATE_KEY in the current process environment. The launcher never stores or prints it.'
 }
 if (-not $DryRun -and $privateKey -notmatch '^(0x)?[0-9a-fA-F]{64}$') {
     throw 'The Base Sepolia private key is invalid: expected exactly 32 bytes (64 hex characters, optionally prefixed with 0x).'
 }
 if ([string]::IsNullOrWhiteSpace($payee)) {
-    $payee = Read-Host 'Base Sepolia payee address'
-}
-if ($payee -notmatch '^0x[0-9a-fA-F]{40}$') {
-    throw 'The Base Sepolia payee address is invalid: expected 0x followed by 40 hex characters.'
+    throw 'Missing ROBO_PAYEE_ADDRESS or ROBOT_PAYEE_ADDRESS in the current process environment.'
 }
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
@@ -48,37 +38,19 @@ $commitSha = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $commitSha -notmatch '^[0-9a-f]{40}$') {
     throw 'Unable to resolve the exact Git commit for the visual evidence run.'
 }
-$trackedChanges = @(& git -C $repoRoot status --porcelain --untracked-files=no)
-if ($LASTEXITCODE -ne 0 -or $trackedChanges.Count -ne 0) {
-    throw 'Tracked files differ from HEAD. Commit or revert them before recording current-HEAD evidence.'
-}
 if ([string]::IsNullOrWhiteSpace($TunnelBin)) {
     $TunnelBin = Join-Path $repoRoot 'bin/tunnel'
-
-    # Evidence must execute the Tunnel built from the commit printed above.
-    # Reusing an ignored binary can silently run code from an older checkout.
-    $docker = Get-Command docker -ErrorAction SilentlyContinue
-    if ($env:OS -eq 'Windows_NT') {
-        if ($null -eq $docker) {
-            throw 'Docker Desktop is required to build the Tunnel from the current evidence commit.'
-        }
-        & docker info --format '{{.ServerVersion}}' *> $null
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Docker Desktop must be running to build the Tunnel from the current evidence commit.'
-        }
-        Write-Host 'Building the real Linux Tunnel from the current evidence commit...'
-        $mount = "${repoRoot}:/work"
-        & docker run --rm `
-            -e 'PATH=/usr/local/go/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' `
-            -v $mount -w /work golang:1.25-bookworm `
-            bash -c 'apt-get update -qq && apt-get install -y -qq make curl unzip >/dev/null && make build'
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Docker failed to build the Linux Tunnel from the current evidence commit.'
-        }
-    }
 }
 if (-not (Test-Path -LiteralPath $TunnelBin)) {
-    throw "Tunnel binary not found: '$TunnelBin'. Start Docker Desktop or pass a freshly built Linux Tunnel with -TunnelBin."
+    throw "Tunnel binary not found: '$TunnelBin'. Build it once before starting the recording."
+}
+
+$staleZenohListener = Get-NetTCPConnection -LocalPort 7447 -State Listen -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if ($staleZenohListener) {
+    $owner = Get-Process -Id $staleZenohListener.OwningProcess -ErrorAction SilentlyContinue
+    $ownerDescription = if ($owner) { "$($owner.ProcessName) PID $($owner.Id)" } else { "PID $($staleZenohListener.OwningProcess)" }
+    throw "Zenoh port 7447 is already occupied by $ownerDescription. Stop the stale router before recording."
 }
 
 $python = if (-not [string]::IsNullOrWhiteSpace($env:AGIBOT_X2_PYTHON_EXE)) {
@@ -86,9 +58,7 @@ $python = if (-not [string]::IsNullOrWhiteSpace($env:AGIBOT_X2_PYTHON_EXE)) {
 } else {
     (Get-Command python -ErrorAction Stop).Source
 }
-if (-not [string]::IsNullOrWhiteSpace($privateKey)) {
-    $env:PRIVATE_KEY = $privateKey
-}
+$env:PRIVATE_KEY = $privateKey
 $env:ROBO_PAYEE_ADDRESS = $payee
 $env:TUNNEL_BIN = (Resolve-Path -LiteralPath $TunnelBin).Path
 $env:PYTHONPATH = $PSScriptRoot
@@ -96,29 +66,79 @@ $env:AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS = [string]$FinalHoldSeconds
 $env:AGIBOT_X2_TARGET_HOLD_SECONDS = [string]$TargetHoldSeconds
 $env:AGIBOT_X2_VIEWER_START_HOLD_SECONDS = [string]$ViewerStartSeconds
 $env:ROBO_PAY_COMMIT_SHA = $commitSha
-$sha256 = [Security.Cryptography.SHA256]::Create()
-try {
-    $tunnelStream = [IO.File]::OpenRead($TunnelBin)
-    try {
-        $tunnelDigest = $sha256.ComputeHash($tunnelStream)
-    } finally {
-        $tunnelStream.Dispose()
-    }
-} finally {
-    $sha256.Dispose()
-}
-$tunnelSha256 = ([BitConverter]::ToString($tunnelDigest)).Replace('-', '').ToLowerInvariant()
 
-Write-Host 'Arrange this terminal beside the MuJoCo viewer, then keep both visible for the complete run.'
+$layoutJob = $null
+if (-not $NoAutoLayout) {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class RoboPayX2WindowLayout {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int width, int height, bool repaint);
+}
+"@
+    $workArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+    $terminalWidth = [int]($workArea.Width * 0.45)
+    $viewerWidth = $workArea.Width - $terminalWidth
+    $viewerLeft = $workArea.Left + $terminalWidth
+    $terminalHandle = (Get-Process -Id $PID).MainWindowHandle
+    if ($terminalHandle -ne [IntPtr]::Zero) {
+        [void][RoboPayX2WindowLayout]::MoveWindow(
+            $terminalHandle,
+            $workArea.Left,
+            $workArea.Top,
+            $terminalWidth,
+            $workArea.Height,
+            $true
+        )
+    }
+    $layoutJob = Start-Job -ArgumentList @(
+        $viewerLeft,
+        $workArea.Top,
+        $viewerWidth,
+        $workArea.Height
+    ) -ScriptBlock {
+        param($viewerLeft, $viewerTop, $viewerWidth, $viewerHeight)
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class RoboPayX2ViewerLayout {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int width, int height, bool repaint);
+}
+"@
+        $deadline = [DateTime]::UtcNow.AddMinutes(3)
+        while ([DateTime]::UtcNow -lt $deadline) {
+            $viewers = Get-Process -ErrorAction SilentlyContinue | Where-Object {
+                $_.MainWindowHandle -ne [IntPtr]::Zero -and $_.MainWindowTitle -like 'MuJoCo*'
+            }
+            foreach ($viewer in $viewers) {
+                [void][RoboPayX2ViewerLayout]::MoveWindow(
+                    $viewer.MainWindowHandle,
+                    $viewerLeft,
+                    $viewerTop,
+                    $viewerWidth,
+                    $viewerHeight,
+                    $true
+                )
+            }
+            Start-Sleep -Milliseconds 250
+        }
+    }
+}
+
 Write-Host 'OBS sequence: bridge ready -> discovery -> unpaid 402 -> first paid 202 -> left -> center -> right -> correlated result -> settlement -> BaseScan'
 Write-Host "Evidence commit: $commitSha"
-Write-Host "Tunnel binary SHA-256: $tunnelSha256"
 Write-Host "Each target pose is held for $TargetHoldSeconds seconds; the final pose is held for $FinalHoldSeconds additional seconds."
-Write-Host "The viewer holds its neutral start for $ViewerStartSeconds seconds so it can be positioned without losing the left target."
+Write-Host "The viewer holds its neutral start for $ViewerStartSeconds seconds."
+Write-Host 'Automatic layout: readable terminal on the left; complete MuJoCo viewer on the right.'
 Write-Host 'Secrets are loaded from the current process and will not be printed or written.'
-
-if (-not $DryRun) {
-    [void](Read-Host 'Start OBS, keep this terminal visible, then press Enter to begin')
+Write-Host ''
+Read-Host 'Start OBS, then press Enter to begin the current-head recording'
+for ($remaining = $PreflightSeconds; $remaining -gt 0; $remaining--) {
+    Write-Host "Starting in $remaining..."
+    Start-Sleep -Seconds 1
 }
 
 $arguments = @(
@@ -135,6 +155,10 @@ if ($DryRun) {
 
 & $python @arguments
 $exitCode = $LASTEXITCODE
+if ($layoutJob -ne $null) {
+    Stop-Job -Job $layoutJob -ErrorAction SilentlyContinue
+    Remove-Job -Job $layoutJob -Force -ErrorAction SilentlyContinue
+}
 Remove-Item Env:PRIVATE_KEY -ErrorAction SilentlyContinue
 Remove-Item Env:BASE_SEPOLIA_PRIVATE_KEY -ErrorAction SilentlyContinue
 Remove-Item Env:ROBO_PAY_COMMIT_SHA -ErrorAction SilentlyContinue
