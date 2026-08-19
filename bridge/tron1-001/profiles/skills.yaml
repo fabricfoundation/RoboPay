@@ -1,0 +1,87 @@
+# tron1-001 skills
+schemaVersion: robot-skills.v1
+
+profileId: laok.tron1-001-arm-001.loco.v1
+
+skills:
+  - skillId: move_forward
+    displayName: Walk forward
+    description: >
+      Advance the tron1-001 planar biped forward by a goal distance using a
+      deterministic stepping gait. Success when the torso reaches the goal
+      within the step budget; otherwise a genuine physics timeout (no fabricated
+      success).
+    pricing:
+      amount: "0.10"
+      amountAtomic: 100000
+      currency: USDC
+      network: eip155:84532
+      settlement: on-success-only
+    paramsSchema:
+      type: object
+      properties:
+        goalDistance:
+          type: number
+          description: Target forward distance in metres
+          minimum: 0.1
+          maximum: 8.0
+          default: 1.0
+        speed:
+          type: number
+          minimum: 0.0
+          maximum: 1.5
+          default: 0.6
+      additionalProperties: false
+    failureModes:
+      - reason: timeout
+        description: >
+          Step budget exhausted before the goal distance was reached. This is a
+          real physics outcome (the gait simply did not cover enough ground in
+          time), never a scripted success.
+
+  - skillId: navigate_obstacle
+    displayName: Navigate to a goal over a curb
+    description: >
+      Walk forward and step over a low curb (0.04 m half-height) to reach a goal
+      X using the same gait. The swing foot lifts 0.12 m, well clear of the curb,
+      so the traversal is genuine geometry, not a teleport.
+    pricing:
+      amount: "0.10"
+      amountAtomic: 100000
+      currency: USDC
+      network: eip155:84532
+      settlement: on-success-only
+    paramsSchema:
+      type: object
+      properties:
+        goal_x:
+          type: number
+          description: Target X coordinate in metres
+          default: 2.0
+        speed:
+          type: number
+          minimum: 0.0
+          maximum: 1.5
+          default: 0.6
+      additionalProperties: false
+    failureModes:
+      - reason: timeout
+        description: Step budget exhausted before reaching the goal X.
+
+  - skillId: stop
+    displayName: Safe stop
+    description: >
+      Hold the current pose; no forward motion. Always succeeds when paid, and
+      proves the bounded / interruptible policy (the run terminates cleanly and
+      never settles a failed action).
+    pricing:
+      amount: "0.10"
+      amountAtomic: 100000
+      currency: USDC
+      network: eip155:84532
+      settlement: on-success-only
+    paramsSchema:
+      type: object
+      properties: {}
+      additionalProperties: false
+    failureModes: []

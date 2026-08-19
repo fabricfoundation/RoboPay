@@ -8,7 +8,7 @@ BINARY_ENTRY=./cmd
 # --- Bridge (ROS2) ---
 BRIDGE_DIR=bridge
 ROS_DISTRO?=humble
-ROBOT?=g1
+ROBOT?=tron1
 BRIDGE_PKG=isaac_sim_bridge_$(ROBOT)
 RMW_IMPLEMENTATION?=rmw_cyclonedds_cpp
 
@@ -59,7 +59,7 @@ help:
 	@echo "  tidy           - Tidy and verify Go modules"
 	@echo "Bridge (ROS2):"
 	@echo "  bridge-build   - colcon build the ROS2 bridge workspace"
-	@echo "  bridge-run     - Launch the bridge adapter (ROBOT=g1|go2|tron1, default g1)"
+	@echo "  bridge-run     - Launch the bridge adapter (ROBOT=tron1|go2|tron1, default tron1)"
 	@echo "  bridge-clean   - Remove bridge build/install/log dirs"
 	@echo "Common:"
 	@echo "  clean          - Remove all build artifacts (tunnel + bridge)"

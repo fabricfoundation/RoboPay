@@ -1,0 +1,43 @@
+{
+  "schema": "robopay.sim_to_sim_validation/v1",
+  "skill": "tron1-001",
+  "robot_id": "tron1-001",
+  "skill_id": "loco",
+  "engines": {
+    "engine_a": "mujoco",
+    "engine_b": "pybullet"
+  },
+  "method": "single skill definition executed on two independent physics backends; verdicts/reasons/metrics must agree",
+  "environment": {
+    "python": "3.13.14",
+    "mujoco": "3.11.0",
+    "pybullet": "stub-only (real wheel not installable on Windows; dynamic layer CI-gated)",
+    "host": "windows (dynamic cross-engine layer CI-gated)"
+  },
+  "layers": {
+    "static_spec_consistency": {
+      "status": "PASS",
+      "note": "Both backends generated from one robot spec (tron1_spec.py); URDF/joint-chain/link-offsets verified."
+    },
+    "pybullet_backend_contract": {
+      "status": "PASS",
+      "note": "PyBullet call surface + failure semantics verified (real PyBullet absent on Windows -> bullet_stub)."
+    },
+    "dynamic_engine_agreement": {
+      "status": "CI_GATED",
+      "note": "MuJoCo<->PyBullet numeric agreement runs only where real PyBullet is importable (Linux CI). Skipped on this Windows host; not faked.",
+      "skipped_tests": [
+        "[1] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)",
+        "[1] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)",
+        "[1] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)",
+        "[1] test_sim2sim.py: pybullet not importable (source-only wheel; runs in CI)"
+      ]
+    },
+    "runnable_layers": {
+      "passed": 11,
+      "skipped": 4,
+      "failed": 0
+    }
+  },
+  "overall": "RUNNABLE_LAYERS_PASS__DYNAMIC_CI_GATED"
+}

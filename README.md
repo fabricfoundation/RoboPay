@@ -1,82 +1,199 @@
-# RoboPay — LimX TRON 1 Tier 1
+# RoboPay
 
-This branch adds a simulator-only, payment-gated LimX TRON 1 obstacle-navigation
-profile. It runs the official LimX `WF_TRON1A` model in real MuJoCo and Webots,
-uses Zenoh for the local action/result boundary and settles x402 payment only
-after a correlated successful simulator result.
+Fabric RoboPay connects robots, simulators, cameras, drones, and other physical devices to the Fabric network. It provides a secure paid-action runtime that receives remote action requests, verifies payment through the robot-side tunnel flow, and routes approved actions to connected machines.
 
-Start here:
+## Overview
 
-- [TRON 1 profile runbook](registry/vendors/limx/tron1/limx.tron1.wheeled-mujoco-webots-obstacle-nav.v1/README.md)
-- [Validation report](registry/vendors/limx/tron1/limx.tron1.wheeled-mujoco-webots-obstacle-nav.v1/docs/validation-report.md)
-- [Evidence manifest](registry/vendors/limx/tron1/limx.tron1.wheeled-mujoco-webots-obstacle-nav.v1/docs/evidence/evidence-manifest.yaml)
-- [Tier 1 CI](.github/workflows/limx-tron1-tier1.yml)
+Fabric introduces a payment layer for machines. RoboPay is the execution component of this stack, exposing machine capabilities as paid endpoints.
 
-## Demonstrated action
+A core design principle is that **payment, routing, and execution are separated**. The Fabric backend/proxy receives a paid action request and routes it to the correct robot tunnel by `robotId`. It does not directly verify x402 payment in the production tunnel flow.
 
-`navigate_obstacle_course` drives the wheeled-foot TRON 1 around three physical
-barriers through seven state-driven waypoints. MuJoCo uses the official LimX
-Isaac Gym policy and encoder ONNX files. Webots uses a generated PROTO from the
-matching official URDF and STL meshes. Both report measured pose, waypoint,
-obstacle, clearance, collision and goal metrics. `stop` retains zero velocity
-and cannot fall through to navigation.
+The robot-side `tunnel` receives the action request, runs x402 middleware, verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
 
-## Paid action flow
+![RoboPay action flow](docs/images/flow.png)
 
-1. The payer discovers `limx-tron1-wf-sim-01` and its `$0.001` Base Sepolia
-   USDC skills.
-2. An unpaid action returns `402` and x402 requirements.
-3. The real Go Tunnel rejects nil/invalid facilitator verification before
-   `PostAction`; only a verified action is published to `robot/tunnel/action`.
-4. The profile bridge validates the full correlation tuple and executes the
-   official MuJoCo model/policy.
-5. It publishes a terminal measured result on `robot/tunnel/result`.
-6. The Tunnel settles only terminal success and exposes the correlated status
-   and receipt. Failure, timeout, mismatch and replay remain unsettled.
+## Repository layout
 
-The public response is immediate HTTP `202 accepted/pending`; execution is
-asynchronous and the same `action_id` is used at the status endpoint.
-
-## Security properties copied from approved PR 58
-
-- Explicit registered-skill catalog and allowlist; missing configuration fails
-  closed.
-- `isValid:false` returns HTTP 402 with zero ActionEvents, zero actuation and
-  zero settlement.
-- Durable, payment-bound idempotency survives Tunnel restart.
-- Unknown action/skill/parameter and foreign robot ID are rejected.
-- Failure, timeout and correlation mismatch never settle.
-- The positive E2E assembles WebSocket continuation frames, waits for bridge
-  readiness and proves the first paid action without a warm-up action.
-- x402 Python SDK `2.16.0` and `requests==2.33.0` are pinned.
-- Secrets are accepted only from the runtime environment/GitHub Secrets and
-  are never passed to the simulator bridge.
-
-Robot identity-to-payee signing is explicitly tracked as a shared upstream
-Fabric Tunnel/Gateway dependency, consistent with maintainer guidance; this
-robot profile does not invent an incompatible local EIP handshake.
-
-## Quick local validation
-
-```powershell
-$profile = 'registry/vendors/limx/tron1/limx.tron1.wheeled-mujoco-webots-obstacle-nav.v1'
-py -3 -m pip install -r "$profile/bridge/requirements-dev.txt"
-& "$profile/run-tests.ps1"
-& "$profile/run-visual-mujoco.ps1"
-& "$profile/run-visual-webots.ps1"
+```
+.
+├── tunnel/          # Go tunnel + x402 paid-action runtime
+│   └── config.json  # robot_id, payee address, price, network
+├── bridge/          # ROS2 bridge: Zenoh action events → robot /cmd_vel
+│   ├── common/zenoh_bridge/                 # shared Zenoh + action parsing
+│   └── unitree/{tron1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
+└── Makefile         # builds/runs the tunnel and the bridge
 ```
 
-The Linux/CI authorization suite builds and runs the real Tunnel:
+The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
+
+
+## 1. Start the simulator (Isaac Sim / OM1-sim)
+
+The simulator lives in a separate repo, [OpenMind/OM1-sim](https://github.com/OpenMind/OM1-sim). It requires Ubuntu 22.04, ROS2 Humble, an NVIDIA GPU, and Isaac Sim 5.1.0+.
+
+```bash
+git clone https://github.com/OpenMind/OM1-sim.git
+cd OM1-sim
+
+export ISAACSIM_ROOT=/path/to/isaacsim
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+source /opt/ros/humble/setup.bash
+cd isaac_sim && "$ISAACSIM_ROOT/python.sh" run.py --robot_type tron1
+```
+
+The sim subscribes to ROS2 `/cmd_vel` and drives the robot policy from it.
+
+## 2. Start the bridge
+
+The bridge is a ROS2 workspace under `bridge/`. It needs ROS2 Humble and a Python environment with `eclipse-zenoh`, managed with [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv venv --python 3.10
+source .venv/bin/activate
+uv pip install eclipse-zenoh
+
+make bridge-build
+make bridge-run                 # defaults to TRON1; ROBOT=go2 or ROBOT=tron1 to switch
+```
+
+Package names are `isaac_sim_bridge_tron1`, `isaac_sim_bridge_go2`, and `isaac_sim_bridge_tron1` (TRON1 is validated; Go2 and Tron1 are placeholders). The adapter subscribes to the Zenoh topic `robot/tunnel/action` and republishes mapped velocities on ROS2 `/cmd_vel`.
+
+## 3. Start the tunnel
+
+The tunnel (`tunnel/`) keeps an outbound WebSocket to the Fabric proxy, verifies x402 micropayments, and publishes accepted actions to the same Zenoh topic the bridge listens on.
+
+Set the payee address (and any overrides) in `tunnel/config.json`:
+
+```json
+{
+  "robot_id": "my-robot",
+  "evm_payee_address": "0xYourAddress",
+  "price": "0.002",
+  "network": "eip155:84532"
+}
+```
+
+| Field                    | Required      | Default         | Description                                                |
+|--------------------------|---------------|-----------------|------------------------------------------------------------|
+| `robot_id`               | No            | random UUID     | Unique robot identifier                                     |
+| `evm_payee_address`      | **Yes**       | —               | EVM address to receive x402 payments                        |
+| `price`                  | No            | `0.001`         | Price per action, in whole token units                      |
+| `network`                | No            | `eip155:8453`   | CAIP-2 network ID (e.g. `eip155:84532`)                     |
+| `token_address`          | No            | network default | ERC-20 the price is charged in                              |
+| `token_name`             | For `eip3009` | —               | Token's `name()`, forms the EIP-712 domain the payer signs  |
+| `token_version`          | No            | `1`             | Token version used in the EIP-712 domain                    |
+| `token_decimals`         | No            | `6`             | Token decimals, used to convert `price` to atomic units     |
+| `token_transfer_method`  | No            | `eip3009`       | `eip3009` or `permit2` — how the payment settles            |
+| `token_supports_eip2612` | No            | `false`         | `permit2` only: payer signs a permit instead of approving   |
+
+`price` is a decimal amount in whole units of the payment token, converted to atomic units using
+`token_decimals` — with `token_decimals: 18`, `"1"` charges `1000000000000000000`. A leading `$`
+is optional and carries no meaning; it only reads as dollars when the token is a stablecoin.
+
+### Custom payment token
+
+For well-known chains x402 already knows which stablecoin to use (USDC on Base, and so on), so
+`token_address` can be omitted. On any other chain there is no default and requests fail with
+`no default stablecoin configured for network <network>` — set `token_address` to register the
+token as that network's default asset at startup. See
+[`tunnel/config.example.json`](tunnel/config.example.json).
+
+`token_transfer_method` decides how the facilitator moves the tokens:
+
+- **`eip3009`** (default) — the payer signs a `TransferWithAuthorization` message and the
+  facilitator calls `transferWithAuthorization` on the token. **Only works if the token actually
+  implements EIP-3009** (USDC and friends). Against a plain ERC-20 the signature is produced
+  happily and settlement then reverts. `token_name`/`token_version` must match the token's own
+  EIP-712 domain (its `name()`, not its symbol) or the signature will not verify.
+- **`permit2`** — the payer signs a Permit2 witness and the facilitator settles through the x402
+  exact Permit2 proxy. Works with **any** plain ERC-20, at the cost of a one-time
+  `approve(0x000000000022D473030F116dDEE9F6B43aC78BA3, …)` from each payer. The signed domain is
+  Permit2's own, so `token_name`/`token_version` are neither required nor advertised. Set
+  `token_supports_eip2612: true` only if the token has `permit()`, which lets the payer skip the
+  approval transaction.
+
+The facilitator has to support the chosen method too — it is the one that submits the settlement
+transaction.
+
+Build and run from the repo root (the `Makefile` operates inside `tunnel/`):
 
 ```bash
 make build
+make run
 make test
-export PYTHONPATH=registry/vendors/limx/tron1/limx.tron1.wheeled-mujoco-webots-obstacle-nav.v1/bridge
-export TUNNEL_BIN="$PWD/bin/tunnel"
-export LD_LIBRARY_PATH="$PWD/.zenoh-c/lib"
-python3 -m pytest -q registry/vendors/limx/tron1/limx.tron1.wheeled-mujoco-webots-obstacle-nav.v1/tests/test_x402_invalid_payment_gate.py
 ```
 
-The checked-in `tunnel/config.json` is intentionally inert. Configure a stable
-robot ID, non-zero payee, catalog, allowlist and idempotency-store path only in
-an untracked environment or deployment secret manager.
+Common environment overrides:
+
+| Variable          | Default                                          | Description                       |
+|-------------------|--------------------------------------------------|-----------------------------------|
+| `PROXY_WS_URL`    | `wss://api.fabric.foundation/api/core/ws/robot`  | WebSocket URL of the tunnel proxy |
+| `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
+| `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
+
+## 4. Register the robot on BitAgent (Unibase AIP) — optional
+
+With `AIP_ENABLED=true`, the tunnel additionally registers the robot as an
+A2A-compatible agent on the BitAgent network (Unibase AIP), so any AIP client
+or agent can discover and call it. The integration is built on the
+[Unibase AIP Go SDK](https://github.com/unibaseio/aip-go-sdk) — see
+`tunnel/internal/aipagent/agent.go`, which wraps the robot in a single
+`wrappers.ExposeAsA2A(...)` call.
+
+How AIP traffic flows:
+
+```
+AIP client → AIP gateway (/robots/<robot_id>/…) → Fabric proxy (ws) → tunnel
+           → AIP handler → Zenoh topic robot/tunnel/action → bridge → /cmd_vel
+```
+
+The tunnel serves the A2A contract endpoints (`/.well-known/agent-card.json`,
+`/invoke`, …) on any route not owned by the paid-action API, and the gateway
+proxies them to the robot verbatim.
+
+### Configuration
+
+Copy the example env file and fill in your credentials (the tunnel loads
+`.env` from its working directory on start):
+
+```bash
+cp tunnel/.env.example tunnel/.env
+```
+
+| Variable             | Required | Description                                              |
+|----------------------|----------|----------------------------------------------------------|
+| `AIP_ENABLED`        | yes      | Set `true` to enable BitAgent/AIP registration           |
+| `CHAIN`              | no       | Chain preset: `bsc-testnet`, `bsc-mainnet`, `base-sepolia` or `base-mainnet` — sets both the x402 payment network and the AIP registration chain |
+| `UNIBASE_PROXY_AUTH` | no*      | Bearer token — your account is resolved from it (falls back to `PRIVY_TOKEN`) |
+| `AIP_USER_ID`        | no*      | Token-less fallback: wallet address to register under    |
+| `AIP_ENDPOINT`       | no       | AIP platform URL (default `https://api.aip.unibase.com`) |
+| `GATEWAY_URL`        | no       | AIP gateway URL (default `https://gateway.aip.unibase.com`) |
+| `AIP_PUBLIC_BASE_URL`| no       | Public gateway base (default `https://api.fabric.foundation/api/core`) |
+| `AIP_AGENT_NAME`     | no       | Display name (default `Robot <robot_id>`)                |
+| `AIP_LOCAL_PORT`     | no       | Local port the SDK binds (default `8000`)                |
+
+\* When neither is set, the tunnel walks you through a one-time browser
+authorization on first run — open the printed URL, approve with your wallet,
+and paste the token back. It is cached in
+`~/.config/unibase-aip-sdk/config.json` for subsequent runs:
+
+```
+=== Unibase Authorization ===
+[1/3] Fetching authorization URL ...
+[2/3] Open this URL in your browser and approve:
+
+  https://auth.pay.unibase.com?code=<one-time-code>
+
+[3/3] Paste your Authorization token below and press Enter:
+```
+
+Then start the tunnel as usual (`make run`). On success the log shows:
+
+```
+registering robot as AIP agent  robot_id=<id>  endpoint_url=…/robots/<id>
+ws connected to proxy           robot_id=<id>
+```
+
+Actions received via AIP are published to the same Zenoh topic
+(`robot/tunnel/action`) as paid x402 actions, so the bridge and robot-side
+safety logic are identical for both paths.

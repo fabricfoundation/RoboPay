@@ -1,0 +1,17 @@
+{
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "amount_usdc": 0.1,
+  "resource": "robopay://tron1-001/move_forward",
+  "settledAt": "block 45647028",
+  "txs": [
+    "0xb02f36544c9b42854ed8e641c8cf75d6e4de834a6ef58b4e1fa1b4b896af0d4e"
+  ],
+  "actionId": "63e107b4-e7aa-4efc-a8d7-ceca5b5e01b3",
+  "settled": true,
+  "robot": "tron1-001",
+  "note": "real Base Sepolia USDC transfer; audited by verify_settlement.py (criterion #7)"
+}

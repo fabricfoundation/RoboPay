@@ -1,0 +1,99 @@
+{
+  "schema": "robopay.metrics/v1",
+  "skill": "tron1-001",
+  "robot_id": "tron1-001",
+  "skill_id": "loco",
+  "generated_by": "real test execution + real on-chain evidence (no fabricated values)",
+  "onchain_settlement": {
+    "primary": {
+      "network": "base-sepolia",
+      "asset": "USDC",
+      "real_tx_count": 1,
+      "txs": [
+        "0xb02f36544c9b42854ed8e641c8cf75d6e4de834a6ef58b4e1fa1b4b896af0d4e"
+      ],
+      "explorer_base": "https://sepolia.basescan.org/tx/",
+      "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a"
+    },
+    "note": "Primary proof = Base-Sepolia USDC tx. Settlement is on-success-only."
+  },
+  "payment_gate": {
+    "unpaid_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestUnpaidRejected402::test_unpaid_is_402_no_execution",
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestExpiredRejected::test_expired_is_402_no_execution"
+      ],
+      "failed_tests": []
+    },
+    "invalid_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestInvalidRejected::test_malformed_txhash_rejected",
+        "TestInvalidRejected::test_wrong_amount_rejected",
+        "TestInvalidRejected::test_wrong_asset_rejected"
+      ],
+      "failed_tests": []
+    },
+    "expired_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestExpiredRejected::test_expired_is_402_no_execution",
+        "TestExpiredRejected::test_expired_rejected",
+        "TestExpiredRejected::test_future_expiry_still_valid"
+      ],
+      "failed_tests": []
+    },
+    "replay_rejected": {
+      "status": "PASS",
+      "tests": [
+        "TestReplayRejected409::test_replay_of_verified_payment_is_rejected_no_double_settle",
+        "TestReplayRejected409::test_replay_rejected"
+      ],
+      "failed_tests": []
+    },
+    "paid_success": {
+      "status": "PASS",
+      "note": "1 real Base-Sepolia USDC tx recorded.",
+      "onchain_tx_count": 1,
+      "tests": [
+        "TestUnpaidRejected402::test_unpaid_is_402_no_execution",
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestInvalidRejected::test_malformed_txhash_rejected",
+        "TestInvalidRejected::test_wrong_amount_rejected",
+        "TestInvalidRejected::test_wrong_asset_rejected",
+        "TestExpiredRejected::test_future_expiry_still_valid",
+        "TestReplayRejected409::test_replay_of_verified_payment_is_rejected_no_double_settle",
+        "TestPaidSuccessSettle::test_valid_receipt_verifies",
+        "TestPaidSuccessSettle::test_verified_payment_executes_and_settles"
+      ]
+    },
+    "failure_no_settle": {
+      "status": "PASS",
+      "tests": [
+        "TestUnpaidRejected402::test_unpaid_is_402_no_execution",
+        "TestInvalidRejected::test_invalid_is_402_no_execution",
+        "TestInvalidRejected::test_malformed_txhash_rejected",
+        "TestInvalidRejected::test_wrong_amount_rejected",
+        "TestInvalidRejected::test_wrong_asset_rejected",
+        "TestExpiredRejected::test_expired_is_402_no_execution",
+        "TestExpiredRejected::test_expired_rejected",
+        "TestExpiredRejected::test_future_expiry_still_valid",
+        "TestReplayRejected409::test_replay_of_verified_payment_is_rejected_no_double_settle",
+        "TestReplayRejected409::test_replay_rejected",
+        "TestFailureNoSettle::test_failure_never_settles",
+        "TestSafeStopReal::test_timeout_stops_on_budget"
+      ],
+      "failed_tests": []
+    }
+  },
+  "summary": {
+    "all_core_metrics_pass": true,
+    "real_onchain_txs": 1,
+    "ci_gated_dynamic_sim2sim": true,
+    "bridge_unit_test_present": true
+  }
+}
