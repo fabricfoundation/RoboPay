@@ -1,0 +1,4 @@
+# Evidence artefacts are checksummed in the profile's evidence-manifest.yaml.
+# Git must not rewrite their line endings, or the recorded sha256 stops matching
+# what a reviewer checks out.
+* -text

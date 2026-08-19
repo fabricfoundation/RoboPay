@@ -1,0 +1,146 @@
+name: Boston Dynamics Atlas Tier 1
+
+on:
+  pull_request:
+    branches: [main, boston-dynamics-atlas-tier-1]
+    paths:
+      - 'bridge/boston_dynamics/atlas_bridge/**'
+      - 'bridge/common/zenoh_bridge/**'
+      - 'registry/vendors/boston-dynamics/atlas/**'
+      - '.github/workflows/boston-dynamics-atlas-tier1.yml'
+  push:
+    branches: [main, boston-dynamics-atlas-tier-1]
+
+concurrency:
+  group: atlas-tier1-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BRIDGE: bridge/boston_dynamics/atlas_bridge
+
+jobs:
+  tests:
+    name: Unit and contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r $BRIDGE/requirements.txt
+      - name: Fetch the pinned Atlas v4 description
+        run: python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      - name: Run the test suite
+        run: python -m pytest $BRIDGE/tests -v
+
+  task:
+    name: Inspection episode must succeed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r $BRIDGE/requirements.txt
+      - name: Fetch the pinned Atlas v4 description
+        run: python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      - name: MuJoCo episode
+        # The runner exits non-zero unless every target was reached, the robot
+        # stayed standing and nothing touched the shelf.
+        run: |
+          mkdir -p artifacts
+          python -m bridge.boston_dynamics.atlas_bridge.runner \
+            --json-output artifacts/mujoco-inspection-episode.json
+      - name: PyBullet episode
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.pybullet_runner \
+            --json-output artifacts/pybullet-inspection-episode.json
+      - name: Webots world generation
+        # Webots itself is not on GitHub's runners, so CI verifies that the
+        # PROTO and the world still generate from the pinned URDF. The Webots
+        # episode is run locally and its result is committed under docs/evidence.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.webots_env --setup-only
+      - name: Sim-to-sim comparison
+        # Reports Webots as unavailable here and scores the engines that ran;
+        # a missing engine never turns a failing comparison into a passing one.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.sim2sim \
+            --json-output artifacts/sim2sim-validation.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-simulation-evidence
+          path: artifacts/
+
+  payment:
+    name: x402 payment gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r $BRIDGE/requirements.txt
+      - name: Fetch the pinned Atlas v4 description
+        run: python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      - name: Payment-safety tests
+        run: python -m pytest $BRIDGE/tests/test_x402_payment_safety.py -v
+      - name: Durable idempotency tests
+        run: python -m pytest $BRIDGE/tests/test_idempotency.py -v
+      - name: Live x402 facilitator must refuse a forged authorization
+        # Drives https://x402.org/facilitator. Protocol checks alone accept the
+        # payload; only the facilitator can tell it was never signed.
+        run: python -m pytest $BRIDGE/tests/test_facilitator.py -v
+      - name: End-to-end paid-action demo (in-process)
+        run: |
+          mkdir -p artifacts
+          python -m bridge.boston_dynamics.atlas_bridge.demo_e2e \n            --json-output artifacts/demo-e2e-evidence.json | tee artifacts/demo-e2e.txt
+      - name: End-to-end paid action over the real Zenoh transport
+        # Publishes on robot/tunnel/action, the bridge executes the MuJoCo
+        # episode, and the result is correlated back by action_id. Exits
+        # non-zero unless every payment invariant holds.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.demo_tunnel \n            --json-output artifacts/tunnel-e2e-evidence.json | tee artifacts/demo-tunnel.txt
+      - name: Re-verify the on-chain settlement
+        # Reads the settlement transaction back from a public Base Sepolia RPC.
+        # Exits non-zero if it is missing, reverted, or carries no USDC transfer.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence \
+            --json-output artifacts/onchain-settlement.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-x402-evidence
+          path: |
+            artifacts/demo-e2e.txt
+            artifacts/demo-tunnel.txt
+            artifacts/onchain-settlement.json
+            artifacts/demo-e2e-evidence.json
+            artifacts/tunnel-e2e-evidence.json
+
+  secrets:
+    name: No secrets in the diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject key material and wallet files
+        run: |
+          if git log --diff-filter=A --name-only --pretty=format: origin/main..HEAD \
+             | grep -Ei '(^|/)(wallet|secret|credentials)\.json$|\.pem$|id_rsa'; then
+            echo "::error::A key or wallet file was added on this branch."
+            exit 1
+          fi
+          if git grep -nIE '"private_key"\s*:\s*"[0-9a-fA-F]{64}"' -- . ; then
+            echo "::error::A raw private key is present in the tree."
+            exit 1
+          fi
+          echo "No key material found."

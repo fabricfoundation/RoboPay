@@ -1,0 +1,50 @@
+====================================================================
+  Atlas paid action over the real Zenoh transport
+====================================================================
+  bridge listening on robot/tunnel/action as atlas-sim-01
+  payment verification: protocol checks only
+
+  [forged-authorization] asking the live x402 facilitator
+    facilitator reachable : True
+    isValid               : False
+    reason                : invalid_exact_evm_signature
+    nothing published to Zenoh, simulator never touched
+
+  [unpaid] action_id=act-unpaid-87893407
+    x402 rejected -> HTTP 402 (MISSING_PAYMENT)
+    nothing published to Zenoh, simulator never touched
+
+  [wrong-amount] action_id=act-wrong-amount-66d9b97b
+    x402 rejected -> HTTP 400 (AMOUNT_MISMATCH)
+    nothing published to Zenoh, simulator never touched
+
+  [bad-tx-hash] action_id=act-bad-tx-hash-1c86aa30
+    x402 rejected -> HTTP 400 (MALFORMED_TX_HASH)
+    nothing published to Zenoh, simulator never touched
+
+  [paid] action_id=act-paid-df92fd42
+    x402 verified -> publishing on robot/tunnel/action
+    result correlated on robot/tunnel/result: status=success
+    targets=3/3  collisions=0  fall=False
+    settled
+
+  [replay] action_id=act-replay-e0bc821b
+    x402 rejected -> HTTP 400 (REPLAY_DETECTED)
+    nothing published to Zenoh, simulator never touched
+
+  [bad-params] action_id=act-bad-params-92b31bd2
+    x402 verified -> publishing on robot/tunnel/action
+    result correlated on robot/tunnel/result: status=failure
+    not settled
+
+====================================================================
+  INVARIANTS
+====================================================================
+  [OK] exactly one request settled
+  [OK] the settled request is the paid one
+  [OK] the paid request completed every target
+  [OK] unverified payments never reached Zenoh
+  [OK] every executed request was correlated by action_id
+  [OK] the live facilitator refused a forged authorization
+
+  evidence written to docs\evidence\tunnel-e2e-evidence.json

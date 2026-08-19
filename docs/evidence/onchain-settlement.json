@@ -1,0 +1,55 @@
+{
+  "evidence": "on_chain_settlement",
+  "network": {
+    "name": "Base Sepolia",
+    "chain_id": 84532,
+    "caip2": "eip155:84532"
+  },
+  "asset": {
+    "symbol": "USDC",
+    "contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "decimals": 6,
+    "explorer": "https://sepolia.basescan.org/token/0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  },
+  "settlement_transaction": {
+    "hash": "0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e",
+    "succeeded": true,
+    "block_number": 45670338,
+    "gas_used": 62147,
+    "contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+    "explorer": "https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e",
+    "transfer": {
+      "event": "Transfer(address,address,uint256)",
+      "token": "USDC",
+      "token_contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "from": "0x520c3ff276456a217c0dfadabeeb2d7081d6ccd4",
+      "to": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "raw_amount": 1000000,
+      "decimals": 6,
+      "amount": 1.0
+    }
+  },
+  "funding_transaction": {
+    "hash": "0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb",
+    "succeeded": true,
+    "block_number": 45669921,
+    "explorer": "https://sepolia.basescan.org/tx/0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb",
+    "description": "Coinbase Developer Platform faucet request that funded the payer wallet with testnet USDC before the settlement above."
+  },
+  "wallets": {
+    "payer": {
+      "address": "0x520c3ff276456a217c0dfadabeeb2d7081d6ccd4",
+      "explorer": "https://sepolia.basescan.org/address/0x520c3ff276456a217c0dfadabeeb2d7081d6ccd4"
+    },
+    "payee": {
+      "address": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "explorer": "https://sepolia.basescan.org/address/0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8"
+    }
+  },
+  "notes": [
+    "Testnet only. Base Sepolia USDC has no monetary value.",
+    "This artefact deliberately records no balances: balances change after the fact, while the transaction and its Transfer event do not.",
+    "The payer wallet is a disposable test wallet and is treated as compromised; no key material is stored in this repository."
+  ],
+  "reproduce": "python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence"
+}

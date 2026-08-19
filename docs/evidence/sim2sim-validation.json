@@ -1,0 +1,340 @@
+{
+  "validation_type": "sim2sim",
+  "robot_model": "Boston Dynamics Atlas v4",
+  "model_source": "openai/roboschool @ d32bcb2 \u2014 atlas_v4_with_multisense.urdf (MIT)",
+  "policy_id": "atlas-shelf-inspection-dls-v1",
+  "engines": [
+    "MuJoCo",
+    "PyBullet",
+    "Webots"
+  ],
+  "webots": "ran",
+  "runs": [
+    {
+      "engine": "MuJoCo",
+      "status": "success",
+      "targets_completed": 3,
+      "targets_total": 3,
+      "mean_position_error_m": 0.00954,
+      "max_position_error_m": 0.01349,
+      "min_pelvis_height_m": 0.9084,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "sim_duration_seconds": 4.606,
+      "per_target": [
+        {
+          "name": "shelf-top",
+          "reached": true,
+          "final_error_m": 0.0051,
+          "best_error_m": 0.0051,
+          "control_steps": 250
+        },
+        {
+          "name": "shelf-middle",
+          "reached": true,
+          "final_error_m": 0.01004,
+          "best_error_m": 0.01004,
+          "control_steps": 250
+        },
+        {
+          "name": "shelf-lower",
+          "reached": true,
+          "final_error_m": 0.01349,
+          "best_error_m": 0.01347,
+          "control_steps": 250
+        }
+      ]
+    },
+    {
+      "engine": "PyBullet",
+      "status": "success",
+      "targets_completed": 3,
+      "targets_total": 3,
+      "mean_position_error_m": 0.01218,
+      "max_position_error_m": 0.01979,
+      "min_pelvis_height_m": 0.9395,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "sim_duration_seconds": 4.978,
+      "per_target": [
+        {
+          "name": "shelf-top",
+          "reached": true,
+          "final_error_m": 0.01005,
+          "best_error_m": 0.01005,
+          "control_steps": 250
+        },
+        {
+          "name": "shelf-middle",
+          "reached": true,
+          "final_error_m": 0.01979,
+          "best_error_m": 0.01979,
+          "control_steps": 250
+        },
+        {
+          "name": "shelf-lower",
+          "reached": true,
+          "final_error_m": 0.00671,
+          "best_error_m": 0.00671,
+          "control_steps": 250
+        }
+      ]
+    },
+    {
+      "engine": "Webots",
+      "status": "success",
+      "targets_completed": 3,
+      "targets_total": 3,
+      "mean_position_error_m": 0.00898,
+      "max_position_error_m": 0.01233,
+      "min_pelvis_height_m": 0.8982,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "sim_duration_seconds": 7.704,
+      "per_target": [
+        {
+          "name": "shelf-top",
+          "reached": true,
+          "final_error_m": 0.00582,
+          "best_error_m": 0.00269,
+          "control_steps": 250
+        },
+        {
+          "name": "shelf-middle",
+          "reached": true,
+          "final_error_m": 0.01233,
+          "best_error_m": 0.01233,
+          "control_steps": 250
+        },
+        {
+          "name": "shelf-lower",
+          "reached": true,
+          "final_error_m": 0.00879,
+          "best_error_m": 0.00879,
+          "control_steps": 250
+        }
+      ]
+    }
+  ],
+  "consistency": {
+    "all_engines_completed_all_targets": true,
+    "no_engine_reported_a_fall": true,
+    "no_engine_reported_shelf_contact": true,
+    "mean_position_error_spread_m": 0.0032,
+    "mean_position_error_spread_limit_m": 0.05,
+    "duration_spread_s": 3.098,
+    "duration_spread_limit_s": 5.0
+  },
+  "verdict": "PASS",
+  "full_results": [
+    {
+      "simulator_engine": "MuJoCo",
+      "robot_model": "Boston Dynamics Atlas v4",
+      "model_source": "openai/roboschool @ d32bcb2 \u2014 atlas_v4_with_multisense.urdf (MIT)",
+      "base": "free-standing (no weld, no external support)",
+      "task": "inspect_shelf",
+      "policy_id": "atlas-shelf-inspection-dls-v1",
+      "status": "success",
+      "success": true,
+      "completion_reason": "sequence_complete",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 4.606,
+      "wall_time_seconds": 9.395,
+      "control_steps": 2303,
+      "targets_total": 3,
+      "targets_completed": 3,
+      "mean_position_error_m": 0.00954,
+      "max_position_error_m": 0.01349,
+      "final_pelvis_height_m": 0.9084,
+      "min_pelvis_height_m": 0.9084,
+      "fall_threshold_m": 0.7,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "max_end_effector_speed_mps": 5.7612,
+      "final_torso_roll_rad": 0.0343,
+      "final_torso_pitch_rad": 0.0971,
+      "final_phase": "DONE",
+      "policy_state": {
+        "policy_id": "atlas-shelf-inspection-dls-v1",
+        "controller": "state_machine + damped_least_squares_resolved_rate",
+        "phase": "DONE",
+        "chain": [
+          "r_arm_shz",
+          "r_arm_shx",
+          "r_arm_ely",
+          "r_arm_elx"
+        ],
+        "targets_total": 3,
+        "targets_completed": 3,
+        "per_target": [
+          {
+            "name": "shelf-top",
+            "reached": true,
+            "final_error_m": 0.0051,
+            "best_error_m": 0.0051,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-middle",
+            "reached": true,
+            "final_error_m": 0.01004,
+            "best_error_m": 0.01004,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-lower",
+            "reached": true,
+            "final_error_m": 0.01349,
+            "best_error_m": 0.01347,
+            "control_steps": 250
+          }
+        ],
+        "parameters": {
+          "dls_damping": 0.12,
+          "step_gain": 0.006,
+          "max_joint_step_rad": 0.01,
+          "reach_timeout_steps": 1500
+        }
+      }
+    },
+    {
+      "simulator_engine": "PyBullet",
+      "robot_model": "Boston Dynamics Atlas v4",
+      "model_source": "openai/roboschool @ d32bcb2 \u2014 atlas_v4_with_multisense.urdf (MIT)",
+      "base": "free-standing (no weld, no external support)",
+      "task": "inspect_shelf",
+      "policy_id": "atlas-shelf-inspection-dls-v1",
+      "status": "success",
+      "success": true,
+      "completion_reason": "sequence_complete",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 4.978,
+      "wall_time_seconds": 1.881,
+      "control_steps": 2489,
+      "targets_total": 3,
+      "targets_completed": 3,
+      "mean_position_error_m": 0.01218,
+      "max_position_error_m": 0.01979,
+      "final_pelvis_height_m": 0.9398,
+      "min_pelvis_height_m": 0.9395,
+      "fall_threshold_m": 0.7,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "max_end_effector_speed_mps": 3.1896,
+      "final_torso_roll_rad": 0.0001,
+      "final_torso_pitch_rad": 0.0011,
+      "final_phase": "DONE",
+      "policy_state": {
+        "policy_id": "atlas-shelf-inspection-dls-v1",
+        "controller": "state_machine + damped_least_squares_resolved_rate",
+        "phase": "DONE",
+        "chain": [
+          "r_arm_shz",
+          "r_arm_shx",
+          "r_arm_ely",
+          "r_arm_elx"
+        ],
+        "targets_total": 3,
+        "targets_completed": 3,
+        "per_target": [
+          {
+            "name": "shelf-top",
+            "reached": true,
+            "final_error_m": 0.01005,
+            "best_error_m": 0.01005,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-middle",
+            "reached": true,
+            "final_error_m": 0.01979,
+            "best_error_m": 0.01979,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-lower",
+            "reached": true,
+            "final_error_m": 0.00671,
+            "best_error_m": 0.00671,
+            "control_steps": 250
+          }
+        ],
+        "parameters": {
+          "dls_damping": 0.12,
+          "step_gain": 0.006,
+          "max_joint_step_rad": 0.01,
+          "reach_timeout_steps": 1500
+        }
+      }
+    },
+    {
+      "simulator_engine": "Webots",
+      "robot_model": "Boston Dynamics Atlas v4",
+      "model_source": "openai/roboschool @ d32bcb2 \u2014 atlas_v4_with_multisense.urdf (MIT)",
+      "base": "free-standing (no weld, no external support)",
+      "task": "inspect_shelf",
+      "policy_id": "atlas-shelf-inspection-dls-v1",
+      "status": "success",
+      "success": true,
+      "completion_reason": "sequence_complete",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 7.704,
+      "control_steps": 3850,
+      "targets_total": 3,
+      "targets_completed": 3,
+      "mean_position_error_m": 0.00898,
+      "max_position_error_m": 0.01233,
+      "final_pelvis_height_m": 0.911,
+      "min_pelvis_height_m": 0.8982,
+      "fall_threshold_m": 0.7,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "max_end_effector_speed_mps": 6.2037,
+      "final_torso_roll_rad": -0.0011,
+      "final_torso_pitch_rad": -0.0023,
+      "final_phase": "DONE",
+      "policy_state": {
+        "policy_id": "atlas-shelf-inspection-dls-v1",
+        "controller": "state_machine + damped_least_squares_resolved_rate",
+        "phase": "DONE",
+        "chain": [
+          "r_arm_shz",
+          "r_arm_shx",
+          "r_arm_ely",
+          "r_arm_elx"
+        ],
+        "targets_total": 3,
+        "targets_completed": 3,
+        "per_target": [
+          {
+            "name": "shelf-top",
+            "reached": true,
+            "final_error_m": 0.00582,
+            "best_error_m": 0.00269,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-middle",
+            "reached": true,
+            "final_error_m": 0.01233,
+            "best_error_m": 0.01233,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-lower",
+            "reached": true,
+            "final_error_m": 0.00879,
+            "best_error_m": 0.00879,
+            "control_steps": 250
+          }
+        ],
+        "parameters": {
+          "dls_damping": 0.12,
+          "step_gain": 0.006,
+          "max_joint_step_rad": 0.01,
+          "reach_timeout_steps": 1500
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "payload": {
+    "action": "stop",
+    "skill_id": "stop",
+    "robot_id": "atlas-sim-01",
+    "action_id": "act-atlas-stop-0001",
+    "idempotency_key": "idem-atlas-stop-0001",
+    "params": {}
+  },
+  "transaction_details": {
+    "payment_payload": {
+      "amount": "1000",
+      "asset": "USDC",
+      "network": "eip155:84532",
+      "txHash": "0x<settlement_tx_hash>",
+      "payer": "0x<payer_address>",
+      "payee": "0x<payee_address>"
+    },
+    "payment_requirements": {
+      "scheme": "exact",
+      "priceUSDC": "0.001"
+    }
+  },
+  "timestamp": "2026-08-19T00:00:00Z"
+}

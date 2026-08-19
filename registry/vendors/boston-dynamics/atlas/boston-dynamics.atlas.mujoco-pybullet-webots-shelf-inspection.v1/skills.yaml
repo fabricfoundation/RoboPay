@@ -1,0 +1,36 @@
+schemaVersion: robot-skills.v1
+profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
+skills:
+  - skillId: inspect_shelf
+    description: >-
+      Drive free-standing Atlas through a three-point shelf inspection. A state
+      machine sequences STAND, REACH and VERIFY per target while a damped
+      least-squares resolved-rate loop closes on the measured end-effector pose.
+      Succeeds only when every target is reached and held, the robot is still
+      standing, and nothing touched the shelf.
+    params:
+      maxDurationSec:
+        type: number
+        min: 5
+        max: 60
+        default: 30
+    paymentRequired: true
+    priceUSDC: "0.001"
+    # Only limits the bridge actually enforces are declared here. Joint torque
+    # is clamped by the URDF effort limits, the per-step joint increment is
+    # clamped by the controller, and the duration is validated on the way in.
+    movementLimits:
+      maxDurationSec: 60
+      maxJointStepRad: 0.01
+      jointTorqueLimits: from upstream URDF effort limits
+  - skillId: stop
+    description: >-
+      Interrupt an active episode, release every actuator and freeze the robot.
+      An interrupted inspection returns a correlated safe_stopped failure, so
+      that action can never settle. Priced like any other skill because it
+      arrives over the same paid-action channel; safety does not depend on it,
+      since the episode is bounded by maxDurationSec and the bridge stops on its
+      own when the budget expires.
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.001"

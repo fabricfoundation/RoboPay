@@ -1,0 +1,19 @@
+# Core simulation and control
+mujoco>=3.11
+numpy>=1.26
+pybullet>=3.2.6
+
+# Registry/profile parsing and tests
+pyyaml>=6.0
+pytest>=8.0
+
+# Evidence rendering
+pillow>=10.0
+
+# Webots world generation (Webots itself must be installed separately)
+urdf2webots>=2.0
+
+# Tunnel transport. Imported lazily by bridge.py, so the simulator runs and the
+# test-suite pass without a router; demo_tunnel.py needs it to exercise the real
+# Zenoh path.
+eclipse-zenoh>=1.0

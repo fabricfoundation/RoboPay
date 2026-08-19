@@ -1,0 +1,36 @@
+{
+  "demo": "atlas_go_tunnel_e2e",
+  "tunnel": "repository Go tunnel binary (x402 gin middleware + facilitator client)",
+  "proxy": "minimal stand-in for the hosted Fabric backend",
+  "action_topic": "robot/tunnel/action",
+  "result_topic": "robot/tunnel/result",
+  "robot_id": "atlas-sim-01",
+  "steps": [
+    {
+      "step": "unpaid",
+      "action_id": "act-unpaid-4821c848",
+      "http_status": 402,
+      "payment_required_header": true,
+      "executed": false,
+      "decided_by": "go tunnel x402 middleware"
+    },
+    {
+      "step": "forged-payment",
+      "action_id": "act-forged-d3db25ea",
+      "http_status": 400,
+      "response": {
+        "error": "Invalid payment"
+      },
+      "executed": false,
+      "decided_by": "go tunnel x402 middleware + live facilitator"
+    }
+  ],
+  "simulator_actions_executed": 0,
+  "invariants": {
+    "the tunnel refused an unpaid action with HTTP 402": true,
+    "the tunnel advertised payment requirements": true,
+    "the tunnel refused a forged payment": true,
+    "no unpaid or forged action ever reached the simulator": true
+  },
+  "all_invariants_hold": true
+}

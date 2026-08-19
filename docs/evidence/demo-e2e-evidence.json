@@ -1,0 +1,97 @@
+{
+  "demo": "atlas_e2e_x402_flow",
+  "policy_id": "atlas-shelf-inspection-dls-v1",
+  "robot_id": "atlas-sim-01",
+  "steps": [
+    {
+      "step": 1,
+      "name": "unpaid_402",
+      "http_status": 402,
+      "settlement": "skipped"
+    },
+    {
+      "step": 2,
+      "name": "invalid_payment",
+      "http_status": 400,
+      "settlement": "skipped"
+    },
+    {
+      "step": 3,
+      "name": "paid_success_settled",
+      "http_status": 200,
+      "settlement": "settled",
+      "targets_completed": 3,
+      "mean_position_error_m": 0.00954
+    },
+    {
+      "step": 4,
+      "name": "replay_detected",
+      "http_status": 409,
+      "settlement": "skipped"
+    }
+  ],
+  "settlement_ledger": {
+    "entries": [
+      {
+        "action_id": "demo-unpaid-001",
+        "skill_id": "inspect_shelf",
+        "robot_id": "atlas-sim-01",
+        "status": "SKIPPED_UNPAID",
+        "tx_hash": "",
+        "amount": "",
+        "asset": "",
+        "network": "",
+        "block_number": 0,
+        "timestamp": 1787177156.925951,
+        "reason": "No payment provided. HTTP 402 returned.",
+        "execution_success": false
+      },
+      {
+        "action_id": "demo-invalid-001",
+        "skill_id": "inspect_shelf",
+        "robot_id": "atlas-sim-01",
+        "status": "SKIPPED_REJECTED",
+        "tx_hash": "",
+        "amount": "",
+        "asset": "",
+        "network": "",
+        "block_number": 0,
+        "timestamp": 1787177156.9259992,
+        "reason": "Expected amount 1000, got 500.",
+        "execution_success": false
+      },
+      {
+        "action_id": "demo-paid-001",
+        "skill_id": "inspect_shelf",
+        "robot_id": "atlas-sim-01",
+        "status": "SETTLED",
+        "tx_hash": "0x94ad618a792cb57bcfa09eaff1feab4e734c6bd9bcd5c7d70acab3a9461923fb",
+        "amount": "1000",
+        "asset": "USDC",
+        "network": "eip155:84532",
+        "block_number": 0,
+        "timestamp": 1787177156.9260426,
+        "reason": "Execution succeeded. Settlement approved.",
+        "execution_success": true
+      },
+      {
+        "action_id": "demo-replay-001",
+        "skill_id": "inspect_shelf",
+        "robot_id": "atlas-sim-01",
+        "status": "SKIPPED_REJECTED",
+        "tx_hash": "",
+        "amount": "",
+        "asset": "",
+        "network": "",
+        "block_number": 0,
+        "timestamp": 1787177165.1240091,
+        "reason": "Replay detected for tx 0x94ad618a792cb57bcfa09eaff1feab4e734c6bd9bcd5c7d70acab3a9461923fb.",
+        "execution_success": false
+      }
+    ],
+    "total": 4,
+    "settled": 1,
+    "skipped_failure": 0,
+    "skipped_unpaid": 1
+  }
+}

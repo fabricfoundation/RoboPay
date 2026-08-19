@@ -1,0 +1,261 @@
+schemaVersion: skill-contract-test.v1
+profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
+description: >-
+  Reviewer-facing contract for inspect_shelf. Every expectation below is
+  enforced by an executable test in bridge/boston_dynamics/atlas_bridge/tests.
+cases:
+  - name: unpaid_request_is_refused
+    given: an inspect_shelf request with no payment header
+    expect:
+      httpStatus: 402
+      executed: false
+      settled: false
+    enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_unpaid_request_returns_402
+
+  - name: wrong_amount_is_refused
+    given: a receipt whose amount does not match the skill price
+    expect:
+      httpStatus: 400
+      executed: false
+      settled: false
+    enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_valid_payment_failure_no_settlement
+
+  - name: replayed_receipt_is_refused
+    given: a receipt whose transaction hash was already settled
+    expect:
+      httpStatus: 409
+      executed: false
+      settled: false
+    enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_replay_rejected
+
+  - name: paid_request_executes_and_settles
+    given: a valid receipt and an episode that reaches every target
+    expect:
+      httpStatus: 200
+      executed: true
+      settled: true
+      targetsCompleted: 3
+    enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_valid_payment_success_settles
+
+  - name: stopped_episode_never_settles
+    given: a stop request raised mid-episode
+    expect:
+      completionReason: safe_stopped
+      success: false
+      settled: false
+    enforcedBy: tests/test_inspection_task.py::test_safe_stop_halts_the_robot_mid_episode
+
+  - name: task_actually_completes
+    given: a full inspection episode in MuJoCo
+    expect:
+      targetsCompleted: 3
+      maxPositionErrorM: "< 0.03"
+      fallDetected: false
+      shelfContacts: 0
+      minPelvisHeightM: "> 0.70"
+    enforcedBy: tests/test_inspection_task.py::test_every_target_is_reached_and_held
+
+  - name: success_flag_is_derived_from_metrics
+    given: any episode result
+    expect: >-
+      success equals (all targets completed) and (no fall) and (no shelf
+      contact) and (not safe stopped)
+    enforcedBy: tests/test_inspection_task.py::test_success_flag_agrees_with_the_measured_metrics
+
+  - name: controller_is_closed_loop
+    given: two controllers fed different measured end-effector poses
+    expect: different joint commands and different reported errors
+    enforcedBy: tests/test_inspection_task.py::test_controller_is_closed_loop_not_a_replayed_trajectory
+
+  - name: run_is_repeatable
+    given: two MuJoCo episodes from the same build
+    expect: identical target count, mean error and minimum pelvis height
+    enforcedBy: tests/test_inspection_task.py::test_run_is_repeatable
+
+  - name: actuator_mapping_cannot_drift
+    given: an effort limit or joint set that disagrees with the pinned URDF
+    expect: ValueError raised at environment construction
+    enforcedBy: tests/test_model_integrity.py::test_actuator_validation_fails_loudly_on_drift
+
+  - name: shared_jacobian_matches_the_engine
+    given: the settled stance
+    expect: URDF-derived Jacobian within 5e-3 of MuJoCo's own
+    enforcedBy: tests/test_kinematics.py::test_jacobian_matches_mujoco
+
+  - name: targets_stay_inside_the_validated_envelope
+    given: the configured inspection targets
+    expect: every target inside the measured conservative reach core
+    enforcedBy: tests/test_inspection_task.py::test_targets_stay_inside_the_validated_reach_core
+
+  - name: settlement_is_real_on_chain
+    given: the settlement transaction recorded for this profile
+    expect:
+      network: Base Sepolia (eip155:84532)
+      status: success
+      event: Transfer(address,address,uint256) on the USDC contract
+      amount: 1.0 USDC
+    enforcedBy: bridge/boston_dynamics/atlas_bridge/settlement_evidence.py
+    note: >-
+      Re-read from a public RPC rather than transcribed; the command exits
+      non-zero if the transaction is missing, reverted, or carries no transfer.
+
+  - name: bridge_executes_the_registered_skill
+    given: the profile's own inspect_shelf action envelope
+    expect:
+      executed: true
+      status: success
+      skillId: inspect_shelf
+      profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
+    enforcedBy: tests/test_bridge_contract.py::test_shipped_envelope_drives_the_real_simulator
+    note: >-
+      The bridge, the registry and the runner must name the same skill. An
+      earlier revision left the bridge wired to a previous skill and the module
+      did not even import; these tests exist so that cannot recur.
+
+  - name: result_is_correlated_to_the_request
+    given: any executed action
+    expect: >-
+      the result echoes action_id, robot_id, skill_id, params_hash,
+      idempotency_key and profile_id
+    enforcedBy: tests/test_bridge_contract.py::test_result_echoes_every_correlation_field
+
+  - name: paid_action_reaches_the_robot_over_zenoh
+    given: a verified x402 receipt published on robot/tunnel/action
+    expect:
+      transport: Zenoh
+      executed: true
+      settled: true
+      targetsCompleted: 3
+    enforcedBy: bridge/boston_dynamics/atlas_bridge/demo_tunnel.py
+    note: >-
+      Unverified payments are never published to Zenoh at all, so the simulator
+      is not reachable without a valid receipt.
+
+  - name: malformed_settlement_reference_is_refused
+    given: a receipt whose txHash is not a 32-byte EVM transaction hash
+    expect:
+      httpStatus: 400
+      errorCode: MALFORMED_TX_HASH
+      executed: false
+    enforcedBy: tests/test_x402_payment_safety.py::TestTransactionHashValidation
+
+  - name: price_is_one_decision
+    given: the registry, the bridge and the settlement layer
+    expect: one price (0.001 USDC = 1000 raw) and one USDC contract address
+    enforcedBy: tests/test_x402_payment_safety.py::TestPaymentContractConsistency
+
+  - name: forged_authorization_is_refused_by_the_facilitator
+    given: >-
+      a payment payload that passes every protocol check but was never signed
+    expect:
+      facilitatorIsValid: false
+      invalidReason: invalid_exact_evm_signature
+      executed: false
+      settled: false
+    enforcedBy: tests/test_facilitator.py::test_live_facilitator_rejects_a_forged_authorization
+    note: >-
+      Protocol checks alone accept this payload — a dedicated test asserts that
+      too — so the facilitator is the only gate that can refuse it.
+
+  - name: facilitator_failure_fails_closed
+    given: the facilitator is unreachable
+    expect:
+      valid: false
+      errorCode: FACILITATOR_REJECTED
+    enforcedBy: tests/test_facilitator.py::test_unreachable_facilitator_refuses_the_payment
+    note: An unreachable facilitator must never authorise an action.
+
+  - name: paid_action_actuates_the_robot_once
+    given: the same idempotency key arriving twice
+    expect:
+      actuations: 1
+      secondStatus: duplicate
+      errorCode: DUPLICATE_ACTION
+    enforcedBy: tests/test_idempotency.py::test_same_key_actuates_the_robot_once
+
+  - name: idempotency_survives_a_restart
+    given: a repeat arriving after the bridge is restarted
+    expect:
+      actuations: 1
+    enforcedBy: tests/test_idempotency.py::test_guarantee_survives_a_restart
+    note: The store is reloaded from disk, so a retry after a crash is still one.
+
+  - name: idempotency_conflicts_are_refused
+    given: the same key with different parameters or a different payment
+    expect:
+      executed: false
+      errorCode: IDEMPOTENCY_PARAMS_CONFLICT | IDEMPOTENCY_PAYMENT_CONFLICT
+    enforcedBy: tests/test_idempotency.py
+
+  - name: tunnel_schema_accepts_both_spellings
+    given: an action envelope using camelCase identity fields
+    expect: the same parse result as snake_case, with params_hash recomputed
+    enforcedBy: tests/test_bridge_contract.py::test_camel_case_envelope_is_understood
+    note: >-
+      The tunnel forwards the caller's body verbatim, so the casing is the
+      caller's. A snake_case-only bridge would pass every local test and then
+      ignore a real Fabric request.
+
+  - name: real_go_tunnel_refuses_unpaid_action
+    given: an action sent through the repository's own Go tunnel with no payment
+    expect:
+      httpStatus: 402
+      paymentRequirementsAdvertised: true
+      reachedSimulator: false
+    enforcedBy: bridge/boston_dynamics/atlas_bridge/demo_go_tunnel.py
+    note: >-
+      The decision is made by the tunnel's upstream x402 gin middleware, not by
+      any Python code in this profile.
+
+  - name: real_go_tunnel_refuses_forged_payment
+    given: a structurally valid but unsigned authorization through the Go tunnel
+    expect:
+      httpStatus: 400
+      reachedSimulator: false
+    enforcedBy: bridge/boston_dynamics/atlas_bridge/demo_go_tunnel.py
+    note: The middleware consults the live facilitator before admitting the action.
+
+  - name: concurrent_duplicates_actuate_once
+    given: eight threads racing with the same idempotency key
+    expect:
+      actuations: 1
+    enforcedBy: tests/test_idempotency.py::test_concurrent_duplicates_actuate_once
+    note: >-
+      The claim is taken atomically; a check-then-record guard passes every
+      sequential test and still lets simultaneous retries through.
+
+  - name: identity_fields_are_mandatory
+    given: an envelope missing action_id, skill_id or idempotency_key
+    expect:
+      executed: false
+      errorCode: MISSING_IDENTITY
+    enforcedBy: tests/test_bridge_contract.py::test_missing_identity_is_refused
+    note: A result nobody can correlate is worse than no result.
+
+  - name: skill_id_is_never_inferred
+    given: an envelope that omits skill_id
+    expect:
+      executed: false
+      errorCode: MISSING_IDENTITY
+    enforcedBy: tests/test_bridge_contract.py::test_missing_skill_id_is_not_inferred_from_the_action
+    note: >-
+      An earlier revision defaulted skill_id to the action name, which made the
+      identity requirement unenforceable.
+
+  - name: params_hash_matches_the_published_format
+    given: any action, including one with no parameters
+    expect: params_hash is always "sha256:<64 hex>"
+    enforcedBy: tests/test_bridge_contract.py::test_params_hash_always_matches_the_published_format
+    note: execution-mapping.yaml declares paramsHashFormat "sha256:<hex>".
+
+  - name: duplicate_reports_the_original_outcome
+    given: a repeat of a completed idempotency key
+    expect:
+      executed: false
+      firstStatus: success | failure | safe_stopped
+    enforcedBy: tests/test_idempotency.py::test_duplicate_is_answered_with_the_recorded_outcome
+
+  - name: rejection_reasons_are_not_all_replays
+    given: a payment refused for a reason other than replay
+    expect: ledger status SKIPPED_REJECTED rather than SKIPPED_REPLAY
+    enforcedBy: bridge/boston_dynamics/atlas_bridge/payment.py::SettlementLedger.record_rejected

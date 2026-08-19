@@ -35,3 +35,5 @@ log/
 .colcon_settings.yaml
 
 PROJECT_MEMORY.md
+# Bridge runtime state (durable idempotency records)
+.robopay/
