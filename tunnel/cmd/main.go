@@ -213,6 +213,17 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 	}))
 
 	h := handlers.NewHandlers(logger)
+	h.RobotID = cfg.RobotID
+	h.Network = cfg.Network
+	h.PayTo = cfg.EVMPayeeAddress
+	h.ProfileID = os.Getenv("ROBOT_PROFILE_ID")
+	h.SkillCatalogPath = os.Getenv("SKILL_CATALOG_PATH")
+	// Results are recorded from Zenoh so the status endpoint answers from real
+	// execution. Without it the tunnel could only ever report "pending".
+	if err := h.StartResultSubscriber(); err != nil {
+		logger.Warn("action status will stay pending: result subscriber failed",
+			zap.Error(err))
+	}
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)
@@ -226,5 +237,9 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 
 // RegisterAllRoutes registers all real handlers on the router.
 func RegisterAllRoutes(router *gin.Engine, h *handlers.Handlers) {
+	// Discovery and status are read-only; POST /action is unchanged.
+	router.GET("/robot", h.GetRobotProfile)
+	router.GET("/skills", h.GetSkills)
 	router.POST("/action", h.PostAction)
+	router.GET("/action/:action_id/status", h.GetActionStatus)
 }

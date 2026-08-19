@@ -35,24 +35,39 @@ func (z *zenohSessionPublisher) Publish(keyExpr string, payload []byte) error {
 var (
 	zenohOnce      sync.Once
 	zenohPub       zenohPublisher
+	zenohSess      zenoh.Session
 	zenohInitError error
 )
 
-func getZenohPublisher() (zenohPublisher, error) {
+func openZenoh() {
 	zenohOnce.Do(func() {
 		session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
 		if err != nil {
 			zenohInitError = err
 			return
 		}
+		zenohSess = session
 		zenohPub = &zenohSessionPublisher{session: session}
 	})
+}
 
+func getZenohPublisher() (zenohPublisher, error) {
+	openZenoh()
 	if zenohInitError != nil {
 		return nil, zenohInitError
 	}
 
 	return zenohPub, nil
+}
+
+// getZenohSession exposes the one session the tunnel opens, so the result
+// subscriber and the action publisher share it rather than opening a second.
+func getZenohSession() (zenoh.Session, error) {
+	openZenoh()
+	if zenohInitError != nil {
+		return zenoh.Session{}, zenohInitError
+	}
+	return zenohSess, nil
 }
 
 func PublishRobotAction(payload []byte) error {
@@ -65,11 +80,23 @@ func PublishRobotAction(payload []byte) error {
 
 type Handlers struct {
 	Logger *zap.Logger
+
+	// Identity and pricing this tunnel publishes on the discovery endpoints.
+	RobotID          string
+	ProfileID        string
+	Network          string
+	PayTo            string
+	SkillCatalogPath string
+
+	// Execution results recorded from Zenoh, keyed by action_id.
+	Statuses  *statusStore
+	resultSub *zenoh.Subscriber
 }
 
 func NewHandlers(logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Logger: logger,
+		Logger:   logger,
+		Statuses: newStatusStore(),
 	}
 }
 
