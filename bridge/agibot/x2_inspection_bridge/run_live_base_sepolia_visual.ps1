@@ -96,7 +96,18 @@ $env:AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS = [string]$FinalHoldSeconds
 $env:AGIBOT_X2_TARGET_HOLD_SECONDS = [string]$TargetHoldSeconds
 $env:AGIBOT_X2_VIEWER_START_HOLD_SECONDS = [string]$ViewerStartSeconds
 $env:ROBO_PAY_COMMIT_SHA = $commitSha
-$tunnelSha256 = (Get-FileHash -LiteralPath $TunnelBin -Algorithm SHA256).Hash.ToLowerInvariant()
+$sha256 = [Security.Cryptography.SHA256]::Create()
+try {
+    $tunnelStream = [IO.File]::OpenRead($TunnelBin)
+    try {
+        $tunnelDigest = $sha256.ComputeHash($tunnelStream)
+    } finally {
+        $tunnelStream.Dispose()
+    }
+} finally {
+    $sha256.Dispose()
+}
+$tunnelSha256 = ([BitConverter]::ToString($tunnelDigest)).Replace('-', '').ToLowerInvariant()
 
 Write-Host 'Arrange this terminal beside the MuJoCo viewer, then keep both visible for the complete run.'
 Write-Host 'OBS sequence: bridge ready -> discovery -> unpaid 402 -> first paid 202 -> left -> center -> right -> correlated result -> settlement -> BaseScan'
