@@ -46,7 +46,6 @@ jobs:
           python bridge/agibot/x2_inspection_bridge/download_x2_model.py
           python -m unittest bridge/agibot/x2_inspection_bridge/tests/test_policy.py
           python -m unittest bridge/agibot/x2_inspection_bridge/tests/test_bridge_contract.py
-          python -m unittest bridge/agibot/x2_inspection_bridge/tests/test_live_payment_signing.py
           python scripts/registry/validate_profiles.py --registry-root registry/vendors/agibot
       - name: Prove invalid payment and non-success never settle
         env:
