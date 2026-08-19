@@ -60,11 +60,21 @@ def run_inspection(
                 native_viewer.sync()
                 time.sleep(0.05)
             started = time.perf_counter()
+            # Physics remains at the official 2 ms timestep. Rendering every
+            # physics step would request 500 GUI refreshes per second and can
+            # stretch a short episode beyond the x402 authorization window on
+            # Windows. A 60 Hz viewer is smooth while leaving all control and
+            # state-integration steps intact.
+            viewer_sync_period = 1.0 / 60.0
+            next_viewer_sync = observation["sim_time"]
             while observation["sim_time"] < max_duration_seconds and native_viewer.is_running():
                 confirmed_before_tick = len(policy.completed_targets)
                 completed = tick()
-                native_viewer.sync()
-                if len(policy.completed_targets) > confirmed_before_tick and viewer_target_hold_seconds > 0:
+                target_confirmed = len(policy.completed_targets) > confirmed_before_tick
+                if completed or safe_stopped or target_confirmed or observation["sim_time"] >= next_viewer_sync:
+                    native_viewer.sync()
+                    next_viewer_sync = observation["sim_time"] + viewer_sync_period
+                if target_confirmed and viewer_target_hold_seconds > 0:
                     target_deadline = time.perf_counter() + viewer_target_hold_seconds
                     while native_viewer.is_running() and time.perf_counter() < target_deadline:
                         if should_stop():

@@ -316,6 +316,10 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 					Price:   cfg.Price,
 					Network: x402.Network(cfg.Network),
 					PayTo:   cfg.EVMPayeeAddress,
+					// The payment is settled only after correlated simulator
+					// success. Give real visual runs enough time to finish while
+					// keeping the authorization strictly bounded.
+					MaxTimeoutSeconds: 300,
 				},
 			},
 			Description: "Run a paid robot action",
