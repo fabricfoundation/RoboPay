@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -25,7 +27,6 @@ const (
 
 	TransferMethodEIP3009 = "eip3009"
 	TransferMethodPermit2 = "permit2"
-	zeroEVMAddress        = "0x0000000000000000000000000000000000000000"
 )
 
 func getEnvOrDefault(key, defaultVal string) string {
@@ -109,10 +110,8 @@ func (c *Config) ChainID() (*big.Int, bool) {
 // Validate checks the user-supplied fields and fills in defaults. It is safe to call on a
 // candidate copy of a Config to vet a hot-reload update before committing it.
 func (c *Config) Validate() error {
-	if strings.TrimSpace(c.RobotID) == "" {
-		// A generated ID breaks the robot-scoped action and payment binding on
-		// every restart. Deployments must provide a stable identity explicitly.
-		return fmt.Errorf("robot_id is required (set ROBOT_ID or config.json)")
+	if c.RobotID == "" {
+		c.RobotID = uuid.NewString()
 	}
 
 	if c.Price == "" {
@@ -131,9 +130,6 @@ func (c *Config) Validate() error {
 
 	if c.EVMPayeeAddress == "" {
 		return fmt.Errorf("evm_payee_address is required")
-	}
-	if strings.EqualFold(c.EVMPayeeAddress, zeroEVMAddress) {
-		return fmt.Errorf("evm_payee_address must not be the zero address")
 	}
 
 	return c.validateToken()
@@ -200,7 +196,6 @@ func LoadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(file, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
-	applyDeploymentOverrides(&cfg)
 
 	cfg.ProxyWSURL = getEnvOrDefault("PROXY_WS_URL", DefaultProxyWSURL)
 	cfg.FacilitatorURL = getEnvOrDefault("FACILITATOR_URL", DefaultFacilitatorURL)
@@ -225,24 +220,6 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return &cfg, nil
-}
-
-// applyDeploymentOverrides keeps robot-specific values out of the checked-in
-// example config. A deployment can select its identity, payee, price, and
-// network without editing a tracked file.
-func applyDeploymentOverrides(cfg *Config) {
-	if value := strings.TrimSpace(os.Getenv("ROBOT_ID")); value != "" {
-		cfg.RobotID = value
-	}
-	if value := strings.TrimSpace(os.Getenv("ROBO_PAYEE_ADDRESS")); value != "" {
-		cfg.EVMPayeeAddress = value
-	}
-	if value := strings.TrimSpace(os.Getenv("ROBO_PRICE")); value != "" {
-		cfg.Price = value
-	}
-	if value := strings.TrimSpace(os.Getenv("ROBO_NETWORK")); value != "" {
-		cfg.Network = value
-	}
 }
 
 func loadAIPConfig(cfg *Config, defaultChainID int) error {

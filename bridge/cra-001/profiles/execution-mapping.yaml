@@ -1,0 +1,124 @@
+# cra-001 --- skill -> robot execution mapping
+#
+# Acceptance criteria covered: #1 (end-to-end flow), #2 (Zenoh bridge),
+# #5 (success/failure semantics).
+#
+# This is the layer a reviewer reads to answer "what actually moves?".
+# Every joint target below is produced by the closed-form solver in
+# arm_spec.solve() at import time; tests/test_profiles.py re-solves them and
+# fails if this file drifts by more than 1e-3 rad.
+apiVersion: robopay.cra/v1
+kind: ExecutionMapping
+
+robotId: cra-001
+profileId: laok.cra-001.pick-and-stack.v1
+
+# ----------------------------------------------------------------- transport
+transport:
+  protocol: zenoh
+  subscribe:
+    topic: robot/tunnel/action
+    handler: flow/zenoh_transport.py::RobotHandler.handle
+    payload: six-field task envelope + params
+  publish:
+    topic: robot/tunnel/result
+    producer: flow/zenoh_transport.py::ZenohRobotNode
+    payload: '{actionId, status, message, metrics}'
+  correlation:
+    field: actionId
+    rule: A result is only accepted by the relay when actionId matches the dispatched action.
+
+# ------------------------------------------------------------------ dispatch
+dispatch:
+  router: flow/executor.py::SimExecutor
+  backendFactory: flow/executor.py::make_simulator
+  backends:
+    mujoco: simulator.py::MuJoCoSimulator
+    pybullet: simulator_pybullet.py::PyBulletSimulator
+  unsupportedSkill:
+    result: '{"success": false, "message": "unsupported_skill:<id>"}'
+    settles: false
+
+# -------------------------------------------------------------------- skill
+mappings:
+  - skillId: pick_and_stack
+    controller:
+      type: deterministic-trajectory
+      solver: arm_spec.py::solve            # closed-form 2-link, evaluated at import
+      runtimeIteration: none                # no IK loop, no PD tuning, no RL policy
+      interpolation: smoothstep
+      jointOrder: [pan, shoulder, elbow, wristp]
+      actuation: kinematic-pinning
+      actuationNote: >
+        Arm joints are pinned to the interpolated trajectory each step
+        (qpos set, qvel zeroed) while the cube, the fingers and the obstacle
+        remain fully dynamic. The arm is a boundary condition on a real
+        physics scene; the cube moves only because contact and friction move it.
+
+    keyframes:                              # radians, derived from arm_spec.KEYFRAMES
+      home:    {pan: 0.0000, shoulder: 0.8963, elbow: -2.3622, wristp:  1.4659}   # tip (0.20, 0.00, 0.42)
+      above:   {pan: 0.0000, shoulder: 1.1117, elbow: -1.4560, wristp:  0.3443}   # tip (0.35, 0.00, 0.23)
+      grasp:   {pan: 0.0000, shoulder: 1.1418, elbow: -0.9089, wristp: -0.2328}   # tip (0.35, 0.00, 0.09)
+      lift:    {pan: 0.0000, shoulder: 1.0989, elbow: -1.4806, wristp:  0.3817}   # tip (0.35, 0.00, 0.24)
+      stretch: {pan: 0.0000, shoulder: 0.0000, elbow:  0.0000, wristp:  0.0000}   # tip (0.52, 0.00, 0.40)
+
+    stages:                                 # arm_spec.STAGE_STEPS, 2 ms per step
+      - {name: move_above, from: home,  to: above, steps: 70, gripper: open}
+      - {name: descend,    from: above, to: grasp, steps: 50, gripper: open}
+      - {name: grip,       hold: grasp,            steps: 60, gripper: closing, gate: contact-normal-force}
+      - {name: lift,       from: grasp, to: lift,  steps: 60, gripper: closed, attach: equality-constraint}
+      - {name: settle,     hold: lift,             steps: 20, gripper: closed, sample: hold-force}
+    nominalSteps: 260
+    defaultStepBudget: 500
+
+    gripper:
+      openHalfAperture: 0.0500
+      closedHalfAperture: 0.0322
+      closeProfile: smoothstep
+      gateRule: >
+        The equality constraint that welds the cube to the gripper is only
+        activated after both finger pads report a non-zero contact normal
+        force. Without measured contact, the grasp fails -- an animation
+        cannot pass this gate.
+
+    decision:                               # thresholds live in arm_spec.py
+      success:
+        graspState: attached
+        contactForceMinN: 0.30              # arm_spec.GRASP_FORCE_MIN
+        objectLiftedMinM: 0.030             # arm_spec.LIFT_MIN
+      failure:
+        - reason: unreachable
+          test: planar target distance > workRadius + 0.02, tip residual > 0.120 m
+        - reason: collision
+          test: contact detected between any arm/finger geom and the obstacle pillar
+        - reason: timeout
+          test: step budget exhausted before the lift stage completes
+        - reason: grasp_failed
+          test: contact force below threshold, fewer than 2 pads in contact, or lift below threshold
+
+# ------------------------------------------------------------------- scenes
+# A parameter value selects a physical scene, never a code branch.
+scenes:
+  cube:        {cubeXY: [0.35, 0.00], obstacle: null,          stepBudget: 500, expect: success}
+  unreachable: {cubeXY: [0.95, 0.00], obstacle: null,          stepBudget: 500, expect: 'failure:unreachable'}
+  collision:   {cubeXY: [0.35, 0.00], obstacle: [0.27, 0.00],  stepBudget: 500, expect: 'failure:collision'}
+  timeout:     {cubeXY: [0.35, 0.00], obstacle: null,          stepBudget:  60, expect: 'failure:timeout'}
+aliases:
+  far_cube: unreachable
+  blocked_cube: collision
+  slow_cube: timeout
+obstacle:
+  shape: cylinder
+  radius: 0.035
+  halfHeight: 0.14
+
+# ------------------------------------------------------------------ results
+resultMapping:
+  robotToRelay:
+    successReason: picked
+    statusField: status
+    completedWhen: 'success == true'
+    metrics: arm_spec.py::build_metrics      # identical schema on both engines
+  relayToClient:
+    completed: settle payment, status `completed`, paymentState SUCCESS
+    failed: skip settlement, status `failed`, paymentState FAILED

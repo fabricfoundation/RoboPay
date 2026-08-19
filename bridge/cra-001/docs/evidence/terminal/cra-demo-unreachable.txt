@@ -1,0 +1,101 @@
+====================================================================
+ RoboPay Tier 1 demo -- cra-001 / pick_object
+ engine=mujoco  transport=loopback  payment=demo
+====================================================================
+
+[ 1] list_skills (free discovery)
+     pick_object: 0.10 USDC on base-sepolia (on-success-only)
+     failure modes: unreachable, collision, timeout, grasp_failed
+
+[ 2] request_action  params={'object': 'unreachable'}  (no payment attached)
+{
+  "status": 402,
+  "paymentRequired": true,
+  "x402Version": "1",
+  "header": "X-PAYMENT",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base-sepolia",
+      "chainId": 84532,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "assetSymbol": "USDC",
+      "maxAmountRequired": "100000",
+      "amount": "0.10",
+      "currency": "USDC",
+      "payTo": "0x0000000000000000000000000000000000000000",
+      "resource": "robopay://cra-001/pick_object",
+      "description": "One physics-executed pick_object run on cra-001.",
+      "maxTimeoutSeconds": 120,
+      "settlement": "on-success-only"
+    }
+  ]
+}
+
+[ 3] robot contacted so far: 0 executions  <- must be 0
+
+[ 4] pay 0.10 USDC on base-sepolia
+     txHash = 0x07e5c3a18f6d4b29...
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+
+[ 6] publish -> robot/tunnel/action
+
+[ 7] execute -> physics
+
+[ 8] result  <- robot/tunnel/result
+{
+  "actionId": "4c6bc2b7-f0c9-4240-b13b-4c8d2ddb0c24",
+  "skill": "pick_object",
+  "status": "failed",
+  "message": "unreachable",
+  "metrics": {
+    "robotId": "cra-001",
+    "skillId": "pick_object",
+    "engine": "mujoco",
+    "object": "unreachable",
+    "scene": "unreachable",
+    "stage": "stretch",
+    "graspState": "open",
+    "objectStart": [
+      0.95,
+      0.0,
+      0.025
+    ],
+    "objectEnd": [
+      0.95,
+      0.0,
+      0.0248
+    ],
+    "objectDelta": [
+      0.0,
+      0.0,
+      -0.0002
+    ],
+    "objectLifted": -0.0002,
+    "contactForce": 0.0,
+    "peakForce": 0.0,
+    "contactSamples": 0,
+    "collisionCount": 0,
+    "stepsUsed": 70,
+    "stepBudget": 400,
+    "simTime": 0.14,
+    "wallTime": 0.0835,
+    "note": "tip stopped 0.530 m short of the object"
+  },
+  "paymentState": "FAILED",
+  "settled": false
+}
+
+[ 9] payment FAILED -> NOT SETTLED
+
+[10] replay the same idempotencyKey
+{
+  "status": "rejected",
+  "reason": "duplicate_idempotency_key",
+  "actionId": "4c6bc2b7-f0c9-4240-b13b-4c8d2ddb0c24"
+}
+     executions total: 1 <- must be 1
+
+====================================================================
+ done.

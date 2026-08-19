@@ -1,0 +1,148 @@
+name: cra-001 bridge CI
+
+# Proves on every PR:
+#   1. The full pytest matrix (Python 3.11) is green, including the
+#      headless MuJoCo + PyBullet Sim-to-Sim and Zenoh transport tests.
+#   2. The 10-step paid demo runs end-to-end in MOCK mode with NO secrets --
+#      payment gating, execution, and settle-on-success-only all work.
+#   3. The YAML profiles are a RUNTIME CONTRACT: test_profiles.py asserts every
+#      number in the 5 YAMLs matches arm_spec.py and the transport layer, so a
+#      drift between "documented" and "running" bridge turns CI red.
+#   4. The REAL Go Tunnel is built and driven end-to-end (tunnel-build-and-
+#      payment-gate): the actual `tunnel/` binary enforces the x402 payment
+#      gate + x402 facilitator settlement, and the three payment-boundary tests
+#      prove (a) fail-closed 402 rejection, (b) failure/timeout/replay NEVER
+#      settle, and (c) a real MuJoCo success DOES settle -- exactly the winning
+#      RoboPay pattern, with NO repository secrets required (recording
+#      facilitator).
+#   5. verify_settlement.py re-checks the committed x402-evidence.json against
+#      Base Sepolia (criterion #7, read-only).
+#
+# No repository secrets are required: the bridge defaults to mock settlement,
+# and real-wallet keys are only ever read from environment variables.
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+    defaults:
+      run:
+        working-directory: bridge/cra-001
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: bridge/cra-001/requirements.txt
+
+      - name: Install system libraries (MuJoCo / PyBullet)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libglib2.0-0 libgomp1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # The correct transport pin is `eclipse-zenoh>=1.0.0` (installable on
+          # PyPI; bare `zenoh` stops at 0.4.0 and is unrelated). Strip only a
+          # broken bare `zenoh` pin; never touch `eclipse-zenoh`.
+          ( for f in requirements.txt bridge/requirements.txt tests/requirements.txt; do [ -f "$f" ] && sed -i '/^[[:space:]]*zenoh[[:space:]<>=-]/d' "$f"; done ) || true
+          pip install -r requirements.txt
+          # payment-layer tests (flow/x402, test_x402) need these
+          pip install "x402>=0.2.0" eth-account web3 httpx
+
+      - name: Run pytest (headless MuJoCo + PyBullet sim, payment contract)
+        run: python -m pytest -q
+
+      - name: Demo smoke test (mock mode, no secrets)
+        run: python -m flow.demo --all
+
+  parity:
+    name: profile <-> code parity (no drift)
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: bridge/cra-001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "x402>=0.2.0" eth-account web3 httpx
+      - name: Assert YAML profiles match arm_spec & transport
+        run: python -m pytest tests/test_profiles.py -q
+      - name: Verify x402 settlement tx hashes on Base Sepolia
+        run: timeout 120 python "$GITHUB_WORKSPACE/verify_settlement.py"
+
+  tunnel-build-and-payment-gate:
+    name: real Go Tunnel build + payment-boundary tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: tunnel/go.sum
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bridge/cra-001/requirements.txt
+
+      - name: Install system libraries (MuJoCo, zenoh-c, cgo toolchain)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libglib2.0-0 libgomp1 build-essential
+
+      - name: Cache zenoh-c
+        uses: cache@v4
+        with:
+          path: .zenoh-c
+          key: zenoh-c-1.9.0-${{ runner.os }}
+
+      - name: Build the real Go Tunnel (x402 gate + facilitator)
+        run: make build
+
+      - name: Install Python dependencies
+        working-directory: bridge/cra-001
+        run: |
+          python -m pip install --upgrade pip
+          ( for f in requirements.txt bridge/requirements.txt tests/requirements.txt; do [ -f "$f" ] && sed -i '/^[[:space:]]*zenoh[[:space:]<>=-]/d' "$f"; done ) || true
+          pip install -r requirements.txt
+          pip install "x402>=0.2.0" eth-account web3 httpx
+
+      - name: Run payment-boundary tests against the real Tunnel binary
+        working-directory: bridge/cra-001
+        env:
+          # Drive the freshly built binary; rpath also points at .zenoh-c/lib.
+          TUNNEL_BIN: ${{ github.workspace }}/bin/tunnel
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.zenoh-c/lib
+        run: |
+          python -m pytest tests/test_payment_gate.py \
+                          tests/test_x402_no_settlement.py \
+                          tests/test_bridge_executes.py -v

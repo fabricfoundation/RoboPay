@@ -1,0 +1,101 @@
+====================================================================
+ RoboPay Tier 1 demo -- cra-001 / pick_object
+ engine=mujoco  transport=loopback  payment=demo
+====================================================================
+
+[ 1] list_skills (free discovery)
+     pick_object: 0.10 USDC on base-sepolia (on-success-only)
+     failure modes: unreachable, collision, timeout, grasp_failed
+
+[ 2] request_action  params={'object': 'cube'}  (no payment attached)
+{
+  "status": 402,
+  "paymentRequired": true,
+  "x402Version": "1",
+  "header": "X-PAYMENT",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base-sepolia",
+      "chainId": 84532,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "assetSymbol": "USDC",
+      "maxAmountRequired": "100000",
+      "amount": "0.10",
+      "currency": "USDC",
+      "payTo": "0x0000000000000000000000000000000000000000",
+      "resource": "robopay://cra-001/pick_object",
+      "description": "One physics-executed pick_object run on cra-001.",
+      "maxTimeoutSeconds": 120,
+      "settlement": "on-success-only"
+    }
+  ]
+}
+
+[ 3] robot contacted so far: 0 executions  <- must be 0
+
+[ 4] pay 0.10 USDC on base-sepolia
+     txHash = 0x07e5c3a18f6d4b29...
+
+[ 5] submit_paid_action  (six-field envelope + X-PAYMENT receipt)
+
+[ 6] publish -> robot/tunnel/action
+
+[ 7] execute -> physics
+
+[ 8] result  <- robot/tunnel/result
+{
+  "actionId": "f9244f2a-54b7-4913-b6e2-499643af2fda",
+  "skill": "pick_object",
+  "status": "completed",
+  "message": "picked",
+  "metrics": {
+    "robotId": "cra-001",
+    "skillId": "pick_object",
+    "engine": "mujoco",
+    "object": "cube",
+    "scene": "cube",
+    "stage": "settle",
+    "graspState": "attached",
+    "objectStart": [
+      0.35,
+      0.0,
+      0.025
+    ],
+    "objectEnd": [
+      0.3505,
+      0.0,
+      0.1563
+    ],
+    "objectDelta": [
+      0.0005,
+      0.0,
+      0.1313
+    ],
+    "objectLifted": 0.1313,
+    "contactForce": 9.8143,
+    "peakForce": 14.8963,
+    "contactSamples": 8,
+    "collisionCount": 0,
+    "stepsUsed": 260,
+    "stepBudget": 400,
+    "simTime": 0.52,
+    "wallTime": 0.1083,
+    "note": "object lifted 0.131 m"
+  },
+  "paymentState": "SUCCESS",
+  "settled": true
+}
+
+[ 9] payment SUCCESS -> SETTLED
+
+[10] replay the same idempotencyKey
+{
+  "status": "rejected",
+  "reason": "duplicate_idempotency_key",
+  "actionId": "f9244f2a-54b7-4913-b6e2-499643af2fda"
+}
+     executions total: 1 <- must be 1
+
+====================================================================
+ done.

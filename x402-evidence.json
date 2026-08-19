@@ -1,0 +1,16 @@
+{
+  "robot": "cra-001",
+  "skill": "pick_and_stack",
+  "network": "base-sepolia",
+  "asset": "USDC",
+  "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+  "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "usdc": "0x036CbD53842c5426634e7929541ec2318f3dCF7e",
+  "amount_usdc": "0.1",
+  "txs": [
+    "0x0a6b8ab27d7c7f64e01090faba07af91f73d4835e3930157fbc7b7ad945ae0e8"
+  ],
+  "settled": true,
+  "note": "real Base Sepolia USDC transfer; audited by verify_settlement.py (criterion #7)",
+  "settledAt": "block 45647025"
+}
