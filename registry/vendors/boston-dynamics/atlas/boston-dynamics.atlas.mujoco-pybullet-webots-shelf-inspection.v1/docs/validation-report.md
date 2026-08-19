@@ -176,14 +176,25 @@ without contact was 4.9 mm (MuJoCo) and 6.7 mm (PyBullet).
 
 `demo-e2e-evidence.json` walks the full gate:
 
-| Step | HTTP | Executed | Settled |
+| Step | HTTP | Executed | Settlement |
 | --- | --- | --- | --- |
-| No payment | 402 | no | no |
-| Wrong amount | 400 | no | no |
-| Valid payment, 3/3 targets | 200 | yes | **yes** |
-| Replayed receipt | 409 | no | no |
+| No payment | 402 | no | none |
+| Wrong amount | 400 | no | none |
+| Protocol-valid payment, 3/3 targets | 200 | yes | **eligible, not on chain** |
+| Replayed receipt | 409 | no | none |
 
-24 payment-safety tests cover the receipt validation, the settlement ledger and
+This demo runs in-process and holds no wallet, so the successful step is
+recorded as `SETTLEMENT_ELIGIBLE` with `settlement_tx_hash: null`. That
+distinction is enforced by the ledger rather than by discipline: `SETTLED`
+requires a settlement transaction hash **and** the block containing it, and
+`test_settled_requires_a_real_transaction` fails if a receipt alone can earn it.
+The receipt a caller presents is an input that authorises the run; it is not a
+transfer, and an artifact that reports one as the other claims money moved when
+it did not.
+
+Where value really moves is section 8.
+
+37 payment-safety tests cover the receipt validation, the settlement ledger and
 the relay gating. A safely stopped episode returns `completion_reason:
 safe_stopped` and `success: false`, so it can never settle.
 

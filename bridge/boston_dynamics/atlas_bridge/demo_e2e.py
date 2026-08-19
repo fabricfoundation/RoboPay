@@ -122,8 +122,12 @@ def run_demo(json_output: Path | None = None) -> dict:
     _print_result("PAID+EXECUTE", r3)
     assert r3.http_status == 200
     assert r3.status == "success"
-    assert r3.settlement_status == "settled"
-    results.append(("paid_success_settled", r3.http_status, r3.settlement_status))
+    # This demo runs in-process and holds no wallet, so a successful
+    # execution becomes eligible for settlement rather than settled.
+    assert r3.settlement_status == "settlement_eligible"
+    results.append(
+        ("paid_success_settlement_eligible", r3.http_status, r3.settlement_status)
+    )
 
     _print_header("STEP 4: Replay Detection -> HTTP 409")
     req_replay = ActionRequest(
@@ -147,21 +151,28 @@ def run_demo(json_output: Path | None = None) -> dict:
     _print_header("STEP 5: Ledger Audit Trail")
     ledger_dict = ledger.to_dict()
     print(f"\n  Total entries:    {ledger_dict['total']}")
-    print(f"  Settled:          {ledger_dict['settled']}")
-    print(f"  Skipped (failure):{ledger_dict['skipped_failure']}")
-    print(f"  Skipped (unpaid): {ledger_dict['skipped_unpaid']}")
+    print(f"  Settled on chain:   {ledger_dict['settled_on_chain']}")
+    print(f"  Eligible, not paid: {ledger_dict['settlement_eligible_not_on_chain']}")
+    print(f"  Skipped (failure):  {ledger_dict['skipped_failure']}")
+    print(f"  Skipped (unpaid):   {ledger_dict['skipped_unpaid']}")
 
     _print_header("SETTLEMENT INVARIANT VERIFICATION")
-    settled_count = sum(1 for e in ledger.get_all() if e.status.value == "SETTLED")
+    # This demo authorises settlement but never performs one, so the invariant
+    # to check is that exactly the successful execution became eligible, and
+    # that nothing here claims a transfer that did not happen.
+    eligible_count = sum(
+        1 for e in ledger.get_all() if e.status.value == "SETTLEMENT_ELIGIBLE"
+    )
+    on_chain_count = sum(1 for e in ledger.get_all() if e.status.value == "SETTLED")
     failed_count = sum(1 for e in ledger.get_all() if "FAILURE" in e.status.value)
     unpaid_count = sum(1 for e in ledger.get_all() if "UNPAID" in e.status.value)
-    print(f"\n  Settlement invariant: settled={settled_count}, "
+    print(f"\n  Settlement invariant: eligible={eligible_count}, "
           f"failed_no_settle={failed_count}, unpaid_no_settle={unpaid_count}")
-    print(f"  [OK] Only successful execution settled: {settled_count == 1}")
+    print(f"  [OK] Only successful execution became eligible: {eligible_count == 1}")
     print(f"  [OK] Failed executions not settled: {failed_count == 0}")
     print(f"  [OK] Unpaid requests correctly skipped: {unpaid_count >= 1}")
-    print(f"  [OK] No unsettled failures: "
-          f"{all(e.status.value != 'SETTLED' or e.execution_success for e in ledger.get_all())}")
+    print(f"  [OK] Nothing in this demo claims an on-chain transfer: "
+          f"{on_chain_count == 0}")
 
     evidence = {
         "demo": "atlas_e2e_x402_flow",
@@ -172,7 +183,7 @@ def run_demo(json_output: Path | None = None) -> dict:
              "settlement": r1.settlement_status},
             {"step": 2, "name": "invalid_payment", "http_status": r2.http_status,
              "settlement": r2.settlement_status},
-            {"step": 3, "name": "paid_success_settled", "http_status": r3.http_status,
+            {"step": 3, "name": "protocol_valid_payment_executed", "http_status": r3.http_status,
              "settlement": r3.settlement_status,
              "targets_completed": r3.result.get("targets_completed", 0),
              "mean_position_error_m": r3.result.get("mean_position_error_m")},
@@ -192,7 +203,8 @@ def run_demo(json_output: Path | None = None) -> dict:
     print("\n  All assertions passed. Payment safety invariant holds:")
     print("    - Unpaid -> 402 -> no execution -> no settlement")
     print("    - Invalid payment -> rejected -> no settlement")
-    print("    - Valid payment -> execute -> success -> settlement approved")
+    print("    - Protocol-valid payment -> execute -> success -> settlement eligible")
+    print("      (no value moves here; real_paid_run.py is the settling path)")
     print("    - Replay -> 409 -> no settlement")
 
     return evidence

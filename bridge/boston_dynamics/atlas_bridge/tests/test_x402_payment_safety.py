@@ -130,13 +130,30 @@ class TestSettlementLedger:
         entry = ledger.record_unpaid("act-1", "inspect_shelf", "atlas-01")
         assert entry.status == SettlementStatus.SKIPPED_UNPAID
 
-    def test_settle_on_success(self):
+    def test_settled_requires_a_real_transaction(self):
+        """SETTLED means money moved; a receipt alone must not earn it.
+
+        The receipt the caller presents authorises the run. It is not the
+        settlement transaction, and a ledger reporting one as the other
+        publishes an artifact claiming a transfer that never happened.
+        """
+        ledger = SettlementLedger()
+        ledger.record_execution_start("act-1", "navigate", "atlas", "0xd0ef2db67c3551d36f0ad1420a5853c7464e9a68f6dd5f4aa7ae76eb2f824481", "10000", "USDC", "eip155:84532")
+        entry = ledger.settle_on_success(
+            "act-1", block_number=12345, settlement_tx_hash="0x" + "ab" * 32
+        )
+        assert entry.status == SettlementStatus.SETTLED
+        assert entry.block_number == 12345
+        assert entry.settlement_tx_hash == "0x" + "ab" * 32
+
+    def test_success_without_a_transaction_is_only_eligible(self):
         ledger = SettlementLedger()
         ledger.record_execution_start("act-1", "navigate", "atlas", "0xd0ef2db67c3551d36f0ad1420a5853c7464e9a68f6dd5f4aa7ae76eb2f824481", "10000", "USDC", "eip155:84532")
         entry = ledger.settle_on_success("act-1", block_number=12345)
-        assert entry is not None
-        assert entry.status == SettlementStatus.SETTLED
-        assert entry.block_number == 12345
+        assert entry.status == SettlementStatus.SETTLEMENT_ELIGIBLE
+        assert entry.settlement_tx_hash == ""
+        assert entry.block_number == 0, "an eligible entry must not carry a block"
+        assert entry.execution_success is True
 
     def test_skip_on_failure(self):
         ledger = SettlementLedger()
@@ -149,12 +166,15 @@ class TestSettlementLedger:
     def test_no_double_settle(self):
         ledger = SettlementLedger()
         ledger.record_execution_start("act-1", "navigate", "atlas", "0xd0ef2db67c3551d36f0ad1420a5853c7464e9a68f6dd5f4aa7ae76eb2f824481", "10000", "USDC", "eip155:84532")
-        first = ledger.settle_on_success("act-1")
+        first = ledger.settle_on_success("act-1", block_number=7,
+                                         settlement_tx_hash="0x" + "cd" * 32)
         assert first.status == SettlementStatus.SETTLED
-        second = ledger.settle_on_success("act-1")
+        second = ledger.settle_on_success("act-1", block_number=8,
+                                          settlement_tx_hash="0x" + "ef" * 32)
         assert second is not None
         assert second.status == SettlementStatus.SETTLED
-        assert ledger.to_dict()["settled"] == 1
+        assert second.settlement_tx_hash == "0x" + "cd" * 32, "the action settled twice"
+        assert ledger.to_dict()["settled_on_chain"] == 1
 
     def test_settle_on_success_only(self):
         ledger = SettlementLedger()
@@ -171,8 +191,11 @@ class TestSettlementLedger:
         ledger.settle_on_success("act-2")
         d = ledger.to_dict()
         assert d["total"] == 2
-        assert d["settled"] == 1
+        assert d["settled_on_chain"] == 0, "nothing moved on chain in this ledger"
+        assert d["settlement_eligible_not_on_chain"] == 1
         assert d["skipped_unpaid"] == 1
+        assert d["entries"][1]["settlement_tx_hash"] is None
+        assert d["entries"][1]["settled_on_chain"] is False
 
 
 class TestRelayPaymentGating:
@@ -230,9 +253,12 @@ class TestRelayPaymentGating:
         result = relay.handle_action(request)
         assert result.http_status == 200
         assert result.status == "success"
-        assert result.settlement_status == "settled"
+        # The relay holds no wallet, so a successful run is eligible for
+        # settlement rather than settled. real_paid_run.py is the path that
+        # actually moves USDC.
+        assert result.settlement_status == "settlement_eligible"
         entry = ledger.get_entry("act-success-1")
-        assert entry.status == SettlementStatus.SETTLED
+        assert entry.status == SettlementStatus.SETTLEMENT_ELIGIBLE
 
     def test_valid_payment_failure_no_settlement(self):
         relay, ledger = self._make_relay({"success": False, "error_code": "FALL_DETECTED"})
@@ -326,7 +352,7 @@ class TestRelayPaymentGating:
         )
         r2 = relay.handle_action(req_paid)
         assert r2.http_status == 200
-        assert r2.settlement_status == "settled"
+        assert r2.settlement_status == "settlement_eligible"
 
 
 class TestPaymentContractConsistency:

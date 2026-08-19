@@ -126,7 +126,8 @@ class TunnelSide:
                 "http_status": 402 if payment is None else 400,
                 "published_to_zenoh": False,
                 "executed": False,
-                "settled": False,
+                "settlement_eligible": False,
+                "settled_on_chain": False,
                 "error_code": verification.error.value if verification.error else None,
                 "message": verification.message,
             }
@@ -149,7 +150,8 @@ class TunnelSide:
             self.ledger.skip_on_failure(action_id, "No correlated result arrived.")
             step = {
                 "step": name, "http_status": 504, "published_to_zenoh": True,
-                "executed": False, "settled": False,
+                "executed": False, "settlement_eligible": False,
+                "settled_on_chain": False,
                 "error_code": "RESULT_TIMEOUT", "message": "No correlated result arrived.",
             }
             print("    no correlated result within the timeout")
@@ -166,14 +168,16 @@ class TunnelSide:
             )
 
         if succeeded:
-            self.ledger.settle_on_success(action_id, block_number=receipt.block_number)
+            # No wallet here, so the run becomes eligible for settlement.
+            # Claiming "settled" would assert a transfer this demo never makes.
+            self.ledger.settle_on_success(action_id)
             self.verifier.record_settlement(receipt.tx_hash, receipt.amount)
-            print("    settled")
+            print("    settlement eligible (nothing moved on chain)")
         else:
             self.ledger.skip_on_failure(
                 action_id, f"Correlated tunnel result reported {result['status']}."
             )
-            print("    not settled")
+            print("    not eligible for settlement")
 
         step = {
             "step": name,
@@ -181,7 +185,9 @@ class TunnelSide:
             "http_status": 200,
             "published_to_zenoh": True,
             "executed": True,
-            "settled": succeeded,
+            "settlement_eligible": succeeded,
+            "settled_on_chain": False,
+            "settlement_tx_hash": None,
             "correlation": {
                 key: result.get(key)
                 for key in ("action_id", "robot_id", "skill_id", "params_hash",
@@ -253,7 +259,8 @@ def run_demo(json_output: Path | None = None) -> dict:
             "http_status": 402,
             "published_to_zenoh": False,
             "executed": False,
-            "settled": False,
+            "settlement_eligible": False,
+            "settled_on_chain": False,
             "facilitator_reachable": verdict.reachable,
             "facilitator_is_valid": verdict.is_valid,
             "facilitator_reason": verdict.reason,
@@ -271,7 +278,7 @@ def run_demo(json_output: Path | None = None) -> dict:
         bridge.close()
 
     ledger = tunnel.ledger.to_dict()
-    settled = [s for s in tunnel.steps if s.get("settled")]
+    settled = [s for s in tunnel.steps if s.get("settlement_eligible")]
     evidence = {
         "demo": "atlas_tunnel_e2e",
         "transport": "Zenoh (peer mode)",
@@ -287,15 +294,24 @@ def run_demo(json_output: Path | None = None) -> dict:
             "protocol_checks_and_facilitator" if tunnel.verifies_authorization
             else "protocol_checks_only"
         ),
+        # Stated next to the steps rather than only in prose, so an artifact
+        # read on its own cannot be mistaken for proof that value moved.
+        "settlement": "eligible_not_on_chain",
+        "settlement_tx_hash": None,
+        "accepted_receipt": (
+            "synthetic; this demo proves the transport and the refusal paths. "
+            "real-paid-run.json is the artifact where USDC actually moves."
+        ),
     }
 
     print("\n" + "=" * 68)
     print("  INVARIANTS")
     print("=" * 68)
     checks = [
-        ("exactly one request settled", len(settled) == 1),
-        ("the settled request is the paid one", bool(settled) and settled[0]["step"] == "paid"),
-        ("the paid request completed every target",
+        ("exactly one request became eligible for settlement", len(settled) == 1),
+        ("the eligible request is the payment-validated one",
+         bool(settled) and settled[0]["step"] == "paid"),
+        ("the payment-validated request completed every target",
          bool(settled) and settled[0]["targets_completed"] == settled[0]["targets_total"]),
         ("unverified payments never reached Zenoh",
          all(not s["published_to_zenoh"] for s in tunnel.steps if not s.get("executed"))),

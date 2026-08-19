@@ -1,5 +1,5 @@
 ====================================================================
-  Atlas paid action over the real Zenoh transport
+  Atlas payment-validated action over the real Zenoh transport
 ====================================================================
   bridge listening on robot/tunnel/action as atlas-sim-01
   payment verification: protocol checks only
@@ -10,39 +10,39 @@
     reason                : invalid_exact_evm_signature
     nothing published to Zenoh, simulator never touched
 
-  [unpaid] action_id=act-unpaid-87893407
+  [unpaid] action_id=act-unpaid-423ac32e
     x402 rejected -> HTTP 402 (MISSING_PAYMENT)
     nothing published to Zenoh, simulator never touched
 
-  [wrong-amount] action_id=act-wrong-amount-66d9b97b
+  [wrong-amount] action_id=act-wrong-amount-7f0f0778
     x402 rejected -> HTTP 400 (AMOUNT_MISMATCH)
     nothing published to Zenoh, simulator never touched
 
-  [bad-tx-hash] action_id=act-bad-tx-hash-1c86aa30
+  [bad-tx-hash] action_id=act-bad-tx-hash-3a5b0db8
     x402 rejected -> HTTP 400 (MALFORMED_TX_HASH)
     nothing published to Zenoh, simulator never touched
 
-  [paid] action_id=act-paid-df92fd42
+  [paid] action_id=act-paid-be5f390f
     x402 verified -> publishing on robot/tunnel/action
     result correlated on robot/tunnel/result: status=success
     targets=3/3  collisions=0  fall=False
-    settled
+    settlement eligible (nothing moved on chain)
 
-  [replay] action_id=act-replay-e0bc821b
+  [replay] action_id=act-replay-1ca6f861
     x402 rejected -> HTTP 400 (REPLAY_DETECTED)
     nothing published to Zenoh, simulator never touched
 
-  [bad-params] action_id=act-bad-params-92b31bd2
+  [bad-params] action_id=act-bad-params-263625f0
     x402 verified -> publishing on robot/tunnel/action
     result correlated on robot/tunnel/result: status=failure
-    not settled
+    not eligible for settlement
 
 ====================================================================
   INVARIANTS
 ====================================================================
-  [OK] exactly one request settled
-  [OK] the settled request is the paid one
-  [OK] the paid request completed every target
+  [OK] exactly one request became eligible for settlement
+  [OK] the eligible request is the payment-validated one
+  [OK] the payment-validated request completed every target
   [OK] unverified payments never reached Zenoh
   [OK] every executed request was correlated by action_id
   [OK] the live facilitator refused a forged authorization

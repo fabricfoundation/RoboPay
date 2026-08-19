@@ -119,13 +119,20 @@ class ActionRelay:
         success = exec_result.get("success", False)
 
         if success:
-            self._ledger.settle_on_success(request.action_id)
+            # The relay runs in-process and holds no wallet, so it authorises
+            # settlement without performing one. Reporting "settled" here would
+            # claim a transfer that this path never makes; see
+            # real_paid_run.py for the path that actually moves USDC.
+            entry = self._ledger.settle_on_success(request.action_id)
             return ActionResult(
                 action_id=request.action_id,
                 status="success",
                 skill_id=request.skill_id,
                 result=exec_result,
-                settlement_status="settled",
+                settlement_status=(
+                    "settled" if entry and entry.settlement_tx_hash
+                    else "settlement_eligible"
+                ),
                 http_status=200,
             )
         else:

@@ -47,20 +47,20 @@ artifacts:
     sha256: 688c502f07e007525149bf1636f23fb7ad5378b10386fa581e0729d72019d99b
   - path: docs/evidence/tunnel-e2e-evidence.json
     description: "Paid action over the real Zenoh transport, with the settlement ledger"
-    bytes: 6660
-    sha256: 7269176484ad53816a39fab37cfca327d0ce61a4f086f8269b98595e3a9d633c
+    bytes: 7945
+    sha256: 8deeb0c02fee1c176daaf51fe24b375eb6c4de820ecbf121c9fef8ebeda6cccc
   - path: docs/evidence/tunnel-e2e-terminal.txt
     description: "Terminal transcript of that same Zenoh run"
-    bytes: 2080
-    sha256: e1e0cf90f99a214ac8c25824c6141579f7b59674219e4cd395f9f6dc1ec297a1
+    bytes: 2196
+    sha256: 8ca56c67b3d02e9d13772aa0bfe46a5040ff3811a33d724b10aab88d1c2915ae
   - path: docs/evidence/onchain-settlement.json
     description: "Base Sepolia settlement transaction, re-read from a public RPC"
     bytes: 2387
     sha256: 9a9208b45eed6d019144b0a3efb8ef8c0f45e6a691fe9f339ef9f3cade94df28
   - path: docs/evidence/demo-e2e-evidence.json
     description: "x402 gate: unpaid, invalid, paid-and-settled, replayed"
-    bytes: 2711
-    sha256: f3d37fd2c0f83a3d14fa09edf693c5e0730f43e5212adc67c7a8573a6a872cb0
+    bytes: 3187
+    sha256: e222a0f25bdd0282d1140c9dfe183e447cb196a238aa35c60e9751187e1cf2e2
   - path: docs/evidence/atlas-shelf-inspection.gif
     description: "Rendered MuJoCo episode, same run as the metrics"
     bytes: 2413354
