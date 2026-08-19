@@ -1,0 +1,13 @@
+schemaVersion: execution-mapping.v1
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+mappings:
+  navigate_to:
+    output: mujoco-or-webots episode (simulation/go2/robopay_link.py)
+    planner: A* over inflated occupancy grid of $params.obstacles
+    controller: pure pursuit -> trot gait -> 12 joint torques
+    goal: "$params.goal"
+    metrics: [final_goal_distance_m, path_completion, path_length_m,
+              collisions, time_s]

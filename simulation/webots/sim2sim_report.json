@@ -1,0 +1,76 @@
+{
+ "A_competitor_layout": {
+  "mujoco": {
+   "goal": [
+    10.0,
+    0.0
+   ],
+   "time_s": 25.96,
+   "final_goal_distance_m": 0.239,
+   "path_completion": 0.976,
+   "path_length_m": 10.64,
+   "collisions": 0,
+   "fell": false,
+   "reached": true
+  },
+  "webots": {
+   "goal": [
+    10.0,
+    0.0
+   ],
+   "time_s": 24.78,
+   "final_goal_distance_m": 0.236,
+   "path_completion": 0.976,
+   "path_length_m": 10.16,
+   "collisions": 0,
+   "fell": false,
+   "reached": true
+  },
+  "traj_mean_gap_m": 0.025,
+  "traj_max_gap_m": 0.061,
+  "time_ratio": 0.955,
+  "path_length_ratio": 0.955
+ },
+ "B_other_layout": {
+  "mujoco": {
+   "goal": [
+    8.0,
+    -2.0
+   ],
+   "time_s": 21.96,
+   "final_goal_distance_m": 0.239,
+   "path_completion": 0.971,
+   "path_length_m": 8.83,
+   "collisions": 0,
+   "fell": false,
+   "reached": true
+  },
+  "webots": {
+   "goal": [
+    8.0,
+    -2.0
+   ],
+   "time_s": 20.74,
+   "final_goal_distance_m": 0.24,
+   "path_completion": 0.971,
+   "path_length_m": 8.45,
+   "collisions": 0,
+   "fell": false,
+   "reached": true
+  },
+  "traj_mean_gap_m": 0.024,
+  "traj_max_gap_m": 0.057,
+  "time_ratio": 0.944,
+  "path_length_ratio": 0.957
+ },
+ "checks": {
+  "A_competitor_layout_both_reached": true,
+  "A_competitor_layout_no_collisions": true,
+  "A_competitor_layout_paths_agree": true,
+  "A_competitor_layout_duration_agrees": true,
+  "B_other_layout_both_reached": true,
+  "B_other_layout_no_collisions": true,
+  "B_other_layout_paths_agree": true,
+  "B_other_layout_duration_agrees": true
+ }
+}

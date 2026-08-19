@@ -1,0 +1,24 @@
+[
+ {
+  "skillId": "navigate_to",
+  "name": "navigate_to",
+  "description": "Walk the Go2 to a goal position, planning around the given obstacles. Fails (and must not settle) if no collision-free path exists or the goal is not reached.",
+  "priceUSDC": "0.002",
+  "robotId": "test-robot",
+  "paymentRequired": true,
+  "paramsSchema": {
+   "goal": {
+    "type": "point",
+    "absMax": 15.0
+   },
+   "obstacles": {
+    "type": "obstacles",
+    "maxCount": 10
+   }
+  },
+  "limits": {
+   "maxSpeedMps": 0.5,
+   "timeoutSec": 90
+  }
+ }
+]

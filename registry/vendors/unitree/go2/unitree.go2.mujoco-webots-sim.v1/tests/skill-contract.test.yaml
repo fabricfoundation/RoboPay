@@ -1,0 +1,23 @@
+schemaVersion: skill-contract-test.v1
+profileId: unitree.go2.mujoco-webots-sim.v1
+runner: simulation/go2/test_result_semantics.py
+cases:
+  - name: valid action succeeds
+    action: {skillId: navigate_to, params: {goal: [2.0, 0.0], obstacles: []}}
+    expect: {status: success, correlatedBy: actionId}
+  - name: replayed idempotencyKey is not re-executed
+    action: same envelope sent twice
+    expect: {status: error, code: DUPLICATE, executions: 1}
+  - name: unknown skill
+    action: {skillId: backflip}
+    expect: {status: error, code: UNKNOWN_SKILL}
+  - name: out-of-range goal
+    action: {skillId: navigate_to, params: {goal: [999.0, 0.0]}}
+    expect: {status: error, code: INVALID_PARAMS}
+  - name: tampered params (hash mismatch)
+    action: params mutated after paramsHash was computed
+    expect: {status: error, code: INVALID_PARAMS}
+  - name: goal buried inside an obstacle
+    action: {skillId: navigate_to, params: {goal: [2.5, 0.0]}}
+    expect: {status: error, code: NO_PATH}
+settlementInvariant: only results with status "success" may settle

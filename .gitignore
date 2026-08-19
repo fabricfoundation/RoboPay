@@ -35,3 +35,14 @@ log/
 .colcon_settings.yaml
 
 PROJECT_MEMORY.md
+
+# simulation: fetched model assets and generated artifacts
+simulation/models/
+simulation/webots/protos/go2_meshes/
+simulation/webots/worlds/*_result.json
+simulation/webots/worlds/A_*.wbt
+simulation/webots/worlds/B_*.wbt
+simulation/webots/worlds/A_*_task.json
+simulation/webots/worlds/B_*_task.json
+simulation/go2/last_action_result.json
+simulation/webots/worlds/.*.wbproj

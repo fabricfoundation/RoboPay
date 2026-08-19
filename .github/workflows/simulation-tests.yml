@@ -1,0 +1,31 @@
+name: simulation-tests
+
+on:
+  push:
+    paths:
+      - "simulation/**"
+      - ".github/workflows/simulation-tests.yml"
+  pull_request:
+    paths:
+      - "simulation/**"
+      - ".github/workflows/simulation-tests.yml"
+
+jobs:
+  mujoco:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install mujoco numpy
+      - name: Fetch Go2 model assets
+        run: cd simulation && ./setup.sh
+      - name: Leg IK vs forward kinematics
+        run: cd simulation/go2 && python3 test_ik.py
+      - name: Gait acceptance (stand / walk / turn / arc)
+        run: cd simulation/go2 && python3 test_gait.py
+      - name: Navigation acceptance (5 layouts)
+        run: cd simulation/go2 && python3 test_nav.py
