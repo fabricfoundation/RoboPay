@@ -1,24 +1,7 @@
-"""Shared, online Atlas bipedal planner — Phase 2.
+"""Atlas 30-DOF sinusoidal gait controller.
 
-Strategy: Controlled forward-fall gait with ankle-weighted balance corrections.
-
-The MuJoCo humanoid model has asymmetric gear ratios:
-  - Ankle (y,x): gear=20  → max 20 Nm  (WEAKEST — critical for balance)
-  - Knee: gear=80          → max 80 Nm
-  - hip_x/z: gear=40       → max 40 Nm
-  - hip_y: gear=120        → max 120 Nm
-  - Shoulder: gear=20      → max 20 Nm
-  - Elbow: gear=40         → max 40 Nm
-
-The ankle actuators cannot maintain static upright stance (need ~100+ Nm).
-We exploit forward momentum: lean torso forward, use alternating leg extension
-for propulsion, and apply ankle/hip corrections for maximum upright time.
-
-Tested results (Strategy C, gear=40, ctrlrange=[-1,1], dt=0.005):
-  - Forward progress: ~1.16m in 10s
-  - Upright time: ~2.5s before controlled descent
-  - After descent: crawls forward maintaining contact
-  - Zero obstacle contacts
+Uses capsule collision model (atlas_working.xml) with tuned gear ratios.
+Strategy: sinusoidal gait with balance corrections from torso orientation feedback.
 """
 
 from __future__ import annotations
@@ -27,51 +10,78 @@ import math
 from dataclasses import dataclass, field
 
 
-POLICY_ID = "atlas-controlled-fall-walk-v5"
+POLICY_ID = "atlas-sinusoidal-gait-v1"
 
 ACTUATOR_ORDER = [
-    "abdomen_z", "abdomen_y", "abdomen_x",
-    "hip_x_right", "hip_z_right", "hip_y_right",
-    "knee_right", "ankle_y_right", "ankle_x_right",
-    "hip_x_left", "hip_z_left", "hip_y_left",
-    "knee_left", "ankle_y_left", "ankle_x_left",
-    "shoulder1_right", "shoulder2_right", "elbow_right",
-    "shoulder1_left", "shoulder2_left", "elbow_left",
+    "back_bkz", "back_bky", "back_bkx",
+    "l_leg_hpz", "l_leg_hpx", "l_leg_hpy",
+    "l_leg_kny", "l_leg_aky", "l_leg_akx",
+    "r_leg_hpz", "r_leg_hpx", "r_leg_hpy",
+    "r_leg_kny", "r_leg_aky", "r_leg_akx",
+    "l_arm_shz", "l_arm_shx", "l_arm_ely",
+    "l_arm_elx", "l_arm_uwy", "l_arm_mwx",
+    "l_arm_lwy",
+    "r_arm_shz", "r_arm_shx", "r_arm_ely",
+    "r_arm_elx", "r_arm_uwy", "r_arm_mwx",
+    "r_arm_lwy",
+    "neck_ay",
 ]
 
 NEUTRAL_POSE = {
-    "abdomen_z": 0.0,
-    "abdomen_y": 0.0,
-    "abdomen_x": 0.0,
-    "hip_x_right": 0.0,
-    "hip_z_right": 0.0,
-    "hip_y_right": 0.0,
-    "knee_right": -0.15,
-    "ankle_y_right": 0.15,
-    "ankle_x_right": 0.0,
-    "hip_x_left": 0.0,
-    "hip_z_left": 0.0,
-    "hip_y_left": 0.0,
-    "knee_left": -0.15,
-    "ankle_y_left": 0.15,
-    "ankle_x_left": 0.0,
-    "shoulder1_right": 0.0,
-    "shoulder2_right": 0.0,
-    "elbow_right": -0.3,
-    "shoulder1_left": 0.0,
-    "shoulder2_left": 0.0,
-    "elbow_left": -0.3,
+    "back_bkz": 0.0,
+    "back_bky": 0.15,
+    "back_bkx": 0.0,
+    "l_leg_hpz": 0.02,
+    "l_leg_hpx": 0.05,
+    "l_leg_hpy": -0.3,
+    "l_leg_kny": 0.6,
+    "l_leg_aky": -0.3,
+    "l_leg_akx": -0.05,
+    "r_leg_hpz": -0.02,
+    "r_leg_hpx": -0.05,
+    "r_leg_hpy": -0.3,
+    "r_leg_kny": 0.6,
+    "r_leg_aky": -0.3,
+    "r_leg_akx": 0.05,
+    "l_arm_shz": 0.0,
+    "l_arm_shx": 0.0,
+    "l_arm_ely": 0.5,
+    "l_arm_elx": -0.5,
+    "l_arm_uwy": 0.0,
+    "l_arm_mwx": 0.0,
+    "l_arm_lwy": 0.0,
+    "r_arm_shz": 0.0,
+    "r_arm_shx": 0.0,
+    "r_arm_ely": 0.5,
+    "r_arm_elx": -0.5,
+    "r_arm_uwy": 0.0,
+    "r_arm_mwx": 0.0,
+    "r_arm_lwy": 0.0,
+    "neck_ay": 0.0,
 }
 
 NEUTRAL_ARRAY = [NEUTRAL_POSE[name] for name in ACTUATOR_ORDER]
 
-GAIT_FREQ_HZ = 0.6
-TORSO_FORWARD_LEAN = 0.15
-HIP_X_BASE = 0.20
-HIP_X_SWING = 0.15
-KNEE_SWING_LIFT = 0.15
-ANKLE_Y_AMPLITUDE = 0.12
-ARM_SWING_AMPLITUDE = 0.15
+EFFORT_LIMITS = {
+    "back_bkz": 106, "back_bky": 445, "back_bkx": 300,
+    "l_leg_hpz": 275, "l_leg_hpx": 530, "l_leg_hpy": 840,
+    "l_leg_kny": 890, "l_leg_aky": 740, "l_leg_akx": 360,
+    "r_leg_hpz": 275, "r_leg_hpx": 530, "r_leg_hpy": 840,
+    "r_leg_kny": 890, "r_leg_aky": 740, "r_leg_akx": 360,
+    "l_arm_shz": 87, "l_arm_shx": 99, "l_arm_ely": 63,
+    "l_arm_elx": 112, "l_arm_uwy": 25, "l_arm_mwx": 25,
+    "l_arm_lwy": 25, "r_arm_shz": 87, "r_arm_shx": 99,
+    "r_arm_ely": 63, "r_arm_elx": 112, "r_arm_uwy": 25,
+    "r_arm_mwx": 25, "r_arm_lwy": 25, "neck_ay": 25,
+}
+
+GAIT_FREQ_HZ = 1.5
+HIP_Y_AMPLITUDE = 0.3
+KNEE_SWING_LIFT = 0.3
+ANKLE_Y_AMPLITUDE = 0.2
+ARM_SWING_AMPLITUDE = 0.3
+KP = 500
+KD = 100
 STEER_GAIN = 0.10
 STEER_LIMIT = 0.05
 GOAL_REACHED_RADIUS_M = 0.5
@@ -168,7 +178,8 @@ class AtlasObstacleControlCore:
 
         sim_time = float(observation["sim_time"])
         gait_t = sim_time * GAIT_FREQ_HZ * self.speed_scale
-        s = math.sin(2.0 * math.pi * gait_t)
+        phase_l = 2.0 * math.pi * gait_t
+        phase_r = phase_l + math.pi
 
         torso_pitch = float(observation.get("torso_pitch", 0.0))
         torso_roll = float(observation.get("torso_roll", 0.0))
@@ -180,27 +191,25 @@ class AtlasObstacleControlCore:
         roll_corr = -0.10 * torso_roll - 0.03 * roll_rate
 
         desired = {
-            "abdomen_z": 0.0,
-            "abdomen_y": TORSO_FORWARD_LEAN + pitch_corr,
-            "abdomen_x": roll_corr,
-            "hip_x_right": HIP_X_BASE + HIP_X_SWING * max(0.0, s),
-            "hip_x_left": HIP_X_BASE + HIP_X_SWING * max(0.0, -s),
-            "hip_z_right": steering,
-            "hip_z_left": steering,
-            "hip_y_right": steering,
-            "hip_y_left": steering,
-            "knee_right": -0.10 - KNEE_SWING_LIFT * max(0.0, s),
-            "knee_left": -0.10 - KNEE_SWING_LIFT * max(0.0, -s),
-            "ankle_y_right": 0.10 + ANKLE_Y_AMPLITUDE * max(0.0, s),
-            "ankle_y_left": 0.10 + ANKLE_Y_AMPLITUDE * max(0.0, -s),
-            "ankle_x_right": -roll_corr * 0.2,
-            "ankle_x_left": -roll_corr * 0.2,
-            "shoulder1_right": ARM_SWING_AMPLITUDE * s,
-            "shoulder1_left": -ARM_SWING_AMPLITUDE * s,
-            "shoulder2_right": 0.0,
-            "shoulder2_left": 0.0,
-            "elbow_right": -0.3,
-            "elbow_left": -0.3,
+            "back_bky": 0.15 + pitch_corr,
+            "back_bkx": roll_corr,
+            "back_bkz": steering * 0.5,
+            "l_leg_hpy": -0.3 + HIP_Y_AMPLITUDE * math.sin(phase_l),
+            "l_leg_kny": 0.6 + KNEE_SWING_LIFT * max(0, math.sin(phase_l)),
+            "l_leg_aky": -0.3 + ANKLE_Y_AMPLITUDE * math.sin(phase_l),
+            "l_leg_hpx": 0.05,
+            "l_leg_hpz": 0.02 + steering,
+            "l_leg_akx": -0.05 - roll_corr * 0.2,
+            "r_leg_hpy": -0.3 + HIP_Y_AMPLITUDE * math.sin(phase_r),
+            "r_leg_kny": 0.6 + KNEE_SWING_LIFT * max(0, math.sin(phase_r)),
+            "r_leg_aky": -0.3 + ANKLE_Y_AMPLITUDE * math.sin(phase_r),
+            "r_leg_hpx": -0.05,
+            "r_leg_hpz": -0.02 + steering,
+            "r_leg_akx": 0.05 - roll_corr * 0.2,
+            "l_arm_ely": 0.5 + ARM_SWING_AMPLITUDE * math.sin(phase_l),
+            "l_arm_elx": -0.5,
+            "r_arm_ely": 0.5 + ARM_SWING_AMPLITUDE * math.sin(phase_r),
+            "r_arm_elx": -0.5,
         }
 
         step_progress = (gait_t % 1.0)
@@ -212,7 +221,7 @@ class AtlasObstacleControlCore:
             steering=steering,
             active_waypoint=self._waypoint_index,
             desired_joints=desired,
-            swing_leg="right" if s > 0 else "left",
+            swing_leg="right" if math.sin(phase_l) > 0 else "left",
             step_progress=step_progress,
         )
 
@@ -232,18 +241,17 @@ class AtlasObstacleControlCore:
             "step_progress": plan.step_progress,
             "parameters": {
                 "gait_freq_hz": GAIT_FREQ_HZ,
-                "torso_forward_lean": TORSO_FORWARD_LEAN,
-                "hip_x_base": HIP_X_BASE,
-                "hip_x_swing": HIP_X_SWING,
+                "hip_y_amplitude": HIP_Y_AMPLITUDE,
                 "knee_swing_lift": KNEE_SWING_LIFT,
                 "ankle_y_amplitude": ANKLE_Y_AMPLITUDE,
                 "steer_limit": STEER_LIMIT,
+                "kp": KP,
+                "kd": KD,
                 "model_constraints": {
-                    "ankle_gear": 20,
-                    "knee_gear": 80,
-                    "hip_x_z_gear": 40,
-                    "hip_y_gear": 120,
-                    "note": "Ankle actuators (gear=20) cannot maintain static balance. Controller uses forward momentum.",
+                    "hip_y_gear": 840,
+                    "knee_gear": 890,
+                    "ankle_gear": 740,
+                    "note": "Sinusoidal gait with PD torque control.",
                 },
             },
         }

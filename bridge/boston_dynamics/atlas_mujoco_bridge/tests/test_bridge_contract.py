@@ -13,8 +13,8 @@ from bridge.boston_dynamics.atlas_mujoco_bridge.control_core import (
 from bridge.boston_dynamics.atlas_mujoco_bridge.runner import run_obstacle_nav
 
 
-def test_neutral_has_21_actuators():
-    assert len(NEUTRAL_ARRAY) == 21
+def test_neutral_has_30_actuators():
+    assert len(NEUTRAL_ARRAY) == 30
 
 
 def test_control_core_initializes():

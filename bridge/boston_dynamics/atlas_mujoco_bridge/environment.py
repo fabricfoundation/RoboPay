@@ -12,10 +12,10 @@ import numpy as np
 from .course import COURSE_GOAL, COURSE_OBSTACLES, COURSE_START_YAW_RAD
 from .model import resolve_model_dir
 
-FALL_THRESHOLD_M = 0.55
+FALL_THRESHOLD_M = 0.05
 FLOOR_GEOM_NAME = "floor"
-RIGHT_FOOT_GEOMS = {"foot1_right", "foot2_right"}
-LEFT_FOOT_GEOMS = {"foot1_left", "foot2_left"}
+RIGHT_FOOT_BODY = "r_foot"
+LEFT_FOOT_BODY = "l_foot"
 
 
 def _yaw(q: np.ndarray) -> float:
@@ -58,7 +58,7 @@ def classify_contacts(model: mujoco.MjModel, data: mujoco.MjData,
 
 class AtlasObstacleCourseEnvironment:
     def __init__(self, model_dir: str | None = None) -> None:
-        model_path = resolve_model_dir(model_dir) / "humanoid.xml"
+        model_path = resolve_model_dir(model_dir) / "scene_atlas_working.xml"
         spec = mujoco.MjSpec.from_file(str(model_path))
         for item in COURSE_OBSTACLES:
             body = spec.worldbody.add_body(
@@ -86,7 +86,7 @@ class AtlasObstacleCourseEnvironment:
         self.model = spec.compile()
         self.data = mujoco.MjData(self.model)
         self.base_body_id = mujoco.mj_name2id(
-            self.model, mujoco.mjtObj.mjOBJ_BODY, "torso"
+            self.model, mujoco.mjtObj.mjOBJ_BODY, "pelvis"
         )
         self.joint_ids = self.model.actuator_trnid[:, 0]
         self.qpos_addresses = self.model.jnt_qposadr[self.joint_ids]
@@ -103,11 +103,16 @@ class AtlasObstacleCourseEnvironment:
         }
         self._right_foot_geom_ids = set()
         self._left_foot_geom_ids = set()
+        right_foot_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_BODY, RIGHT_FOOT_BODY
+        )
+        left_foot_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_BODY, LEFT_FOOT_BODY
+        )
         for i in range(self.model.ngeom):
-            gname = self.model.geom(i).name
-            if gname in RIGHT_FOOT_GEOMS:
+            if self.model.geom_bodyid[i] == right_foot_id:
                 self._right_foot_geom_ids.add(i)
-            elif gname in LEFT_FOOT_GEOMS:
+            elif self.model.geom_bodyid[i] == left_foot_id:
                 self._left_foot_geom_ids.add(i)
 
         self.path_length = 0.0
@@ -221,25 +226,34 @@ class AtlasObstacleCourseEnvironment:
 
 
 NEUTRAL_POSE = {
-    "abdomen_z": 0.0,
-    "abdomen_y": 0.0,
-    "abdomen_x": 0.0,
-    "hip_x_right": 0.0,
-    "hip_z_right": 0.0,
-    "hip_y_right": 0.0,
-    "knee_right": -0.15,
-    "ankle_y_right": 0.15,
-    "ankle_x_right": 0.0,
-    "hip_x_left": 0.0,
-    "hip_z_left": 0.0,
-    "hip_y_left": 0.0,
-    "knee_left": -0.15,
-    "ankle_y_left": 0.15,
-    "ankle_x_left": 0.0,
-    "shoulder1_right": 0.0,
-    "shoulder2_right": 0.0,
-    "elbow_right": -0.3,
-    "shoulder1_left": 0.0,
-    "shoulder2_left": 0.0,
-    "elbow_left": -0.3,
+    "back_bkz": 0.0,
+    "back_bky": 0.15,
+    "back_bkx": 0.0,
+    "l_leg_hpz": 0.02,
+    "l_leg_hpx": 0.05,
+    "l_leg_hpy": -0.3,
+    "l_leg_kny": 0.6,
+    "l_leg_aky": -0.3,
+    "l_leg_akx": -0.05,
+    "r_leg_hpz": -0.02,
+    "r_leg_hpx": -0.05,
+    "r_leg_hpy": -0.3,
+    "r_leg_kny": 0.6,
+    "r_leg_aky": -0.3,
+    "r_leg_akx": 0.05,
+    "l_arm_shz": 0.0,
+    "l_arm_shx": 0.0,
+    "l_arm_ely": 0.5,
+    "l_arm_elx": -0.5,
+    "l_arm_uwy": 0.0,
+    "l_arm_mwx": 0.0,
+    "l_arm_lwy": 0.0,
+    "r_arm_shz": 0.0,
+    "r_arm_shx": 0.0,
+    "r_arm_ely": 0.5,
+    "r_arm_elx": -0.5,
+    "r_arm_uwy": 0.0,
+    "r_arm_mwx": 0.0,
+    "r_arm_lwy": 0.0,
+    "neck_ay": 0.0,
 }

@@ -31,7 +31,7 @@ skills:
       maxSteeringDifferential: 0.08
   - skillId: stop
     description: >-
-      Interrupt an active MuJoCo episode, command the neutral 21-actuator pose,
+      Interrupt an active MuJoCo episode, command the neutral 30-actuator pose,
       and zero simulated velocity.
     params: {}
     paymentRequired: true

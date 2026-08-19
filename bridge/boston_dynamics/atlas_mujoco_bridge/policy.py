@@ -7,10 +7,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .control_core import AtlasObstacleControlCore, ACTUATOR_ORDER, NEUTRAL_POSE
-
-KP = 3.0
-KD = 0.3
+from .control_core import AtlasObstacleControlCore, ACTUATOR_ORDER, NEUTRAL_POSE, EFFORT_LIMITS, KP, KD
 
 
 class AtlasObstaclePolicy(AtlasObstacleControlCore):
@@ -37,4 +34,6 @@ class AtlasObstaclePolicy(AtlasObstacleControlCore):
         limits: np.ndarray,
     ) -> np.ndarray:
         command = KP * (desired - positions) - KD * velocities
-        return np.clip(command, limits[:, 0], limits[:, 1])
+        effort = np.array([EFFORT_LIMITS.get(name, 100) for name in ACTUATOR_ORDER])
+        normalized = command / effort
+        return np.clip(normalized, -1.0, 1.0)
