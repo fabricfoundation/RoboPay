@@ -291,6 +291,9 @@ def main(argv: list[str] | None = None) -> int:
             accepted = requirements.get("accepts", [{}])[0]
             if accepted.get("payTo", "").lower() != payee.lower() or accepted.get("network") != NETWORK:
                 raise RuntimeError(f"Payment requirements drift: {accepted}")
+            if accepted.get("maxTimeoutSeconds") != 300:
+                raise RuntimeError(f"Payment authorization window drift: {accepted}")
+            print("[PAYMENT] exact EVM authorization window: 300 seconds")
             if args.dry_run:
                 print("Dry run complete: no payment was signed or submitted", flush=True)
                 return 0

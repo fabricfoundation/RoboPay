@@ -48,28 +48,37 @@ $commitSha = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $commitSha -notmatch '^[0-9a-f]{40}$') {
     throw 'Unable to resolve the exact Git commit for the visual evidence run.'
 }
+$trackedChanges = @(& git -C $repoRoot status --porcelain --untracked-files=no)
+if ($LASTEXITCODE -ne 0 -or $trackedChanges.Count -ne 0) {
+    throw 'Tracked files differ from HEAD. Commit or revert them before recording current-HEAD evidence.'
+}
 if ([string]::IsNullOrWhiteSpace($TunnelBin)) {
     $TunnelBin = Join-Path $repoRoot 'bin/tunnel'
-}
-if (-not (Test-Path -LiteralPath $TunnelBin)) {
+
+    # Evidence must execute the Tunnel built from the commit printed above.
+    # Reusing an ignored binary can silently run code from an older checkout.
     $docker = Get-Command docker -ErrorAction SilentlyContinue
-    if ($env:OS -eq 'Windows_NT' -and $null -ne $docker) {
+    if ($env:OS -eq 'Windows_NT') {
+        if ($null -eq $docker) {
+            throw 'Docker Desktop is required to build the Tunnel from the current evidence commit.'
+        }
         & docker info --format '{{.ServerVersion}}' *> $null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host 'Tunnel binary missing; building the real Linux Tunnel in Docker...'
-            $mount = "${repoRoot}:/work"
-            & docker run --rm `
-                -e 'PATH=/usr/local/go/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' `
-                -v $mount -w /work golang:1.25-bookworm `
-                bash -c 'apt-get update -qq && apt-get install -y -qq make curl unzip >/dev/null && make build'
-            if ($LASTEXITCODE -ne 0) {
-                throw 'Docker failed to build the Linux Tunnel.'
-            }
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Docker Desktop must be running to build the Tunnel from the current evidence commit.'
+        }
+        Write-Host 'Building the real Linux Tunnel from the current evidence commit...'
+        $mount = "${repoRoot}:/work"
+        & docker run --rm `
+            -e 'PATH=/usr/local/go/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' `
+            -v $mount -w /work golang:1.25-bookworm `
+            bash -c 'apt-get update -qq && apt-get install -y -qq make curl unzip >/dev/null && make build'
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Docker failed to build the Linux Tunnel from the current evidence commit.'
         }
     }
-    if (-not (Test-Path -LiteralPath $TunnelBin)) {
-        throw "Tunnel binary not found: '$TunnelBin'. Start Docker Desktop or build it with make build on Linux."
-    }
+}
+if (-not (Test-Path -LiteralPath $TunnelBin)) {
+    throw "Tunnel binary not found: '$TunnelBin'. Start Docker Desktop or pass a freshly built Linux Tunnel with -TunnelBin."
 }
 
 $python = if (-not [string]::IsNullOrWhiteSpace($env:AGIBOT_X2_PYTHON_EXE)) {
@@ -87,10 +96,12 @@ $env:AGIBOT_X2_MUJOCO_VIEWER_HOLD_SECONDS = [string]$FinalHoldSeconds
 $env:AGIBOT_X2_TARGET_HOLD_SECONDS = [string]$TargetHoldSeconds
 $env:AGIBOT_X2_VIEWER_START_HOLD_SECONDS = [string]$ViewerStartSeconds
 $env:ROBO_PAY_COMMIT_SHA = $commitSha
+$tunnelSha256 = (Get-FileHash -LiteralPath $TunnelBin -Algorithm SHA256).Hash.ToLowerInvariant()
 
 Write-Host 'Arrange this terminal beside the MuJoCo viewer, then keep both visible for the complete run.'
 Write-Host 'OBS sequence: bridge ready -> discovery -> unpaid 402 -> first paid 202 -> left -> center -> right -> correlated result -> settlement -> BaseScan'
 Write-Host "Evidence commit: $commitSha"
+Write-Host "Tunnel binary SHA-256: $tunnelSha256"
 Write-Host "Each target pose is held for $TargetHoldSeconds seconds; the final pose is held for $FinalHoldSeconds additional seconds."
 Write-Host "The viewer holds its neutral start for $ViewerStartSeconds seconds so it can be positioned without losing the left target."
 Write-Host 'Secrets are loaded from the current process and will not be printed or written.'
