@@ -1,0 +1,33 @@
+schemaVersion: execution-mapping.v1
+profileId: agibot.x2-ultra.mujoco-webots-active-inspection.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/agibot_x2/metrics
+paramsHashFormat: "sha256:<hex>"
+mappings:
+  inspect_target_sequence:
+    task: active_target_inspection
+    output: official AGIBot X2 Ultra v1.4 model with 31 actuated joints in MuJoCo plus Webots R2025a cross-engine validation
+    policy: agibot-x2-active-inspection-v1-shared; advances only after measured joint error remains within tolerance
+    controller: shared target sequencer with MuJoCo torque-PD and Webots position adapters
+    inputs: [joint_positions, joint_velocities, simulator_time, target_sequence]
+    metrics:
+      - targets_confirmed
+      - target_confirmations
+      - max_joint_error_rad
+      - head_final_yaw_rad
+      - head_final_pitch_rad
+      - left_hand_peak_motion_m
+      - right_hand_peak_motion_m
+      - max_joint_speed_rad_s
+      - policy_id
+    completion: every requested target remains within 0.075 rad joint error for 0.55 seconds
+    safety: pelvis safety fixture is explicit in both engines, feet rest on the floor, and no free-base pose writes occur during execution
+    limits: {speedScale: {min: 0.5, max: 1.0}, maxDurationSec: 30, maxTargets: 3}
+  stop:
+    task: safe_stop
+    output: neutral 31-motor command plus zero MuJoCo joint velocities
+    result: correlated stop success; interrupted inspection returns safe_stopped failure
+    metrics: [safe_stop_applied, active_execution_interrupted]

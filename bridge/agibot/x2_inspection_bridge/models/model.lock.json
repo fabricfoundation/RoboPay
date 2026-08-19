@@ -1,0 +1,12 @@
+{
+  "source": "https://github.com/AgibotTech/agibot_x2_urdf",
+  "commit": "77f43eb0904dae4c48ccd9154fee824f8ffd4d38",
+  "directory": "X2_URDF-v1.4.0",
+  "mjcf": "X2-Ultra.xml",
+  "mjcfSha256": "bfccc26654f15c7e8015e8a993bba253b00d3b6d67d4d5072a44e04de6a340f0",
+  "urdf": "X2-Ultra.urdf",
+  "urdfSha256": "728952c1e966683a0de7c6615d7fd3595ef595c5d0bc449a8df5742b24834328",
+  "webotsUrdf": "X2-Ultra_simple_collision.urdf",
+  "webotsUrdfSha256": "e6ce8a434d9d4a2fb53201be71a1d4b1158a5ca4f65c46a050bc78b629d841ac",
+  "license": "MulanPSL-2.0"
+}

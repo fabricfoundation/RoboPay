@@ -1,0 +1,7 @@
+{
+  "action": "inspect_target_sequence",
+  "robot_id": "agibot-x2-sim-01",
+  "action_id": "x2-inspection-example-001",
+  "idempotency_key": "x2-inspection-example-001",
+  "params": {"maxDurationSec": 18, "targets": ["left", "center", "right"], "speedScale": 1.0}
+}

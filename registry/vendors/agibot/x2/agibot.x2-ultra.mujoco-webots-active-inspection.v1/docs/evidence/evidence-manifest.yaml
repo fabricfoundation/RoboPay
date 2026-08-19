@@ -1,0 +1,43 @@
+schema_version: 1
+profile_id: agibot.x2-ultra.mujoco-webots-active-inspection.v1
+status: not-captured
+
+execution:
+  source_commit: null
+  captured_at: null
+  robot_id: null
+  action_id: null
+  cold_start: null
+  warmup_action: null
+  unpaid_http_status: null
+  paid_http_status: null
+  terminal_state: null
+  settled: null
+  targets_confirmed: []
+
+settlement:
+  network: "eip155:84532"
+  transaction_hash: null
+  basescan_url: null
+
+visual_recording:
+  status: not-captured
+  filename: null
+  attachment_url: null
+  sha256: null
+  size_bytes: null
+  duration_seconds: null
+  resolution: null
+  layout: stable simultaneous terminal and native MuJoCo viewer required
+  required_visible_sequence:
+    - exact source commit before discovery
+    - unpaid HTTP 402 before actuation
+    - first paid HTTP 202 with correlated action ID and no warm-up action
+    - distinct left, center, and right live-controller poses
+    - correlated successful result and settled=true only after success
+    - matching BaseScan transaction success page
+
+trusted_json:
+  status: not-captured
+  path: null
+  sha256: null

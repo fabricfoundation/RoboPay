@@ -1,0 +1,26 @@
+schemaVersion: robot-profile.v1
+vendor: agibot
+robotModel: x2-ultra
+robotType: humanoid
+profileId: agibot.x2-ultra.mujoco-webots-active-inspection.v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/agibot_x2/metrics
+  bridge: bridge/agibot/x2_inspection_bridge
+simulation:
+  scope: simulator-only
+  primaryEngine: MuJoCo
+  validationEngine: Webots R2025a
+  supportFixture: pelvis safety fixture with feet on floor
+  supportPose: feet-on-floor
+  model:
+    source: https://github.com/AgibotTech/agibot_x2_urdf
+    commit: 77f43eb0904dae4c48ccd9154fee824f8ffd4d38
+    directory: X2_URDF-v1.4.0
+    license: MulanPSL-2.0
+maintainers:
+  - github: RobotDeveloper1
+status: experimental

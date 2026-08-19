@@ -1,0 +1,10 @@
+models/agibot_x2/
+models/agibot_x2_webots/
+artifacts/
+scenes/X2Ultra.proto
+scenes/X2UltraCI.proto
+scenes/X2_textures/
+scenes/webots_inspection_result.json
+scenes/*.wbproj
+__pycache__/
+*.pyc
