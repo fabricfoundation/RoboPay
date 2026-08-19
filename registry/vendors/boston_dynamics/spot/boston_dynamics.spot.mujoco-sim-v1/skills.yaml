@@ -1,0 +1,25 @@
+schemaVersion: robot-skills.v1
+
+profileId: boston_dynamics.spot.mujoco-sim-v1
+
+skills:
+  - skillId: walk
+    description: Execute walk action on spot
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.01"
+  - skillId: inspect
+    description: Execute inspect action on spot
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.03"
+  - skillId: dock
+    description: Execute dock action on spot
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.05"
+  - skillId: stop
+    description: Execute stop action on spot
+    params: {}
+    paymentRequired: false
+    priceUSDC: "0"

@@ -1,0 +1,20 @@
+schemaVersion: robot-skills.v1
+
+profileId: boston_dynamics.atlas.mujoco-sim-v1
+
+skills:
+  - skillId: walk
+    description: Execute walk action on atlas
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.02"
+  - skillId: climb_stairs
+    description: Execute climb_stairs action on atlas
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.05"
+  - skillId: stop
+    description: Execute stop action on atlas
+    params: {}
+    paymentRequired: false
+    priceUSDC: "0"

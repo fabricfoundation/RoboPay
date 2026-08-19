@@ -1,0 +1,14 @@
+schemaVersion: execution-mapping.v1
+
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+
+mappings:
+  move_forward:
+    output: mujoco_actuator
+    actuators: {vx: 0.5, vy: 0, wz: 0}
+    durationSec: 3
+  stop:
+    output: mujoco_actuator
+    actuators: {vx: 0, vy: 0, wz: 0}

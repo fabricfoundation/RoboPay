@@ -1,0 +1,20 @@
+schemaVersion: robot-skills.v1
+
+profileId: unitree.go2.mujoco-sim-v1
+
+skills:
+  - skillId: move_forward
+    description: Execute move_forward action on go2
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.01"
+  - skillId: trot
+    description: Execute trot action on go2
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.02"
+  - skillId: stop
+    description: Execute stop action on go2
+    params: {}
+    paymentRequired: false
+    priceUSDC: "0"

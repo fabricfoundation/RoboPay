@@ -1,0 +1,14 @@
+schemaVersion: robot-profile.v1
+vendor: boston_dynamics
+robotModel: spot
+profileId: boston_dynamics.spot.mujoco-sim-v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: mujoco-zenoh
+  simulator: mujoco
+maintainers:
+  - github: JonthanaHanh
+status: experimental
