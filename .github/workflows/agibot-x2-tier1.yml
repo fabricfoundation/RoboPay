@@ -46,6 +46,7 @@ jobs:
           python bridge/agibot/x2_inspection_bridge/download_x2_model.py
           python -m unittest bridge/agibot/x2_inspection_bridge/tests/test_policy.py
           python -m unittest bridge/agibot/x2_inspection_bridge/tests/test_bridge_contract.py
+          python -m unittest bridge/agibot/x2_inspection_bridge/tests/test_live_payment_signing.py
           python scripts/registry/validate_profiles.py --registry-root registry/vendors/agibot
       - name: Prove invalid payment and non-success never settle
         env:
@@ -148,6 +149,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agibot-x2-base-sepolia-evidence
-          path: bridge/agibot/x2_inspection_bridge/artifacts/base_sepolia_result_*.json
+          path: |
+            bridge/agibot/x2_inspection_bridge/artifacts/base_sepolia_result_*.json
+            bridge/agibot/x2_inspection_bridge/artifacts/last_base_sepolia_tunnel_failure.log
           retention-days: 90
           if-no-files-found: error

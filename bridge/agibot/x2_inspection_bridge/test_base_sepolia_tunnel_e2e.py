@@ -17,10 +17,13 @@ from pathlib import Path
 import requests
 import zenoh
 from eth_account import Account
+from eth_account.messages import encode_typed_data
 from x402 import x402ClientSync
-from x402.http.clients import x402_requests
+from x402.http.x402_http_client import x402HTTPClientSync
+from x402.mechanisms.evm.eip712 import build_typed_data_for_signing
 from x402.mechanisms.evm.exact import register_exact_evm_client
 from x402.mechanisms.evm.signers import EthAccountSigner
+from x402.mechanisms.evm.types import ExactEIP3009Authorization
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
@@ -42,6 +45,66 @@ def required(name: str) -> str:
 
 def decode_header(value: str | None) -> dict:
     return json.loads(base64.b64decode(value).decode()) if value else {}
+
+
+def create_verified_payment_headers(
+    unpaid: requests.Response,
+    client: x402ClientSync,
+    account,
+) -> dict[str, str]:
+    """Sign the exact 402 challenge and verify its EIP-712 recovery locally.
+
+    Reusing the already validated challenge avoids a second unpaid request whose
+    requirements could differ. Only public payer metadata is logged; the
+    authorization and signature remain in memory.
+    """
+
+    http_client = x402HTTPClientSync(client)
+    payment_headers, payload = http_client.handle_402_response(
+        dict(unpaid.headers), unpaid.content
+    )
+    if payload is None:
+        raise RuntimeError("x402 payment hook returned no payment payload")
+
+    payment = payload.model_dump(by_alias=True)
+    authorization = payment["payload"]["authorization"]
+    accepted = payment["accepted"]
+    exact_authorization = ExactEIP3009Authorization(
+        from_address=authorization["from"],
+        to=authorization["to"],
+        value=authorization["value"],
+        valid_after=authorization["validAfter"],
+        valid_before=authorization["validBefore"],
+        nonce=authorization["nonce"],
+    )
+    chain_id = int(accepted["network"].split(":", 1)[1])
+    domain, types, _primary_type, message = build_typed_data_for_signing(
+        exact_authorization,
+        chain_id,
+        accepted["asset"],
+        accepted["extra"]["name"],
+        accepted["extra"]["version"],
+    )
+    signable = encode_typed_data(
+        domain_data={
+            "name": domain.name,
+            "version": domain.version,
+            "chainId": domain.chain_id,
+            "verifyingContract": domain.verifying_contract,
+        },
+        message_types=types,
+        message_data=message,
+    )
+    recovered = Account.recover_message(
+        signable,
+        signature=payment["payload"]["signature"],
+    )
+    if recovered.lower() != authorization["from"].lower():
+        raise RuntimeError("locally generated x402 signature did not recover its payer")
+    if recovered.lower() != account.address.lower():
+        raise RuntimeError("x402 payment payer does not match the configured signer")
+
+    return payment_headers
 
 
 def source_commit_sha() -> str:
@@ -304,7 +367,17 @@ def main(argv: list[str] | None = None) -> int:
             if account is None:
                 raise RuntimeError("paid run requires a Base Sepolia account")
             client = x402ClientSync(); register_exact_evm_client(client, EthAccountSigner(account), networks=NETWORK)
-            paid = x402_requests(client).post(action_url, json=action_body, timeout=120)
+            payment_headers = create_verified_payment_headers(unpaid, client, account)
+            print(
+                f"[PAYMENT] local EIP-712 recovery passed payer={account.address}",
+                flush=True,
+            )
+            paid = requests.post(
+                action_url,
+                json=action_body,
+                headers=payment_headers,
+                timeout=120,
+            )
             if paid.status_code != 202 or paid.json().get("action_id") != action_id:
                 payment_error = None
                 encoded_error = paid.headers.get("PAYMENT-REQUIRED") or paid.headers.get("Payment-Required")
