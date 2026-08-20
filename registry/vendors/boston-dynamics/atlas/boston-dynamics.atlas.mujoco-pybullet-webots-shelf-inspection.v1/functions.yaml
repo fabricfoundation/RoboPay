@@ -50,15 +50,15 @@ functions:
         accepted/pending, carrying action_id and status_url; the terminal
         outcome is read from GET /action/{action_id}/status
       "400": >-
-        a payment header the gate cannot parse ("Invalid payment"), or a body
-        that is unreadable, not JSON, or missing any of action_id, robot_id,
-        skill_id and idempotency_key; nothing is published to Zenoh
+        a malformed or undecodable request or payment at the HTTP layer, or a
+        body missing any of action_id, robot_id, skill_id and idempotency_key;
+        nothing is published to Zenoh. Recorded in go-tunnel-e2e-evidence.json
+        as the answer to a forged authorization
       "402": >-
-        payment required, no advertised requirement matches the payment, or the
-        live facilitator refused the authorization — all answered with the
-        requirements in the PAYMENT-REQUIRED header. The split from 400 is
-        whether the gate could read the payment at all: an unparseable header is
-        400, a readable one it will not accept is 402
+        payment required, or a payment the gate or the live facilitator refuses;
+        answered with the requirements in the PAYMENT-REQUIRED header, and where
+        a refusal has a reason, a PAYMENT-RESPONSE header carrying it. Recorded
+        in go-tunnel-e2e-evidence.json as the answer to an unpaid action
       "500": the action event could not be encoded; nothing is published
       "502": the robot transport is unavailable, or publishing to Zenoh failed
     returns_note: >-

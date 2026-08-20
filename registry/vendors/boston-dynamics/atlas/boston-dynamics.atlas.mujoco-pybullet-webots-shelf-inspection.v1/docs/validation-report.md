@@ -187,6 +187,12 @@ without contact was 4.9 mm (MuJoCo) and 6.7 mm (PyBullet).
 | Protocol-valid payment, 3/3 targets | 200 | yes | **eligible, not on chain** |
 | Replayed receipt | 409 | no | none |
 
+That `409` is this in-process relay's answer, and only its own: it replies
+synchronously, so it can refuse with a code. The transport demo answers `400`,
+and the hosted Go tunnel has already answered `202` by the time the bridge
+recognises the duplicate, so it reports `DUPLICATE_ACTION` on the status
+endpoint instead. None of the three actuates the robot a second time.
+
 This demo runs in-process and holds no wallet, so the successful step is
 recorded as `SETTLEMENT_ELIGIBLE` with `settlement_tx_hash: null`. That
 distinction is enforced by the ledger rather than by discipline: `SETTLED`
@@ -509,9 +515,12 @@ conflated here, so they are separated.
 
 *The outbound client.* The success criteria describe the bridge connecting out
 to the relay "using `robotsdk`". There is no package by that name in this
-repository; the robot-side outbound client it ships is `tunnel/`, which depends
-on `github.com/unibaseio/aip-go-sdk` and dials the relay over WSS. This profile
-uses that tunnel as it is, adding three read-only endpoints and changing no
+repository; the robot-side outbound client it ships is `tunnel/`, and the relay
+connection itself is `tunnel/internal/client.go`, which dials the WSS endpoint
+with `gorilla/websocket`. The same module also carries
+`github.com/unibaseio/aip-go-sdk`, used by `cmd/main.go` and `internal/aipagent`
+for the optional authenticated AIP path — not for that transport. This profile
+uses the tunnel as it is, adding three read-only endpoints and changing no
 transport behaviour. The merged Tier-1 profiles use the same component.
 
 *The authentication handshake.* It exists in that tunnel and this profile does
