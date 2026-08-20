@@ -18,15 +18,28 @@ This service keeps an outbound WebSocket tunnel to a proxy and handles request e
 
 ## Integrations
 
-The AEON BNB x402 bridge-stage validation project lives under:
+Payment network integration packages live under:
+
+```text
+integrations/
+```
+
+The integration index is:
+
+```text
+integrations/README.md
+```
+
+Current packages:
 
 ```text
 integrations/aeon-robot-communication/
+integrations/xrpl-robot-communication/
 ```
 
-It is kept as a nested integration project so the Go tunnel client structure stays intact while preserving the AEON gateway's TypeScript source, tests, scripts, and validation docs in one readable place.
+They are kept as nested snapshot projects so the Go tunnel client structure stays intact while preserving each payment network gateway's source, tests, scripts, and validation docs in one readable place.
 
-That integration proves the upstream AEON payment/action gateway flow through mock AEON x402 authorization, receipt/action-envelope generation, real Zenoh publication, OM1 bridge forwarding, and ROS2 `/cmd_vel` output. The Go tunnel client remains the robot-side tunnel and Zenoh dispatch service.
+The Go tunnel client remains the robot-side tunnel and Zenoh dispatch service. Payment network experiments should stay under `integrations/` until they are mature enough to justify reviewed root-level runtime changes.
 
 ## Envelope
 

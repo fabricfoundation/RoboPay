@@ -1,0 +1,27 @@
+id: aeon-robot-communication
+provider: aeon-bnb-x402
+displayName: AEON BNB x402 Robot Communication
+type: payment-network-integration
+source:
+  repository: https://github.com/fabricfoundation/Aeon-robot-communication
+  commit: a96c5a2
+import:
+  mode: snapshot
+  targetPath: integrations/aeon-robot-communication
+status:
+  milestone: m2-bridge-stage-passed
+  summary: Mock AEON facilitator, Fabric-style action authorization, real Zenoh publish, OM1 bridge forwarding, and ROS2 /cmd_vel were validated.
+runtime:
+  robotTarget: om1-sim-g1
+  zenohTopic: robot/tunnel/action
+  publisherModes:
+    - stub
+    - zenoh-cli
+validation:
+  primaryReport: docs/m2-aeon-zenoh-om1-validation-report.md
+  runbook: docs/m2-runbook.md
+security:
+  secretsCommitted: false
+  envFilesCommitted: false
+maintainers:
+  - fabricfoundation

@@ -1,0 +1,35 @@
+{
+  "name": "xrpl-robot-communication",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent XRPL x402 robot action gateway for payment-gated robot task proof.",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "dev:mock-xrpl": "tsx scripts/devMockXrpl.ts",
+    "dev:xrpl-testnet-probe": "tsx scripts/devXrplTestnetProbe.ts",
+    "dev:xrpl-testnet-actions": "tsx scripts/devXrplTestnetActionGateway.ts",
+    "send:paid": "tsx scripts/sendPaidAction.ts",
+    "send:xrpl-testnet": "tsx scripts/sendXrplTestnetPayment.ts",
+    "send:xrpl-testnet-action": "tsx scripts/sendXrplTestnetPaidAction.ts",
+    "verify:runtime": "tsx scripts/verifyRuntime.ts",
+    "runtime:verify": "tsx scripts/verifyRuntime.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.18.3",
+    "uuid": "^11.0.5",
+    "x402-xrpl": "^0.2.0",
+    "xrpl": "^4.4.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.13.14",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  }
+}

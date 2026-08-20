@@ -1,0 +1,28 @@
+id: xrpl-robot-communication
+provider: xrpl-x402
+displayName: XRPL x402 Robot Communication
+type: payment-network-integration
+source:
+  repository: https://github.com/fabricfoundation/XRPL-robot-communication
+  commit: dc8f49561303ae5c4c26d52484bfcd439f61ee24
+import:
+  mode: snapshot
+  targetPath: integrations/xrpl-robot-communication
+status:
+  milestone: m2-a-zenoh-passed
+  summary: XRPL testnet x402 payment produced a PaymentReceipt and signed ActionEnvelope, and a real Zenoh subscriber received the envelope on robot/tunnel/action. M2-B OM1 bridge and ROS2 /cmd_vel validation remains pending.
+runtime:
+  robotTarget: om1-sim-g1
+  zenohTopic: robot/tunnel/action
+  publisherModes:
+    - stub
+    - zenoh-cli
+validation:
+  primaryReport: docs/m2-a-xrpl-testnet-zenoh-plan.md
+  m2bPreflight: docs/m2-b-om1-ros2-preflight-report.md
+  runbook: docs/m2-runbook.md
+security:
+  secretsCommitted: false
+  envFilesCommitted: false
+maintainers:
+  - fabricfoundation
