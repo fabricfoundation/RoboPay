@@ -554,24 +554,29 @@ That is a different property and it is proven in 8.1 and 9.
 
 ## 10. Reproducing
 
-**The simulation dependencies are bounded, and that is not housekeeping.** CI
-caught this on a run whose only changes were to documentation: it installed
-MuJoCo 3.12, which settles the resting arm 2.3 cm higher than 3.11 — the hand
-sits at 0.9816 m where the recorded geometry says 0.9589 m — and
-`test_home_pose_matches_the_recorded_geometry` failed.
+**The recorded home-pose value is version-sensitive, and MuJoCo is pinned
+because of it.** On a commit whose only changes were to documentation, a clean
+CI environment resolved MuJoCo 3.12.0 and
+`test_home_pose_matches_the_recorded_geometry` measured the resting hand at
+0.9816 m against the 0.9589 m recorded with the evidence build. That is the
+observation; no claim is made here about what inside the engine changed.
 
-The episode itself barely noticed: mean position error moved by 0.00001 m and
-the pelvis floor not at all, and the task still reported 3/3. But the shelf
-coordinates in `task.py` were chosen from a reach envelope measured at that
-resting pose, so the committed geometry and the engine that produced it have to
-travel together. `requirements.txt` now bounds `mujoco`, `numpy` and `pybullet`
-rather than only flooring them, so a reviewer cloning this repository gets the
-numbers recorded in `docs/evidence` and not whichever numbers today's releases
-produce.
+The episode itself barely moved — mean position error differed by 0.00001 m, the
+pelvis floor not at all, and the task still reported 3/3 on both engines. But the
+shelf coordinates in `task.py` come from a reach envelope measured at that
+resting pose, so the committed geometry and the build that produced it have to
+travel together. `requirements.txt` therefore bounds `mujoco`, and a reviewer
+cloning this repository gets the numbers recorded in `docs/evidence` rather than
+whichever numbers today's release produces.
+
+`numpy` and `pybullet` are deliberately left floored. Bounding them as well would
+be pinning on suspicion rather than on an observation, and it would cost anyone
+building this more than it buys.
 
 Worth stating plainly because the tempting fix was the wrong one: widening the
 test's tolerance would have turned a working reproducibility check into a
-decoration, and the check is what found this.
+decoration, and that check is what found this — on the least likely commit,
+which is exactly when nobody is looking.
 
 
 ```bash

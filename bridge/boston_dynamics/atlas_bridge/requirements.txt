@@ -1,17 +1,21 @@
 # Core simulation and control.
 #
-# Bounded, not merely floored, because these three decide the numbers in
-# docs/evidence. MuJoCo 3.12 settles the resting arm 2.3 cm higher than 3.11
-# (0.9589 m -> 0.9816 m at the hand), which CI caught through
-# test_home_pose_matches_the_recorded_geometry on a run whose only changes were
-# to documentation. The episode itself is unaffected — mean error moved by
-# 0.00001 m and the pelvis floor not at all — but the shelf coordinates are
-# derived from a reach envelope measured at that resting pose, so the committed
-# geometry and the engine that produced it have to travel together. A reviewer
-# cloning this repository should get the recorded numbers, not today's numbers.
+# MuJoCo is bounded rather than floored, and only MuJoCo, because it is the one
+# whose drift has actually been observed. On a commit whose only changes were to
+# documentation, a clean CI environment resolved MuJoCo 3.12.0 and
+# test_home_pose_matches_the_recorded_geometry measured the resting hand at
+# 0.9816 m against the 0.9589 m recorded with the evidence build. The episode
+# was almost unmoved — mean error differed by 0.00001 m, the pelvis floor not at
+# all — but the shelf coordinates come from a reach envelope measured at that
+# resting pose, so the geometry and the build that produced it travel together.
+#
+# numpy and pybullet are left floored. Bounding them too would be pinning on
+# suspicion rather than on evidence, and it would cost anyone building this more
+# than it buys. The integrity tests are the net: they are what caught MuJoCo,
+# on the least likely commit, and they would catch these the same way.
 mujoco>=3.11,<3.12
-numpy>=1.26,<3
-pybullet>=3.2.6,<3.3
+numpy>=1.26
+pybullet>=3.2.6
 
 # Registry/profile parsing and tests
 pyyaml>=6.0
