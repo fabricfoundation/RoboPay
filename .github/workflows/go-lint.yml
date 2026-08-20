@@ -34,9 +34,12 @@ jobs:
         working-directory: tunnel
         run: go mod download
 
+      # v2.9.0 is the earliest release whose prebuilt binaries are built with
+      # Go 1.26. golangci-lint refuses to lint a module targeting a newer Go
+      # than it was compiled with, and tunnel/go.mod requires 1.26 (mpp-go).
       - name: Install golangci-lint
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.9.0
 
       - name: Add golangci-lint to PATH
         run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH

@@ -255,7 +255,10 @@ make run
 make test
 ```
 
-`mpp-go` requires **Go 1.26** or newer, which is the module's minimum.
+`mpp-go` requires **Go 1.26** or newer, which is the module's minimum. `make lint`
+therefore needs **golangci-lint v2.9.0** or newer — it refuses to lint a module
+targeting a newer Go than it was itself compiled with, and v2.9.0 is the first
+release built with 1.26. Reinstall if you have an older one.
 
 The tunnel reads `.env` from its **working directory**, so run it through
 `make run` (which enters `tunnel/` first) or `cd tunnel` before launching the
