@@ -504,27 +504,40 @@ by `tests/test_x402_payment_safety.py`.
 
 ### 9.2 What this profile does not prove
 
-**Robot identity and payee binding — half proven, half upstream.** The success
-criteria ask that the bridge sign the robot authentication handshake and that
-the robot's identity bind to the payee wallet. Those are two things, and this
-profile can only speak for one of them.
+**Robot identity, the outbound client, and the payee.** Three things get
+conflated here, so they are separated.
 
-*Proven here.* The identity the tunnel answers for and the address it is paid to
-come from one configuration and are advertised together, so a caller can see
-which wallet the robot it is talking to gets paid at before paying anything:
-`GET /robot` returns `robot_id` and `pay_to` from that same config, the `402`
-quotes the same `payTo`, and the x402 middleware refuses a payment whose `payTo`
-does not match what was advertised — it matches on scheme, network, amount,
-asset **and** payee. The settlements in 8.1 and 9 landed at exactly that
-address. `TestTheAdvertisedPayeeIsTheConfiguredOne` and
-`TestAnUnconfiguredPayeeIsNotAdvertisedAsAnAddress` hold the advertising half.
+*The outbound client.* The success criteria describe the bridge connecting out
+to the relay "using `robotsdk`". There is no package by that name in this
+repository; the robot-side outbound client it ships is `tunnel/`, which depends
+on `github.com/unibaseio/aip-go-sdk` and dials the relay over WSS. This profile
+uses that tunnel as it is, adding three read-only endpoints and changing no
+transport behaviour. The merged Tier-1 profiles use the same component.
 
-*Not proven here.* The authenticating handshake between a robot and the relay —
-the part that would make the identity unforgeable rather than merely declared —
-belongs to the shared tunnel and gateway. The tunnel dials out with its
-`robot_id` and consumes the identity it is given; this profile does not
-reimplement or re-verify that exchange, and no artifact here should be read as
-proving it. A robot profile is not the layer that can.
+*The authentication handshake.* It exists in that tunnel and this profile does
+not bypass it. With `AIP_ENABLED=true`, `cmd/main.go` runs
+`aipauth.EnsureAuth`, which returns a bearer token and a wallet address, and
+`internal/aipagent` then registers the agent with `Handle` set to the robot id
+and `UserID` set to that wallet — identity bound to wallet, by the shared
+tunnel, through the SDK. The demos recorded here run with it disabled, because
+`EnsureAuth` drives an interactive browser authorization flow that a
+reproducible, unattended demo cannot perform. So: implemented in the component
+this profile uses, not exercised in these recordings, and not reimplemented
+here.
+
+*The payee, which this profile can and does hold.* The identity the tunnel
+answers for and the address it is paid to come from one configuration and are
+advertised together, so a caller can see which wallet the robot it is talking to
+gets paid at before paying anything: `GET /robot` returns `robot_id` and
+`pay_to` from that config, the `402` quotes the same `payTo`, and the x402
+middleware refuses a payment whose `payTo` differs — it matches on scheme,
+network, amount, asset **and** payee. The settlements in 8.1 and 9 landed at
+exactly that address. `TestTheAdvertisedPayeeIsTheConfiguredOne` and
+`TestAnUnconfiguredPayeeIsNotAdvertisedAsAnAddress` hold that half.
+
+What this profile therefore does **not** claim: that the recorded runs exercised
+the authenticated registration, or that a robot profile could make an identity
+unforgeable on its own. It cannot; that belongs to the tunnel and the gateway.
 
 What *is* bound cryptographically is the settlement to the action: the
 authorization nonce is `keccak256(action_id)` and the token records it on chain.
