@@ -78,9 +78,9 @@ artifacts:
     bytes: 7946
     sha256: 2e01b79d8b8e495c5d7ac08e39423b634e334e38ac6c0b4c795247022befe451
   - path: docs/evidence/atlas-paid-action.gif
-    description: "One continuous recording of one paid action: the terminal trace from discovery through the 402, the signed authorization, the 202, the correlated result and the settlement, beside the simulator rendering the episode that payment bought"
-    bytes: 4199164
-    sha256: 9ea3329d31b65d9364b8d9f063099e42e915969c4a419e7a76617fa239ec9565
+    description: "One continuous recording of one paid action, rendered from inside the scored episode: the terminal trace from discovery through the 402, the signed authorization, the 202, the correlated result and the settlement, beside the simulator rendering the episode that payment bought"
+    bytes: 4023382
+    sha256: 8ea1e7428d2db0fad4a03e23c52bc749dc883e90218615207dbb180f4b496693
 settlement:
   paid_action:
     note: >-
@@ -123,16 +123,18 @@ settlement:
     submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
   recorded_action:
     note: >-
-      The settlement shown in atlas-paid-action.gif. It was located on chain by
-      its nonce rather than by its hash — keccak256(action_id) is enough to find
-      the AuthorizationUsed event, which is the binding working in the direction
-      a reviewer would use it.
-    action_id: "atlas-inspect-1787200740"
-    transaction: "0xea4353bf089b08c1758bba6a27e4faa45503c0536a2a8b921d9e7de94486abb8"
-    explorer: https://sepolia.basescan.org/tx/0xea4353bf089b08c1758bba6a27e4faa45503c0536a2a8b921d9e7de94486abb8
-    block: 45716247
+      The settlement shown in atlas-paid-action.gif, and the episode in that
+      recording is the one this payment bought: the frames are rendered from
+      inside the scored run rather than from a second run alongside it. Located
+      on chain by its nonce rather than by its hash — keccak256(action_id) is
+      enough to find the AuthorizationUsed event, which is the binding working
+      in the direction a reviewer would use it.
+    action_id: "atlas-inspect-1787242629"
+    transaction: "0x7fc1c1ff21e535376bf22b3409b751d769dadfdcb2491d3803c5712905b5b197"
+    explorer: https://sepolia.basescan.org/tx/0x7fc1c1ff21e535376bf22b3409b751d769dadfdcb2491d3803c5712905b5b197
+    block: 45737187
     transferred: 0.001 USDC
-    authorization_nonce: "0x24bfe0a79140d5b24e4b8df20a648e3c1bba3ad5db42e30b5ae6b2de50a44ae5"
+    authorization_nonce: "0x97b7245b38f9b8d38bd14485f3a912f57621039933d21480dae6fb7a44aa0c40"
   refused_action_not_settled:
     note: >-
       The failing counterpart of the run above, through the same relay with the

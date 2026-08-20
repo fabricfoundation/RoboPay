@@ -29,7 +29,7 @@ one rests on.
 | Real Go tunnel | The repository's own tunnel refuses unpaid and forged actions | `go-tunnel-e2e-evidence.json` |
 | Idempotency | A payment-validated action actuates the robot once, across restarts | `tests/test_idempotency.py` |
 | Paid action | A live-facilitator-verified payment executed the skill and settled 0.001 USDC, bound to the `action_id` | `real-paid-run.json` |
-| One recording of all of it | The 402, the signed authorization, the 202, the episode, the correlated result and the settlement — one pass, one action | `atlas-paid-action.gif` |
+| One recording of all of it | The 402, the signed authorization, the 202, the episode, the correlated result and the settlement — one pass, one action, with the frames rendered from inside the scored episode rather than a second run | `atlas-paid-action.gif` |
 | Full relay path | Discovery, priced 402, paid action, execution and settlement through the **hosted Fabric relay** with nothing stood in for | `fabric-relay-e2e.json` |
 | Failure is not charged | A refused action returns an error, settles nothing, and the token contract confirms the authorization was never spent | `fabric-relay-failure.json` |
 | On-chain settlement | The settlement transaction, re-read from a public RPC | `real-paid-run.json`, `onchain-settlement.json` |
