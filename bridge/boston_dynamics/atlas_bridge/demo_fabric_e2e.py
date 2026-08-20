@@ -501,6 +501,22 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
         "terminal_status": terminal,
         "on_chain": chain,
     }
+    settled = bool(((next((s for s in steps if s.get("step") == "paid_action"), {})
+                     .get("payment_response")) or {}).get("success"))
+    failed = (terminal or {}).get("state") == "failed"
+    if not dry_run:
+        evidence["payment_safety"] = {
+            "settlement_ordering": "the tunnel's x402 middleware settles when it "
+                                   "accepts the payment, before the robot runs",
+            "execution_failed": failed,
+            "settled": settled,
+            # Stated plainly because it is the uncomfortable half: on this path a
+            # refused or failed action is still paid for. It is a property of the
+            # relay/tunnel middleware, not of the robot bridge — real_paid_run.py
+            # settles only after an episode reports every target reached.
+            "settled_despite_failure": failed and settled,
+            "execution_gated_settlement_shown_in": "real-paid-run.json",
+        }
     checks = [
         ("the relay reported the robot connected", discovery.get("robot_discovered") is True),
         ("skill discovery returned the inspection skill",
@@ -517,16 +533,19 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
          bool(step("unpaid_action").get("payment_required_header"))),
     ]
     if not dry_run and expect_failure:
-        # The point of this run is the unhappy path: an episode that does not
-        # finish must be reported as failed, with its real result attached,
-        # rather than quietly reported as success.
+        # The unhappy path: whatever went wrong must reach the status endpoint
+        # as a failure carrying its real reason, rather than being smoothed
+        # into a success or into a generic error.
+        result = (terminal or {}).get("result") or {}
         checks += [
             ("the paid action was accepted", bool(step("paid_action").get("accepted"))),
-            ("the status endpoint reported the episode failed",
+            ("the status endpoint reported the action failed",
              step("terminal_status").get("state") == "failed"),
-            ("the failure is not reported as every target reached",
-             step("terminal_status").get("targets_completed")
-             != step("terminal_status").get("targets_total")),
+            ("the status carries the real reason, not a generic one",
+             result.get("success") is False and bool(result.get("error_code"))),
+            ("no successful execution was reported",
+             result.get("success") is not True
+             and not step("terminal_status").get("targets_completed")),
             ("the failed action is still correlated by action_id",
              bool(step("terminal_status").get("correlated"))),
         ]

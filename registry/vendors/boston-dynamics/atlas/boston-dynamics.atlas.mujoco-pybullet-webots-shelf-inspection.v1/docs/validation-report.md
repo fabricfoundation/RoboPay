@@ -439,6 +439,46 @@ same `robot/tunnel/result` topic the simulator publishes on and stores what
 arrives, keyed by `action_id`; an unanswered action reads as `pending` and a
 failed one as `failed`.
 
+### 9.1 The unhappy path, and what it costs
+
+`fabric-relay-failure.json` sends a paid action whose `maxDurationSec` is below
+the bound the catalogue declares. Two separate things come out of it, and they
+should not be reported as one.
+
+**Failure semantics hold.** The bridge refuses the action with
+`INVALID_DURATION`, and the refusal reaches the caller through the relay's own
+status endpoint as `state: failed`, carrying the real error code rather than a
+generic one, correlated by `action_id`. Nothing was smoothed into a success.
+
+**Payment safety does not hold on this path, and that is worth saying plainly.**
+The action was refused, and it was still paid for:
+
+| | |
+| --- | --- |
+| Execution | refused — `INVALID_DURATION` |
+| Status reported | `failed`, at 23:58:30Z |
+| Settlement | [`0xdb69d2d4…2a0aec`](https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec), block 45707813 |
+| Transferred | 0.001 USDC |
+
+This is a property of the tunnel's x402 middleware, which settles as part of
+*accepting* a payment, before the robot is reached. It is not a property of this
+robot bridge: `real_paid_run.py` asks the facilitator to settle only after the
+episode reports every target reached, and section 8.1 is that run. The profile
+therefore contains a path with execution-gated settlement and a path without
+one, and the artifacts say which is which rather than presenting the safer
+ordering as though it were universal.
+
+An operator who needs settlement to follow execution has to defer it past the
+middleware; nothing in this profile can enforce that from behind the tunnel.
+
+**On why the failure is a refused parameter rather than a timeout.** The
+catalogue declares `maxDurationSec` minimum 5, and at 5 seconds the episode
+completes all three targets — measured, not assumed. There is therefore no
+in-bounds duration that produces an execution timeout, which is a property of a
+well-chosen bound rather than a gap. Execution-level failures that must not
+settle — falls, shelf contact, safe stop — are covered in section 6 and by
+`tests/test_x402_payment_safety.py`.
+
 ## 10. Reproducing
 
 ```bash

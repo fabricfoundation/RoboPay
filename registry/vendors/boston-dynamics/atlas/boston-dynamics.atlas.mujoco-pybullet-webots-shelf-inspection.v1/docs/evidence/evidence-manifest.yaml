@@ -73,6 +73,10 @@ artifacts:
     description: "The whole path with nothing stood in for: hosted Fabric relay, robot and skill discovery, priced 402, paid action, Zenoh, Atlas 3/3, relay terminal status, and 0.001 USDC settled bound to the action_id"
     bytes: 10893
     sha256: 356d223170ee72d08f3fe91a4979b67e962f807d1eb6469326ecc574a3cb253f
+  - path: docs/evidence/fabric-relay-failure.json
+    description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, reported failed with its real reason and correlated by action_id — and settled anyway, because this path settles on acceptance"
+    bytes: 8951
+    sha256: 7e5fe1ddb8d4cb9b3a198ed7a48bf7bf11521ca7f65c0cf241c4ebcafbda0afb
 settlement:
   paid_action:
     note: >-
@@ -112,6 +116,19 @@ settlement:
     payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
     authorization_nonce: "0xf9b407f71dcb43a228accbb062920bf60425237c5bce55c7acf66a9567e08730"
     submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+  refused_action_still_settled:
+    note: >-
+      The settlement for an action the bridge refused. Kept because it is the
+      uncomfortable half: the tunnel's x402 middleware settles when it accepts a
+      payment, before the robot is reached, so a refused action is still paid
+      for. A property of the middleware, not of this bridge — real_paid_run.py
+      settles only after an episode reports every target reached.
+    action_id: "atlas-inspect-1787183907"
+    execution: "refused — INVALID_DURATION"
+    transaction: "0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec"
+    explorer: https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec
+    block: 45707813
+    transferred: 0.001 USDC
   earlier_transfer:
     note: >-
       An earlier 1.0 USDC transfer between two test wallets, kept because the

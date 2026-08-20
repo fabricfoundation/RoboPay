@@ -4,10 +4,10 @@
   "relay": "https://api.fabric.foundation/api/core",
   "relay_transport": "wss://api.fabric.foundation/api/core/ws/robot",
   "stood_in_for": "nothing \u2014 the relay, the tunnel, Zenoh, the simulator and the facilitator are all the real components",
-  "robot_id": "atlas-sim-1787183319",
+  "robot_id": "atlas-sim-1787183907",
   "skill_id": "inspect_shelf",
-  "action_id": "atlas-inspect-1787183319",
-  "idempotency_key": "atlas-inspect-1787183319",
+  "action_id": "atlas-inspect-1787183907",
+  "idempotency_key": "atlas-inspect-1787183907",
   "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
   "payee": "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8",
   "network": "eip155:84532",
@@ -15,7 +15,7 @@
   "dry_run": false,
   "discovery": {
     "http_status": 200,
-    "robot_id": "atlas-sim-1787183319",
+    "robot_id": "atlas-sim-1787183907",
     "robot_discovered": true,
     "skills": [
       {
@@ -51,7 +51,7 @@
     {
       "step": "discovery",
       "http_status": 200,
-      "robot_id": "atlas-sim-1787183319",
+      "robot_id": "atlas-sim-1787183907",
       "robot_discovered": true,
       "skills": [
         {
@@ -113,34 +113,34 @@
       "payment_response": {
         "success": true,
         "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
-        "transaction": "0x6f09f39497c681659f559027519b71ebc2488e8bd8b4dfbc7d623676988b0757",
+        "transaction": "0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec",
         "network": "eip155:84532"
       },
       "settlement_ordering": "settled on acceptance by the tunnel middleware, before the episode runs",
       "body": {
         "status": "accepted",
-        "timestamp": "2026-08-20T02:48:42+03:00"
+        "timestamp": "2026-08-20T02:58:31+03:00"
       }
     },
     {
       "step": "terminal_status",
       "state": "failed",
       "settled": null,
-      "action_id": "atlas-inspect-1787183319",
+      "action_id": "atlas-inspect-1787183907",
       "correlated": true,
       "params_hash": "sha256:908150ab67973c3926a2d6c2b09d58fc48e90a709297bb91dae3c1769ea70825",
-      "idempotency_key": "atlas-inspect-1787183319",
+      "idempotency_key": "atlas-inspect-1787183907",
       "targets_completed": null,
       "targets_total": null,
       "read_from": "hosted Fabric relay"
     },
     {
       "step": "settlement",
-      "tx_hash": "0x6f09f39497c681659f559027519b71ebc2488e8bd8b4dfbc7d623676988b0757",
+      "tx_hash": "0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec",
       "confirmed": true,
-      "block_number": 45707519,
+      "block_number": 45707813,
       "submitted_by": "0xd407e409e34e0b9afb99ecceb609bdbcd5e7f1bf",
-      "explorer": "https://sepolia.basescan.org/tx/0x6f09f39497c681659f559027519b71ebc2488e8bd8b4dfbc7d623676988b0757",
+      "explorer": "https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec",
       "transfer": {
         "token_contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
         "from": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
@@ -148,32 +148,32 @@
         "raw_amount": 1000,
         "amount_usdc": 0.001
       },
-      "authorization_nonce": "0x553844ae5ba2420ac339596f4cd87af4de52c02252c0a4120cada440b7a0b07b",
-      "expected_nonce_from_action_id": "0x553844ae5ba2420ac339596f4cd87af4de52c02252c0a4120cada440b7a0b07b",
+      "authorization_nonce": "0xa6e309a4c0a1776bb4f04ac05ef0bf5681dbded3b4e3eb412e0b1174e1ec5825",
+      "expected_nonce_from_action_id": "0xa6e309a4c0a1776bb4f04ac05ef0bf5681dbded3b4e3eb412e0b1174e1ec5825",
       "nonce_binds_settlement_to_action": true,
       "asset_is_declared_usdc": true
     }
   ],
   "terminal_status": {
-    "action_id": "atlas-inspect-1787183319",
-    "robot_id": "atlas-sim-1787183319",
+    "action_id": "atlas-inspect-1787183907",
+    "robot_id": "atlas-sim-1787183907",
     "skill_id": "inspect_shelf",
     "state": "failed",
     "params_hash": "sha256:908150ab67973c3926a2d6c2b09d58fc48e90a709297bb91dae3c1769ea70825",
-    "idempotency_key": "atlas-inspect-1787183319",
+    "idempotency_key": "atlas-inspect-1787183907",
     "profile_id": "boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1",
     "result": {
       "error_code": "INVALID_DURATION",
       "message": "maxDurationSec must be between 5 and 60.",
       "success": false
     },
-    "updated_at": "2026-08-19T23:48:42Z"
+    "updated_at": "2026-08-19T23:58:31Z"
   },
   "on_chain": {
     "confirmed": true,
-    "block_number": 45707519,
+    "block_number": 45707813,
     "submitted_by": "0xd407e409e34e0b9afb99ecceb609bdbcd5e7f1bf",
-    "explorer": "https://sepolia.basescan.org/tx/0x6f09f39497c681659f559027519b71ebc2488e8bd8b4dfbc7d623676988b0757",
+    "explorer": "https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec",
     "transfer": {
       "token_contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
       "from": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
@@ -181,10 +181,17 @@
       "raw_amount": 1000,
       "amount_usdc": 0.001
     },
-    "authorization_nonce": "0x553844ae5ba2420ac339596f4cd87af4de52c02252c0a4120cada440b7a0b07b",
-    "expected_nonce_from_action_id": "0x553844ae5ba2420ac339596f4cd87af4de52c02252c0a4120cada440b7a0b07b",
+    "authorization_nonce": "0xa6e309a4c0a1776bb4f04ac05ef0bf5681dbded3b4e3eb412e0b1174e1ec5825",
+    "expected_nonce_from_action_id": "0xa6e309a4c0a1776bb4f04ac05ef0bf5681dbded3b4e3eb412e0b1174e1ec5825",
     "nonce_binds_settlement_to_action": true,
     "asset_is_declared_usdc": true
+  },
+  "payment_safety": {
+    "settlement_ordering": "the tunnel's x402 middleware settles when it accepts the payment, before the robot runs",
+    "execution_failed": true,
+    "settled": true,
+    "settled_despite_failure": true,
+    "execution_gated_settlement_shown_in": "real-paid-run.json"
   },
   "invariants": {
     "the relay reported the robot connected": true,
@@ -194,9 +201,10 @@
     "the relay refused an unpaid action with 402": true,
     "the relay advertised payment requirements": true,
     "the paid action was accepted": true,
-    "the status endpoint reported the episode failed": true,
-    "the failure is not reported as every target reached": false,
+    "the status endpoint reported the action failed": true,
+    "the status carries the real reason, not a generic one": true,
+    "no successful execution was reported": true,
     "the failed action is still correlated by action_id": true
   },
-  "all_invariants_hold": false
+  "all_invariants_hold": true
 }
