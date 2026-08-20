@@ -206,19 +206,6 @@ working end to end on Moderato:
 | Server | `github.com/tempoxyz/tempo-go` | `v0.5.0` — **explicitly bumped** |
 | Client | `pympp[tempo]` (PyPI)     | `0.10.1` |
 
-**The `tempo-go` bump is load-bearing.** `mpp-go v0.2.0` only requires
-`tempo-go v0.4.1`, whose `tempotx.Deserialize` rejects the signature envelope
-that current Python and TypeScript clients emit — every payment fails with:
-
-```json
-{"title":"Invalid Payload","detail":"failed to deserialize transaction payload","status":400}
-```
-
-`tempo-go v0.5.0` fixes it ([accept legacy recovery IDs in signature
-envelopes](https://github.com/tempoxyz/tempo-go/pull/57)) and `mpp-go v0.2.0`
-compiles against it unchanged, so `tunnel/go.mod` pins it directly. Do not let it
-drift back down.
-
 #### Testing against Moderato
 
 Pin `mpp_currency` explicitly on testnet. Left blank, the Go SDK advertises
@@ -230,9 +217,6 @@ both, along with BetaUSD and ThetaUSD:
 ```bash
 cast rpc tempo_fundAddress <PAYER_ADDRESS> --rpc-url https://rpc.moderato.tempo.xyz
 ```
-
-Fund the **payer**, not the payee. The tunnel only ever needs the payee's
-address (`mpp_payee_address`, or `evm_payee_address` by default) — never its key.
 
 To see what a robot accepts without spending anything, send one unpaid request
 and read the challenges off the 402:
@@ -254,16 +238,6 @@ make build
 make run
 make test
 ```
-
-`mpp-go` requires **Go 1.26** or newer, which is the module's minimum. `make lint`
-therefore needs **golangci-lint v2.9.0** or newer — it refuses to lint a module
-targeting a newer Go than it was itself compiled with, and v2.9.0 is the first
-release built with 1.26. Reinstall if you have an older one.
-
-The tunnel reads `.env` from its **working directory**, so run it through
-`make run` (which enters `tunnel/` first) or `cd tunnel` before launching the
-binary by hand. Started from the repo root, `tunnel/.env` is silently skipped and
-MPP comes up disabled with no error.
 
 Common environment overrides:
 
