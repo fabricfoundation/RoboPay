@@ -253,8 +253,14 @@ jobs:
       # caught before money is involved rather than after.
       - name: Rehearse the whole path, signing nothing
         run: |
+          # `cmd | tee` reports tee's exit status, which is always 0. Without
+          # this, a run whose invariants fail is reported as a pass.
+          set -o pipefail
           mkdir -p artifacts
-          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --dry-run             --json-output artifacts/live-dry-run.json             | tee artifacts/live-dry-run.txt
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e \
+            --tunnel "$RUNNER_TEMP/tunnel" --dry-run \
+            --json-output artifacts/live-dry-run.json \
+            | tee artifacts/live-dry-run.txt
       # The claim this job exists to make checkable: one action, paid for with a
       # real EIP-3009 authorization whose nonce is keccak256(action_id), executed
       # on Atlas in this run, settled only after the correlated result reports
