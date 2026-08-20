@@ -554,6 +554,26 @@ That is a different property and it is proven in 8.1 and 9.
 
 ## 10. Reproducing
 
+**The simulation dependencies are bounded, and that is not housekeeping.** CI
+caught this on a run whose only changes were to documentation: it installed
+MuJoCo 3.12, which settles the resting arm 2.3 cm higher than 3.11 — the hand
+sits at 0.9816 m where the recorded geometry says 0.9589 m — and
+`test_home_pose_matches_the_recorded_geometry` failed.
+
+The episode itself barely noticed: mean position error moved by 0.00001 m and
+the pelvis floor not at all, and the task still reported 3/3. But the shelf
+coordinates in `task.py` were chosen from a reach envelope measured at that
+resting pose, so the committed geometry and the engine that produced it have to
+travel together. `requirements.txt` now bounds `mujoco`, `numpy` and `pybullet`
+rather than only flooring them, so a reviewer cloning this repository gets the
+numbers recorded in `docs/evidence` and not whichever numbers today's releases
+produce.
+
+Worth stating plainly because the tempting fix was the wrong one: widening the
+test's tolerance would have turned a working reproducibility check into a
+decoration, and the check is what found this.
+
+
 ```bash
 pip install -r bridge/boston_dynamics/atlas_bridge/requirements.txt
 python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model

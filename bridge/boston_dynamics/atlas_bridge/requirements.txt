@@ -1,7 +1,17 @@
-# Core simulation and control
-mujoco>=3.11
-numpy>=1.26
-pybullet>=3.2.6
+# Core simulation and control.
+#
+# Bounded, not merely floored, because these three decide the numbers in
+# docs/evidence. MuJoCo 3.12 settles the resting arm 2.3 cm higher than 3.11
+# (0.9589 m -> 0.9816 m at the hand), which CI caught through
+# test_home_pose_matches_the_recorded_geometry on a run whose only changes were
+# to documentation. The episode itself is unaffected — mean error moved by
+# 0.00001 m and the pelvis floor not at all — but the shelf coordinates are
+# derived from a reach envelope measured at that resting pose, so the committed
+# geometry and the engine that produced it have to travel together. A reviewer
+# cloning this repository should get the recorded numbers, not today's numbers.
+mujoco>=3.11,<3.12
+numpy>=1.26,<3
+pybullet>=3.2.6,<3.3
 
 # Registry/profile parsing and tests
 pyyaml>=6.0
