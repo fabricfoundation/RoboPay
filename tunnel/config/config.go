@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	tempotx "github.com/tempoxyz/tempo-go/pkg/transaction"
 )
 
 const (
@@ -27,6 +28,11 @@ const (
 
 	TransferMethodEIP3009 = "eip3009"
 	TransferMethodPermit2 = "permit2"
+
+	DefaultMPPNetwork    = "eip155:4217"  // Tempo mainnet
+	MPPNetworkModerato   = "eip155:42431" // Tempo Moderato testnet
+	DefaultMPPDecimals   = 6
+	MPPMinSecretKeyBytes = 32
 )
 
 func getEnvOrDefault(key, defaultVal string) string {
@@ -49,6 +55,15 @@ type Config struct {
 	TokenSupportsEIP2612 bool   `json:"token_supports_eip2612"`
 	ProxyWSURL           string `json:"-"`
 	FacilitatorURL       string `json:"-"`
+
+	MPPEnabled      bool   `json:"mpp_enabled"`
+	MPPNetwork      string `json:"mpp_network"`
+	MPPPayeeAddress string `json:"mpp_payee_address"`
+	MPPCurrency     string `json:"mpp_currency"`
+	MPPDecimals     int    `json:"mpp_decimals"`
+	MPPRealm        string `json:"mpp_realm"`
+	MPPRPCURL       string `json:"-"`
+	MPPSecretKey    string `json:"-"`
 
 	// aIP
 	AIPEnabled       bool   `json:"-"`
@@ -132,7 +147,84 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("evm_payee_address is required")
 	}
 
-	return c.validateToken()
+	if err := c.validateToken(); err != nil {
+		return err
+	}
+
+	return c.validateMPP()
+}
+
+// MPPChainID returns the EIP-155 chain ID of the configured MPP network.
+// The second return value is false when the network is not an eip155 CAIP-2 ID.
+func (c *Config) MPPChainID() (int64, bool) {
+	if !strings.HasPrefix(c.MPPNetwork, EIP155Prefix) {
+		return 0, false
+	}
+	id, err := strconv.ParseInt(strings.TrimPrefix(c.MPPNetwork, EIP155Prefix), 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return id, true
+}
+
+// validateMPP checks the MPP fields and fills in defaults. Everything is inert while
+// mpp_enabled is false, so a robot that only speaks x402 never has to set any of it.
+func (c *Config) validateMPP() error {
+	if !c.MPPEnabled {
+		return nil
+	}
+
+	if c.MPPNetwork == "" {
+		c.MPPNetwork = DefaultMPPNetwork
+	}
+	if !networkRegex.MatchString(c.MPPNetwork) {
+		return fmt.Errorf("invalid mpp_network format: %q, expected format like %s", c.MPPNetwork, DefaultMPPNetwork)
+	}
+	chainID, ok := c.MPPChainID()
+	if !ok {
+		return fmt.Errorf("mpp_network must be an eip155 CAIP-2 id, got %q", c.MPPNetwork)
+	}
+
+	// mpp-go can only pick an RPC endpoint for the Tempo chains it ships with.
+	// Any other chain has to name one explicitly.
+	if c.MPPRPCURL == "" && !isKnownTempoChain(chainID) {
+		return fmt.Errorf("MPP_RPC_URL is required for mpp_network %q: only Tempo mainnet (%s) and Moderato (%s) have a built-in endpoint",
+			c.MPPNetwork, DefaultMPPNetwork, MPPNetworkModerato)
+	}
+
+	if c.MPPPayeeAddress == "" {
+		c.MPPPayeeAddress = c.EVMPayeeAddress
+	}
+	if !addressRegex.MatchString(c.MPPPayeeAddress) {
+		return fmt.Errorf("invalid mpp_payee_address format: %q, expected a 0x-prefixed 20-byte hex address", c.MPPPayeeAddress)
+	}
+
+	if c.MPPCurrency != "" && !addressRegex.MatchString(c.MPPCurrency) {
+		return fmt.Errorf("invalid mpp_currency format: %q, expected a 0x-prefixed 20-byte hex address", c.MPPCurrency)
+	}
+
+	if c.MPPDecimals == 0 {
+		c.MPPDecimals = DefaultMPPDecimals
+	}
+	if c.MPPDecimals < 0 || c.MPPDecimals > 36 {
+		return fmt.Errorf("invalid mpp_decimals: %d, expected 0-36", c.MPPDecimals)
+	}
+
+	if c.MPPRealm == "" {
+		c.MPPRealm = c.RobotID
+	}
+
+	if len(c.MPPSecretKey) < MPPMinSecretKeyBytes {
+		return fmt.Errorf("MPP_SECRET_KEY must be at least %d bytes when mpp_enabled is true (generate one with: openssl rand -base64 32)",
+			MPPMinSecretKeyBytes)
+	}
+
+	return nil
+}
+
+// isKnownTempoChain reports whether mpp-go ships an RPC endpoint for the chain.
+func isKnownTempoChain(chainID int64) bool {
+	return chainID == tempotx.ChainIdMainnet || chainID == tempotx.ChainIdModerato
 }
 
 // validateToken checks the optional token fields. They are only meaningful together: an empty
@@ -199,6 +291,28 @@ func LoadConfig(path string) (*Config, error) {
 
 	cfg.ProxyWSURL = getEnvOrDefault("PROXY_WS_URL", DefaultProxyWSURL)
 	cfg.FacilitatorURL = getEnvOrDefault("FACILITATOR_URL", DefaultFacilitatorURL)
+
+	// The MPP secret key HMAC-binds issued challenges, so it stays out of
+	// config.json and comes from the environment like any other secret.
+	cfg.MPPSecretKey = os.Getenv("MPP_SECRET_KEY")
+	cfg.MPPRPCURL = os.Getenv("MPP_RPC_URL")
+
+	// The rest mirror config.json fields so a deployment can drive the whole
+	// MPP setup from the environment, the way CHAIN does for x402.
+	if os.Getenv("MPP_ENABLED") != "" {
+		cfg.MPPEnabled = getBoolEnv("MPP_ENABLED", cfg.MPPEnabled)
+	}
+	cfg.MPPNetwork = getEnvOrDefault("MPP_NETWORK", cfg.MPPNetwork)
+	cfg.MPPPayeeAddress = getEnvOrDefault("MPP_PAYEE_ADDRESS", cfg.MPPPayeeAddress)
+	cfg.MPPCurrency = getEnvOrDefault("MPP_CURRENCY", cfg.MPPCurrency)
+	cfg.MPPRealm = getEnvOrDefault("MPP_REALM", cfg.MPPRealm)
+	if v := os.Getenv("MPP_DECIMALS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MPP_DECIMALS: %q", v)
+		}
+		cfg.MPPDecimals = n
+	}
 
 	// CHAIN overrides the configured network, so it has to be applied before validation.
 	defaultChainID := DefaultAIPChainID
