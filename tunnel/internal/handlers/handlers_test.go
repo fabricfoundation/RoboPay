@@ -13,8 +13,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// fakePublisher captures the action events the handler would put on the robot's
-// command bus.
 type fakePublisher struct {
 	mu     sync.Mutex
 	events [][]byte
@@ -42,8 +40,6 @@ func (f *fakePublisher) last() map[string]any {
 
 var testPublisher = &fakePublisher{}
 
-// TestMain claims the package's single zenoh publisher before any test can open
-// a real session, so the suite never needs a running zenoh router.
 func TestMain(m *testing.M) {
 	zenohOnce.Do(func() { zenohPub = testPublisher })
 	os.Exit(m.Run())
@@ -81,9 +77,6 @@ func TestPostAction_InvalidJSON(t *testing.T) {
 	}
 }
 
-// The bridge reads transaction_details to know what cleared an action, so an
-// x402 payment has to keep identifying itself as x402 now that MPP shares the
-// route — and the keys it already reads have to stay put.
 func TestPostAction_TagsX402Protocol(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

@@ -32,8 +32,6 @@ func testConfig() *config.Config {
 	return cfg
 }
 
-// newTestRouter wires the gate in front of a stub x402 middleware and records
-// whether that stub ran, which is how these tests observe the dispatch decision.
 func newTestRouter(t *testing.T, cfg *config.Config) (*gin.Engine, *bool) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -88,8 +86,6 @@ func TestNew_DisabledReturnsNoGate(t *testing.T) {
 	}
 }
 
-// An unpaid request has to advertise both protocols, otherwise a payer holding
-// only MPP support cannot tell that this robot would take it.
 func TestMiddleware_UnpaidRequestAdvertisesBothProtocols(t *testing.T) {
 	router, x402Ran := newTestRouter(t, testConfig())
 
@@ -119,7 +115,6 @@ func TestMiddleware_UnpaidRequestAdvertisesBothProtocols(t *testing.T) {
 	}
 }
 
-// An MPP credential means the payer chose MPP, so x402 must not also weigh in.
 func TestMiddleware_MPPCredentialBypassesX402(t *testing.T) {
 	router, x402Ran := newTestRouter(t, testConfig())
 
@@ -136,8 +131,6 @@ func TestMiddleware_MPPCredentialBypassesX402(t *testing.T) {
 	}
 }
 
-// A payer that already picked x402 should see the plain x402 flow, with no MPP
-// challenge muddying the response.
 func TestMiddleware_X402PaymentSkipsMPPChallenge(t *testing.T) {
 	router, x402Ran := newTestRouter(t, testConfig())
 
@@ -151,8 +144,6 @@ func TestMiddleware_X402PaymentSkipsMPPChallenge(t *testing.T) {
 	}
 }
 
-// Non-Bearer/non-Payment Authorization values belong to whatever else is using
-// the header (the AIP flow), so they must fall through untouched.
 func TestMiddleware_NonPaymentAuthorizationFallsThrough(t *testing.T) {
 	router, x402Ran := newTestRouter(t, testConfig())
 
@@ -181,8 +172,6 @@ func TestMiddleware_UnpricedRouteIsNotCharged(t *testing.T) {
 	}
 }
 
-// Issuing the challenge digests the body, so the body has to survive for the
-// x402 middleware and the action handler behind it.
 func TestMiddleware_ChallengeLeavesBodyReadable(t *testing.T) {
 	cfg := testConfig()
 	gin.SetMode(gin.TestMode)
@@ -209,9 +198,6 @@ func TestMiddleware_ChallengeLeavesBodyReadable(t *testing.T) {
 	}
 }
 
-// The advertised challenge is only useful if an MPP client can decode it, so
-// parse it back with the SDK's own client-side parser and check the terms the
-// payer would act on.
 func TestMiddleware_AdvertisedChallengeIsClientParseable(t *testing.T) {
 	router, _ := newTestRouter(t, testConfig())
 
@@ -230,7 +216,6 @@ func TestMiddleware_AdvertisedChallengeIsClientParseable(t *testing.T) {
 	}
 
 	request := challenge.Request
-	// $0.002 at 6 decimals is 2000 atomic units of the chain's stablecoin.
 	if request["amount"] != "2000" {
 		t.Errorf("expected amount 2000, got %v", request["amount"])
 	}
@@ -241,7 +226,6 @@ func TestMiddleware_AdvertisedChallengeIsClientParseable(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected methodDetails in %v", request)
 	}
-	// Tempo mainnet, the default MPP network.
 	if chainID, _ := details["chainId"].(float64); int64(chainID) != 4217 {
 		t.Errorf("expected chain id 4217, got %v", details["chainId"])
 	}

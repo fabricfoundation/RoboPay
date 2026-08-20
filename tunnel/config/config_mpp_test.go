@@ -16,7 +16,6 @@ func baseConfig() *Config {
 	}
 }
 
-// A robot that only speaks x402 must not have to configure anything for MPP.
 func TestValidateMPP_DisabledIgnoresEverything(t *testing.T) {
 	cfg := baseConfig()
 	cfg.MPPNetwork = "not-a-network"
@@ -39,7 +38,6 @@ func TestValidateMPP_Defaults(t *testing.T) {
 	if cfg.MPPNetwork != DefaultMPPNetwork {
 		t.Errorf("expected default network %q, got %q", DefaultMPPNetwork, cfg.MPPNetwork)
 	}
-	// Tempo addresses are EVM-shaped, so one payee serves both protocols.
 	if cfg.MPPPayeeAddress != cfg.EVMPayeeAddress {
 		t.Errorf("expected the MPP payee to default to the x402 payee, got %q", cfg.MPPPayeeAddress)
 	}
@@ -49,7 +47,6 @@ func TestValidateMPP_Defaults(t *testing.T) {
 	if cfg.MPPRealm != cfg.RobotID {
 		t.Errorf("expected the realm to default to the robot id, got %q", cfg.MPPRealm)
 	}
-	// An empty currency lets mpp-go pick the chain's default stablecoin.
 	if cfg.MPPCurrency != "" {
 		t.Errorf("expected no default currency, got %q", cfg.MPPCurrency)
 	}
@@ -89,7 +86,6 @@ func TestValidateMPP_Rejections(t *testing.T) {
 		{"malformed payee", func(c *Config) { c.MPPPayeeAddress = "0xnope" }},
 		{"malformed currency", func(c *Config) { c.MPPCurrency = "USDC" }},
 		{"out-of-range decimals", func(c *Config) { c.MPPDecimals = 64 }},
-		// Only the built-in Tempo chains come with an RPC endpoint.
 		{"unknown chain without an RPC url", func(c *Config) { c.MPPNetwork = "eip155:8453" }},
 	}
 
@@ -107,7 +103,6 @@ func TestValidateMPP_Rejections(t *testing.T) {
 	}
 }
 
-// A non-Tempo chain is allowed as long as it names an endpoint to verify against.
 func TestValidateMPP_UnknownChainWithRPCURL(t *testing.T) {
 	cfg := baseConfig()
 	cfg.MPPEnabled = true
@@ -134,8 +129,6 @@ func TestValidateMPP_ModeratoTestnet(t *testing.T) {
 	}
 }
 
-// The MPP fields are drivable from the environment so a deployment can carry
-// its whole payment setup in .env, the way CHAIN already does for x402.
 func TestLoadConfig_MPPEnvOverrides(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/config.json"
@@ -167,7 +160,6 @@ func TestLoadConfig_MPPEnvOverrides(t *testing.T) {
 	if cfg.MPPNetwork != MPPNetworkModerato {
 		t.Errorf("expected network %q, got %q", MPPNetworkModerato, cfg.MPPNetwork)
 	}
-	// An explicit payee must win over the evm_payee_address fallback.
 	if cfg.MPPPayeeAddress != "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" {
 		t.Errorf("unexpected payee %q", cfg.MPPPayeeAddress)
 	}

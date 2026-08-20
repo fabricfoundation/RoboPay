@@ -15,11 +15,6 @@ import (
 	"github.com/fabricfoundation/tunnel/config"
 )
 
-// tempo-go must stay at v0.5.0 or newer even though mpp-go v0.2.0 only asks for
-// v0.4.1: the older deserializer rejects the signature envelope current Python
-// and TypeScript payers emit, failing every payment with "failed to deserialize
-// transaction payload". See the SDK versions table in the README.
-
 const actionDescription = "Run a paid robot action"
 
 // Gate offers the MPP charge flow on the priced route, falling through to x402
@@ -139,12 +134,10 @@ func (g *Gate) advertise(c *gin.Context) {
 	c.Writer.Header().Add("WWW-Authenticate", header)
 }
 
-// Credential returns the verified MPP credential for the current request, or nil
-// when the request was not paid over MPP.
+// Credential returns the verified MPP credential for the current request
 func Credential(c *gin.Context) *mpp.Credential { return ginadapter.Credential(c) }
 
-// Receipt returns the MPP receipt issued for the current request, or nil when
-// the request was not paid over MPP.
+// Receipt returns the MPP receipt issued for the current request
 func Receipt(c *gin.Context) *mpp.Receipt { return ginadapter.Receipt(c) }
 
 // isPricedRoute reports whether the route is the one both protocols price.

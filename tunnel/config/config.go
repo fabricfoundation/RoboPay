@@ -29,8 +29,8 @@ const (
 	TransferMethodEIP3009 = "eip3009"
 	TransferMethodPermit2 = "permit2"
 
-	DefaultMPPNetwork    = "eip155:4217"  // Tempo mainnet
-	MPPNetworkModerato   = "eip155:42431" // Tempo Moderato testnet
+	DefaultMPPNetwork    = "eip155:4217"
+	MPPNetworkModerato   = "eip155:42431"
 	DefaultMPPDecimals   = 6
 	MPPMinSecretKeyBytes = 32
 )
@@ -155,7 +155,6 @@ func (c *Config) Validate() error {
 }
 
 // MPPChainID returns the EIP-155 chain ID of the configured MPP network.
-// The second return value is false when the network is not an eip155 CAIP-2 ID.
 func (c *Config) MPPChainID() (int64, bool) {
 	if !strings.HasPrefix(c.MPPNetwork, EIP155Prefix) {
 		return 0, false
@@ -167,8 +166,7 @@ func (c *Config) MPPChainID() (int64, bool) {
 	return id, true
 }
 
-// validateMPP checks the MPP fields and fills in defaults. Everything is inert while
-// mpp_enabled is false, so a robot that only speaks x402 never has to set any of it.
+// validateMPP checks the MPP fields and fills in defaults.
 func (c *Config) validateMPP() error {
 	if !c.MPPEnabled {
 		return nil
@@ -185,8 +183,6 @@ func (c *Config) validateMPP() error {
 		return fmt.Errorf("mpp_network must be an eip155 CAIP-2 id, got %q", c.MPPNetwork)
 	}
 
-	// mpp-go can only pick an RPC endpoint for the Tempo chains it ships with.
-	// Any other chain has to name one explicitly.
 	if c.MPPRPCURL == "" && !isKnownTempoChain(chainID) {
 		return fmt.Errorf("MPP_RPC_URL is required for mpp_network %q: only Tempo mainnet (%s) and Moderato (%s) have a built-in endpoint",
 			c.MPPNetwork, DefaultMPPNetwork, MPPNetworkModerato)
@@ -292,13 +288,9 @@ func LoadConfig(path string) (*Config, error) {
 	cfg.ProxyWSURL = getEnvOrDefault("PROXY_WS_URL", DefaultProxyWSURL)
 	cfg.FacilitatorURL = getEnvOrDefault("FACILITATOR_URL", DefaultFacilitatorURL)
 
-	// The MPP secret key HMAC-binds issued challenges, so it stays out of
-	// config.json and comes from the environment like any other secret.
 	cfg.MPPSecretKey = os.Getenv("MPP_SECRET_KEY")
 	cfg.MPPRPCURL = os.Getenv("MPP_RPC_URL")
 
-	// The rest mirror config.json fields so a deployment can drive the whole
-	// MPP setup from the environment, the way CHAIN does for x402.
 	if os.Getenv("MPP_ENABLED") != "" {
 		cfg.MPPEnabled = getBoolEnv("MPP_ENABLED", cfg.MPPEnabled)
 	}
@@ -314,7 +306,6 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.MPPDecimals = n
 	}
 
-	// CHAIN overrides the configured network, so it has to be applied before validation.
 	defaultChainID := DefaultAIPChainID
 	if chain := os.Getenv("CHAIN"); chain != "" {
 		preset, ok := chainPresets[strings.ToLower(chain)]
