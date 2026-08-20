@@ -340,7 +340,18 @@ def _open_zenoh_session(settings: BridgeSettings):
 class AtlasZenohBridge:
     """Wires :class:`AtlasActionHandler` onto the RoboPay tunnel topics."""
 
-    def __init__(self, settings: BridgeSettings | None = None):
+    def __init__(
+        self,
+        settings: BridgeSettings | None = None,
+        execute: Callable[..., dict] | None = None,
+    ):
+        """``execute`` replaces the default episode runner.
+
+        The recorder in ``evidence_recording.py`` uses it to render the very
+        episode the paid action triggers, rather than a second one run
+        afterwards — a recording of a different episode would not be evidence
+        of this one.
+        """
         try:
             import zenoh
         except ImportError as error:
@@ -355,7 +366,9 @@ class AtlasZenohBridge:
         self._session = _open_zenoh_session(self.settings)
         self._result_publisher = self._session.declare_publisher(self.result_topic)
         self._metrics_publisher = self._session.declare_publisher(self.metrics_topic)
-        self.handler = AtlasActionHandler(self._publish_result, robot_id=self.robot_id)
+        self.handler = AtlasActionHandler(
+            self._publish_result, execute=execute, robot_id=self.robot_id
+        )
         self._subscriber = self._session.declare_subscriber(self.action_topic, self._on_action)
         self._ready_publisher = self._session.declare_publisher(self.settings.ready_topic)
         self._ready_publisher.put(

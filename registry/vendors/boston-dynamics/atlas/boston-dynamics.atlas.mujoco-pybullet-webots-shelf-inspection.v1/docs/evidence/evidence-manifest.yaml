@@ -146,3 +146,4 @@ reproduce:
   - python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence
   - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.real_paid_run --payer <funded wallet>
   - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e --tunnel <built tunnel>
+  - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.evidence_recording --tunnel <built tunnel>
