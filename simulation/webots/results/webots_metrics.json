@@ -1,0 +1,71 @@
+{
+  "navigate": {
+    "start_position": [
+      1.0984648688610121e-05,
+      0.0,
+      0.74996076
+    ],
+    "final_position": [
+      -2.0466079735482827,
+      -0.13671779778828966,
+      0.15831747699522322
+    ],
+    "displacement_m": 2.301,
+    "path_length_m": 4.331,
+    "total_collisions": 468854.429,
+    "total_steps": 46906.594,
+    "elapsed_sim_time_s": 111.931,
+    "goal_position": [
+      8.0,
+      0.0
+    ],
+    "goal_reached": 0.0,
+    "distance_to_goal": 9.443,
+    "simulator": "webots"
+  },
+  "wave": {
+    "start_position": [
+      -9.549024415433338e-07,
+      3.751268578751838e-06,
+      0.74996076
+    ],
+    "final_position": [
+      -0.0012339725804027782,
+      -0.025525419925196278,
+      0.6896519369118452
+    ],
+    "displacement_m": 0.064,
+    "path_length_m": 0.8,
+    "total_collisions": 97023.449,
+    "total_steps": 9775.405,
+    "elapsed_sim_time_s": 18.227,
+    "action": "wave",
+    "wave_cycles": 165.793,
+    "simulator": "webots"
+  },
+  "pick_place": {
+    "start_position": [
+      5.268684790165705e-06,
+      -4.3693024407862806e-06,
+      0.74996076
+    ],
+    "final_position": [
+      0.8934147313794637,
+      -0.893503731395913,
+      0.13019755572839747
+    ],
+    "displacement_m": 1.281,
+    "path_length_m": 2.428,
+    "total_collisions": 556766.12,
+    "total_steps": 54509.171,
+    "elapsed_sim_time_s": 102.901,
+    "action": "pick_and_place",
+    "phases_completed": 0.0,
+    "red_cube_final_pos": [
+      -0.060902877463472234,
+      -0.04456568992007964,
+      0.16052229463485404
+    ],
+    "simulator": "webots"
+  }
+}
