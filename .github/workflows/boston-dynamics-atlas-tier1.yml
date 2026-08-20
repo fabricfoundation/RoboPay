@@ -237,13 +237,14 @@ jobs:
         id: creds
         env:
           SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
+          SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
         run: |
-          if [ -n "$SETTLEMENT_PRIVATE_KEY" ]; then
+          if [ -n "$SETTLEMENT_PRIVATE_KEY" ] || [ -n "$SETTLEMENT_MNEMONIC" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             echo "Signing credentials are present; the paid steps will run."
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "No SETTLEMENT_PRIVATE_KEY secret on this repository."
+            echo "Neither SETTLEMENT_PRIVATE_KEY nor SETTLEMENT_MNEMONIC is set here."
             echo "The rehearsal below still proves the path; nothing will be paid."
           fi
       # Everything except the signature: the tunnel dials the hosted relay, the
@@ -253,7 +254,7 @@ jobs:
       - name: Rehearse the whole path, signing nothing
         run: |
           mkdir -p artifacts
-          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --dry-run             --json-output artifacts/live-dry-run.json | tee artifacts/live-dry-run.txt
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --dry-run             --json-output artifacts/live-dry-run.json             | tee artifacts/live-dry-run.txt
       # The claim this job exists to make checkable: one action, paid for with a
       # real EIP-3009 authorization whose nonce is keccak256(action_id), executed
       # on Atlas in this run, settled only after the correlated result reports
@@ -262,8 +263,9 @@ jobs:
         if: steps.creds.outputs.available == 'true'
         env:
           SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
+          SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
         run: |
-          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel"             --json-output artifacts/live-paid-run.json | tee artifacts/live-paid-run.txt
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel"             --json-output artifacts/live-paid-run.json             | tee artifacts/live-paid-run.txt
       # The negative half, in the same trusted run: an action the catalogue
       # refuses is answered, reported failed, and settles nothing — proven by
       # asking USDC whether the authorization nonce was ever spent.
@@ -271,8 +273,9 @@ jobs:
         if: steps.creds.outputs.available == 'true'
         env:
           SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
+          SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
         run: |
-          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --expect-failure             --json-output artifacts/live-refused-run.json | tee artifacts/live-refused-run.txt
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --expect-failure             --json-output artifacts/live-refused-run.json             | tee artifacts/live-refused-run.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
