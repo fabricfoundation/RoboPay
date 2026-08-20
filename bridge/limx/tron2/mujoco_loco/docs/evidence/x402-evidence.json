@@ -1,0 +1,16 @@
+{
+ "status": "SETTLED_ON_CHAIN",
+ "note": "Run `python pay.py` with a funded Base Sepolia wallet to mint the real EIP-3009 USDC transferWithAuthorization tx. Until then this receipt is NOT valid for acceptance #7.",
+ "payer": "0xF2749b5fAdA8a83d3DE1a2621B1d212e73907D4a",
+ "payee": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+ "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+ "network": "base-sepolia",
+ "asset": "USDC",
+ "amount_usdc": 0.1,
+ "resource": "robopay://limx-tron2/move_forward",
+ "txs": [
+  "0x85b11e1e9e264c73de9b1736ab4cda572ea68095d7587273d81892c8103f55eb"
+ ],
+ "actionId": "4827115c-016e-4a62-9bb5-46b47737681f",
+ "settledAt": "2026-08-18T08:34:21Z"
+}

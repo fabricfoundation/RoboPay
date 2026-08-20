@@ -1,0 +1,7 @@
+{
+  "actionId": "act_limx_tron2_navigate_obstacle_001",
+  "robotId": "limx-tron2",
+  "skillId": "navigate_obstacle",
+  "params": {},
+  "idempotencyKey": "limx-tron2-navigate_obstacle-001"
+}

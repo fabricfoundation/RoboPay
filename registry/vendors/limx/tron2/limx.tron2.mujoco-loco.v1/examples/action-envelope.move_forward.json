@@ -1,0 +1,7 @@
+{
+  "actionId": "act_limx_tron2_move_forward_001",
+  "robotId": "limx-tron2",
+  "skillId": "move_forward",
+  "params": {},
+  "idempotencyKey": "limx-tron2-move_forward-001"
+}

@@ -1,0 +1,7 @@
+{
+  "actionId": "act_limx_tron2_stop_001",
+  "robotId": "limx-tron2",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "limx-tron2-stop-001"
+}

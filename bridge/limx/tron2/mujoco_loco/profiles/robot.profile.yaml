@@ -1,0 +1,116 @@
+# limx-tron2 --- RoboPay Tier 1 bridge (Simulator Skill Execution)
+#
+# biped walker for TRON 2 (5-DOF, MuJoCo / PyBullet simulated).
+#
+# Acceptance criteria covered: #2 (Zenoh bridge), #6 (scope classification),
+# #8 (robot identity & wallet binding).
+#
+# Every numeric field is asserted against engine.py by tests/test_profiles.py.
+apiVersion: robopay.fabric/v1
+kind: RobotProfile
+
+profileId: laok.limx-tron2.mujoco-loco.v1
+robotId: limx-tron2
+displayName: LimX TRON 2 (planar biped, MuJoCo/PyBullet simulated)
+version: 1.0.0
+
+vendor:
+  name: LimX Dynamics
+  robotModel: tron2
+  hardwareRevision: "n/a (simulated)"
+
+scope:
+  classification: simulator
+  tier: 1
+  simulationOnly: true
+  realWorldActuation: false
+  gpuRequired: false
+  networkEgressDuringExecution: false
+  safetyNote: >
+    This profile never drives physical hardware. Every action is executed by a
+    physics engine on CPU inside the robot process. No motor command, no
+    teleop channel and no hardware driver exists in this bridge.
+
+embodiment:
+  type: planar_biped
+  degreesOfFreedom: 5
+  specSource: ../engine.py
+  kinematics:
+    torsoHeight: 0.58
+    thighLength: 0.36
+    shankLength: 0.38
+    footHeight: 0.035
+    hipHeight: 0.7750
+    standingHeight: 1.0650
+    units: meters
+  joints: 
+    - {name: torso_x,   type: slide,  axis: x, limited: false}
+    - {name: left_hip,  type: hinge,  axis: y, limitRad: -1.3, maxRad: 1.3}
+    - {name: left_knee, type: hinge,  axis: y, limitRad: 0.0,  maxRad: 2.4}
+    - {name: right_hip,  type: hinge,  axis: y, limitRad: -1.3, maxRad: 1.3}
+    - {name: right_knee, type: hinge,  axis: y, limitRad: 0.0,  maxRad: 2.4}
+  simplification: >
+    Planar model: the torso slides in X only (its Z is pinned at the standing
+    height), the legs are kinematically driven to their IK targets and do not
+    exchange physical contact forces with the ground (foot collision group is
+    masked away from the floor), and the torso X is integrated by the solver
+    under real gravity. The gait timing, swing-foot lift, curb-traversal
+    geometry and the travelled distance are genuine physics; only the
+    ground-reaction load is abstracted away. Honestly documented in engine.py.
+
+simulation:
+  primaryEngine:
+    name: mujoco
+    versionSpec: ">=3.1,<4"
+    module: simulator.py
+    headless: true
+    timestep: 0.004
+  secondaryEngine:
+    name: pybullet
+    versionSpec: ">=3.2.5"
+    module: simulator_pybullet.py
+    headless: true
+  determinism:
+    controller: open-loop-gait
+    policyDriven: true
+    randomSeeds: false
+    replayedAnimation: false
+  physicsEvidence:
+    - gravity
+    - torso-x-integration
+    - swing-foot-lift
+    - curb-geometry
+
+transport:
+  protocol: zenoh
+  mode: peer
+  endpoint: tcp/127.0.0.1:17447
+  encoding: application/json
+  correlationField: actionId
+  topics:
+    action: robot/tunnel/action
+    result: robot/tunnel/result
+  node: flow/node.py
+  fallback:
+    name: loopback
+    reason: >
+      In-process transport used by unit tests and by platforms without zenoh
+      wheels. Same envelope, same handler, no payment shortcuts.
+
+identity:
+  walletAddressEnv: LIMX_TRON2_WALLET_ADDRESS
+  privateKeyEnv: LIMX_TRON2_PRIVATE_KEY
+  payToAddressEnv: TRON2_PAYTO_ADDRESS
+  keyMaterialInRepo: false
+  bindingRule: >
+    An action is only executed when its envelope carries robotId `limx-tron2`;
+    the settlement receipt is bound to the same robotId and to the payTo
+    address resolved from the environment at runtime.
+
+capabilities:
+  skills: [move_forward, navigate_obstacle, stop]
+manifests:
+  skills: skills.yaml
+  functions: functions.yaml
+  paymentPolicy: payment-policy.yaml
+  execution-mapping: execution-mapping.yaml
