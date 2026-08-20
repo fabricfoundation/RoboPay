@@ -1,0 +1,27 @@
+schemaVersion: robot-profile.v1
+vendor: deep-robotics
+robotModel: lynx-m20-pro
+robotType: wheeled-legged-quadruped-simulator
+profileId: deep-robotics.lynx-m20-pro.mujoco-webots-obstacle-nav.v1
+profileVersion: 1.0.0
+scope: simulator-only
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/deep_robotics_m20/metrics
+  bridge: bridge/deep_robotics/m20_pro_mujoco_bridge
+simulators:
+  - MuJoCo 3.3.0
+  - Webots R2025a
+modelIdentity:
+  label: DeepRobotics M20 vendor low-resolution 16-DOF wheeled-legged model
+  source: https://github.com/DeepRoboticsLab/deep_robotics_model
+  limitation: >-
+    The vendor repository names this shared mechanical model M20. It matches
+    the Lynx M20 Pro's 16-DOF wheeled-legged base, but does not model
+    Pro-specific compute, LiDAR, cameras, or optional payloads. The Webots
+    PROTO is generated from the vendor URDF and is not vendor supplied.
+maintainers:
+  - github: RobotDeveloper1
+status: experimental

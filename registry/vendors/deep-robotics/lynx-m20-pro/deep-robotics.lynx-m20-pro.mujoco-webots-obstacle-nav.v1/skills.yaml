@@ -1,0 +1,32 @@
+schemaVersion: robot-skills.v1
+profileId: deep-robotics.lynx-m20-pro.mujoco-webots-obstacle-nav.v1
+skills:
+  - skillId: navigate_obstacle_course
+    description: >-
+      Detect a physical moving obstacle in the simulated Lynx M20 Pro course,
+      safely yield with zero wheel command, then resume to the measured goal
+      only after the course actor clears the route.
+    parameters:
+      goalDistanceM:
+        type: number
+        minimum: 1.25
+        maximum: 1.55
+        default: 1.35
+      wheelSpeedRadS:
+        type: number
+        minimum: 2.0
+        maximum: 6.0
+        default: 4.0
+      maxDurationSec:
+        type: number
+        minimum: 12
+        maximum: 20
+        default: 16
+    terminalState:
+      success: >-
+        obstacle detected, yield complete, physical course released, no
+        collision, and measured_forward_distance_m >= goalDistanceM.
+      failure: [timeout, course_obstacle_collision, unsafe_or_nonfinite_simulator_state, safe_stopped]
+  - skillId: stop
+    description: Safely zero the active M20 simulation and reject further motion.
+    parameters: {}

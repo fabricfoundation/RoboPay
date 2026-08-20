@@ -1,0 +1,73 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "generated/DeepRoboticsM20.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+
+WorldInfo {
+  basicTimeStep 16
+}
+Viewpoint {
+  orientation -0.391 0.09 0.916 1.95
+  position 2.2 -2.2 1.25
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DirectionalLight {
+  direction -0.4 -0.5 -1
+  intensity 2
+}
+Solid {
+  translation 0 0 -0.05
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.18 0.18 0.18
+        roughness 0.9
+      }
+      geometry Box {
+        size 8 8 0.1
+      }
+    }
+  ]
+  boundingObject Box {
+    size 8 8 0.1
+  }
+}
+DEF COURSE_OBSTACLE Solid {
+  translation 1.2 0 0.28
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.92 0.22 0.12
+        roughness 0.55
+        metalness 0.05
+      }
+      geometry Box {
+        size 0.2 0.24 0.56
+      }
+    }
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.78 0.05
+        emissiveColor 0.45 0.25 0
+      }
+      geometry Cylinder {
+        radius 0.045
+        height 0.06
+      }
+    }
+  ]
+  boundingObject Box {
+    size 0.2 0.24 0.56
+  }
+}
+DEF LYNX_M20_PRO DeepRoboticsM20 {
+  # Matches PROFILE_INITIAL_BASE_HEIGHT_M in the MuJoCo course. The converted
+  # stock URDF rests at ~0.52 m base height, so this avoids a misleading drop.
+  translation 0 0 0.58
+  controller "m20_obstacle_course_controller"
+  supervisor TRUE
+}

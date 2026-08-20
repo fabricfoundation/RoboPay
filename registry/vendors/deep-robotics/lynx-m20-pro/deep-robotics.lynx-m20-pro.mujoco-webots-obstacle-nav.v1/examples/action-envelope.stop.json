@@ -1,0 +1,7 @@
+{
+  "actionId": "act_m20_safe_stop_001",
+  "robotId": "lynx-m20-pro-sim-01",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "m20-safe-stop-001"
+}

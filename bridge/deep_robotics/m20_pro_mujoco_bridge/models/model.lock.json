@@ -1,0 +1,16 @@
+{
+  "robot": "DeepRobotics Lynx M20 Pro kinematic base (official M20 model)",
+  "source": "https://github.com/DeepRoboticsLab/deep_robotics_model.git",
+  "commit": "9f8b97ca57e79f2e82771cf934c4fc975ee2887c",
+  "directory": "M20",
+  "mjcf": "mjcf/M20.xml",
+  "mjcf_sha256": "98ac70602d930dac0f0b65124309c59c9c98cca9186f071262981e0e32bceb7a",
+  "urdf": "urdf/M20.urdf",
+  "urdf_sha256": "4526738e46fc48908e8a4a5ef4a5b9b15a3616bb35c1a2ca6d5f7f849f2c339f",
+  "verified_asset": {
+    "path": "mjcf/meshes/base_link.STL",
+    "sha256": "a7984137d06782f513858fd699111109978301a9dff53ff37abf5413b922247f"
+  },
+  "license": "BSD-3-Clause (DeepRoboticsLab/deep_robotics_model)",
+  "limitations": "The official repository calls this shared 16-DOF wheeled-legged kinematic model M20. Lynx M20 Pro-specific compute, LiDAR, cameras, and optional payloads are not represented by this low-resolution simulation model."
+}

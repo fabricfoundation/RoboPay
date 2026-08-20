@@ -1,0 +1,20 @@
+[
+  {
+    "skill_id": "navigate_obstacle_course",
+    "description": "Detect a physical moving course obstacle, yield with zero wheel command, and resume the bounded DeepRobotics Lynx M20 Pro simulator route after it clears.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "goalDistanceM": {"type": "number", "minimum": 1.25, "maximum": 1.55},
+      "wheelSpeedRadS": {"type": "number", "minimum": 2.0, "maximum": 6.0},
+      "maxDurationSec": {"type": "number", "minimum": 12, "maximum": 20}
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Safely stop the active Lynx M20 Pro simulator action.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]

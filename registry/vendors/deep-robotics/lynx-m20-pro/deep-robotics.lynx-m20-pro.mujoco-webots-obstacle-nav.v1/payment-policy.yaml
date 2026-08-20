@@ -1,0 +1,27 @@
+schemaVersion: payment-policy.v1
+provider: x402
+network: eip155:84532
+asset:
+  symbol: USDC
+  address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  decimals: 6
+policies:
+  - skillId: navigate_obstacle_course
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+payTo: "<evm_payee_address>"
+settlement:
+  facilitator: https://x402.org/facilitator
+  scheme: exact
+  settleOnStatus: success
+  rule: >-
+    Settlement is deferred until a matching robot/tunnel/result carries a
+    correlated success. Invalid/unverified payments, rejections, simulator
+    failures, timeouts, and replays never settle. A paid stop can settle only
+    for its own correlated safe-stop success; an interrupted drive fails and
+    remains unsettled.

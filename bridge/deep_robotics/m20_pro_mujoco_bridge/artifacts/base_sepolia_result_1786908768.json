@@ -1,0 +1,122 @@
+{
+  "timestamp": "2026-08-16T19:32:48Z",
+  "source_commit": "7928cdbc149ea9b3581ffa19b276ebaf9158b54f",
+  "network": "eip155:84532",
+  "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "payee": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "robot_id": "lynx-m20-pro-sim-01",
+  "action_id": "m20-drive-1786908727",
+  "unpaid_http_status": 402,
+  "paid_http_status": 202,
+  "discovery": {
+    "robot_id": "lynx-m20-pro-sim-01",
+    "skills": [
+      {
+        "aliases": null,
+        "description": "Detect a physical moving course obstacle, yield with zero wheel command, and resume the bounded DeepRobotics Lynx M20 Pro simulator route after it clears.",
+        "enabled": true,
+        "params": {
+          "goalDistanceM": {
+            "type": "number",
+            "minimum": 1.25,
+            "maximum": 1.55
+          },
+          "maxDurationSec": {
+            "type": "number",
+            "minimum": 12,
+            "maximum": 20
+          },
+          "wheelSpeedRadS": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 6
+          }
+        },
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "navigate_obstacle_course"
+      },
+      {
+        "aliases": null,
+        "description": "Safely stop the active Lynx M20 Pro simulator action.",
+        "enabled": true,
+        "params": {},
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "stop"
+      }
+    ]
+  },
+  "terminal_status": {
+    "action_id": "m20-drive-1786908727",
+    "idempotency_key": "m20-drive-1786908727",
+    "params_hash": "sha256:3ea1153480c6447b71c78504fd2caa05e8496318083bba8ab827fefba63fc8e4",
+    "result": {
+      "completion_reason": "dynamic_obstacle_course_complete",
+      "controller": "pose_feedback_course_clearance_yield_then_resume_wheel_torque_with_leg_pd_stance",
+      "course": {
+        "collision_detected": false,
+        "minimum_obstacle_clearance_m": 0.61686,
+        "obstacle_detected": true,
+        "obstacle_motion": "mocap environment actor moves laterally only after measured yield",
+        "obstacle_released": true,
+        "perception": "pose-feedback clearance from measured base pose to profile-owned physical obstacle",
+        "phase_history": [
+          "settling",
+          "approach",
+          "yield",
+          "resume",
+          "terminal_settle"
+        ],
+        "physical_obstacle": "course_obstacle",
+        "yield_duration_seconds": 3.202
+      },
+      "final_base_position_m": [
+        1.54756,
+        -0.0004,
+        0.58103
+      ],
+      "final_base_yaw_rad": -6e-05,
+      "finite_state": true,
+      "initial_course_position_m": [
+        -1.6297256167769969e-06,
+        -9.262305995307683e-05
+      ],
+      "max_tilt_rad": 0.00545,
+      "measured_forward_distance_m": 1.54756,
+      "min_base_height_m": 0.5792,
+      "peak_commanded_torque_nm": 9.52139,
+      "requested_goal_distance_m": 1.35,
+      "requested_max_duration_sec": 16,
+      "requested_wheel_speed_rad_s": 4,
+      "robot_model": "DeepRobotics M20 official low-resolution MJCF with profile-owned physical moving obstacle course (Lynx M20 Pro kinematic base)",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 8.598,
+      "simulator_engine": "MuJoCo",
+      "state_authority": "MuJoCo base_link pose, wheel velocity, contact state, and physical course geometry",
+      "status": "success",
+      "success": true,
+      "task": "navigate_obstacle_course",
+      "viewer_enabled": true
+    },
+    "robot_id": "lynx-m20-pro-sim-01",
+    "settled": true,
+    "settlement": {
+      "network": "eip155:84532",
+      "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+      "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg0OGI3N2VlMGY4OGVlMzVkMjU1ZDIwYTQxMGQwMzg2N2NjOTUwZDhkZmNhYjk1MTFiZmFlZWFlMTgwZTY1MjEzIiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+      "transaction": "0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213"
+    },
+    "skill_id": "navigate_obstacle_course",
+    "state": "succeeded",
+    "updated_at": "2026-08-16T16:32:47-03:00"
+  },
+  "settlement": {
+    "network": "eip155:84532",
+    "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+    "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg0OGI3N2VlMGY4OGVlMzVkMjU1ZDIwYTQxMGQwMzg2N2NjOTUwZDhkZmNhYjk1MTFiZmFlZWFlMTgwZTY1MjEzIiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+    "transaction": "0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213"
+  },
+  "transaction_hash": "0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213",
+  "basescan_url": "https://sepolia.basescan.org/tx/0x48b77ee0f88ee35d255d20a410d03867cc950d8dfcab9511bfaeeae180e65213"
+}

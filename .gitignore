@@ -15,11 +15,17 @@ go.work
 go.work.sum
 
 .env
+robopay_idempotency.json
 
 .idea/
 .vscode/
 
 .zenoh-c/
+.zenoh-router/
+
+# Local Tunnel/router diagnostics and generated simulator evidence.  The
+# corresponding GitHub Actions jobs publish reviewable artifacts instead.
+artifacts/
 
 bin/
 
