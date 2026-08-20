@@ -1,0 +1,79 @@
+{
+  "request": {
+    "actionId": "act_0ae3538fb65e",
+    "robotId": "x2-sim-001",
+    "skillId": "push_to_target",
+    "params": {
+      "puck_x": 0.26,
+      "puck_y": 0.17,
+      "goal_x": 0.27,
+      "goal_y": 0.3
+    },
+    "idempotencyKey": "idem-4f9a3521a1",
+    "paramsHash": "sha256:8f89f4c52de946db5419bb4f5f5117227cf5546a357112d0ca0855758263dab4",
+    "payment": {
+      "provider": "x402",
+      "amount": "10000",
+      "asset": "USDC",
+      "network": "eip155:84532",
+      "verified": true,
+      "txHash": "0xabb3ef3fa3b841dda1a18df7d5c2dd461aebb58594f44aa6b7affc74ca07c1d7"
+    }
+  },
+  "result": {
+    "status": "success",
+    "skill": "push_to_target",
+    "actionId": "act_0ae3538fb65e",
+    "settle": true,
+    "result": {
+      "message": "Action completed"
+    },
+    "metrics": {
+      "engine": "mujoco",
+      "success": true,
+      "reason": null,
+      "puckStart": [
+        0.26,
+        0.17
+      ],
+      "puckEnd": [
+        0.2682,
+        0.2551
+      ],
+      "goal": [
+        0.27,
+        0.3
+      ],
+      "displacementM": 0.0855,
+      "finalDistanceM": 0.0479,
+      "toleranceM": 0.05,
+      "peakContacts": 2,
+      "peakContactForceN": 34.1,
+      "foreignCollision": false,
+      "simSeconds": 2.63,
+      "wallSeconds": 3.25,
+      "stages": [
+        {
+          "stage": "raise",
+          "durationSec": 2.11,
+          "goalDistanceM": 0.1304
+        },
+        {
+          "stage": "traverse",
+          "durationSec": 0.01,
+          "goalDistanceM": 0.1304
+        },
+        {
+          "stage": "descend",
+          "durationSec": 0.14,
+          "goalDistanceM": 0.1304
+        },
+        {
+          "stage": "push",
+          "durationSec": 0.36,
+          "goalDistanceM": 0.0479
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "actionId": "act_7ab9bd7bdb3c",
+  "robotId": "x2-sim-001",
+  "skillId": "push_to_target",
+  "params": {
+    "goal_x": 0.27,
+    "goal_y": 0.3,
+    "puck_x": 0.26,
+    "puck_y": 0.17
+  },
+  "idempotencyKey": "idem-f1bcc809cf",
+  "paramsHash": "sha256:8f89f4c52de946db5419bb4f5f5117227cf5546a357112d0ca0855758263dab4",
+  "expiresAt": "2026-08-17T08:25:08.488084+00:00",
+  "payment": {
+    "provider": "x402",
+    "amount": "10000",
+    "asset": "USDC",
+    "network": "eip155:84532",
+    "verified": true,
+    "txHash": "0xc9c68c4d2ae94bffb4b7e76ad1d4ea28ccdabe7089f74431955772aa5976ec84"
+  }
+}

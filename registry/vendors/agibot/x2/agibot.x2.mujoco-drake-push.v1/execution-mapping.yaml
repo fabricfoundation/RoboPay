@@ -1,0 +1,122 @@
+schemaVersion: execution-mapping.v1
+profileId: agibot.x2.mujoco-drake-push.v1
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/x2/metrics
+  endpoint: tcp/127.0.0.1:7447
+  # Explicit rather than multicast scouting: peer discovery by multicast does
+  # not work in every environment, and when it fails it looks like a hung
+  # bridge rather than a networking problem.
+  discovery: explicit-endpoint
+
+  # What the tunnel in this repository actually publishes, taken from
+  # tunnel/internal/handlers/handlers.go rather than assumed. `POST /action`
+  # sits behind the x402 middleware; on a verified payment the handler wraps
+  # the client's body and forwards the resolved payment alongside it.
+  actionWireFormat:
+    payload: the client's request body, verbatim
+    transaction_details:
+      payment_payload: x402 v2 PaymentPayload, present only when verified
+      payment_requirements: x402 v2 PaymentRequirements
+    timestamp: RFC3339
+  # The bridge accepts this wrapper and the flat envelope, through one parser.
+  # Two properties of the real contract that a flat-only bridge gets wrong:
+  #
+  #   * There is no transaction hash on arrival. x402 verifies, runs the
+  #     resource handler, then settles -- and skips settling when the handler
+  #     fails. Demanding a settlement reference up front rejects every message
+  #     the tunnel sends, and inverts the very lifecycle that makes
+  #     no-settle-on-failure meaningful.
+  #   * The body is caller-controlled and the payment is not. A `payment` block
+  #     inside `payload` is ignored; verification is read only from
+  #     `transaction_details`.
+  paymentReference:
+    onArrival: authorizationRef, a digest of the verified x402 authorisation
+    afterSettlement: txHash, when a relay settles before forwarding
+
+mappings:
+  push_to_target:
+    output: joint_position_targets
+    # Not a trajectory. Each waypoint is solved at run time against the puck's
+    # measured pose by a constrained IK solver, so the same skill serves any
+    # target pair inside the envelope, and stage transitions fire on sensed
+    # conditions rather than on a clock.
+    planner: constrained-ik-drake
+    toolPoint:
+      frame: left_wrist_roll_link
+      offsetM: [0.0, 0.0, -0.165]
+      # Measured from both descriptions, not assumed. The hand is a slab about
+      # 200mm deep hanging below the wrist frame: MuJoCo's collision mesh spans
+      # z -0.182..+0.016 in that frame, Drake's simplified box -0.170..-0.030.
+      # The frame origin is the top lip of the hand, not the contact surface.
+      rationale: inside both engines' hulls, near the hand's lower tip
+    plan:
+      - stage: raise
+        goal: hover altitude above the contact point
+        advanceOn: tool within 0.055m of the waypoint
+      - stage: traverse
+        goal: settle over the contact point behind the puck
+        advanceOn: tool within 0.055m of the waypoint
+      - stage: descend
+        goal: contact pose behind the puck on the puck-to-goal line
+        advanceOn: tool within 0.055m of the waypoint
+      - stage: push
+        goal: swept end pose past the destination
+        advanceOn: puck within 0.050m of the destination
+    ikConstraints:
+      position: tool point, +/-0.008m per axis
+      # The hand slab extends along local -z and local +z points nearly
+      # straight up at rest, so this asks the hand to keep hanging down.
+      # Rotation about the vertical is deliberately left free: it decides only
+      # which face of the slab meets the puck, both faces are flat and wider
+      # than the puck, and with five load-bearing joints a constraint fixing
+      # all three angles collapses the reachable set.
+      toolAxis: link +Z to world +Z, within 0.50 rad
+      posture: quadratic cost toward the current pose, weight 1.0
+      jointLimits: hard constraints, from the URDF
+      restarts: 5 randomised, to escape local minima on reachable targets
+    failureModes:
+      - unreachable waypoint -> ACTION_FAILED, no settlement
+      - stage timeout -> ACTION_FAILED, no settlement
+      - puck leaves the work surface -> ACTION_FAILED, no settlement
+      - puck escapes the push line more than 3 times -> ACTION_FAILED, no settlement
+
+  stop:
+    output: joint_position_targets
+    plan:
+      - stage: hold
+        goal: freeze the current commanded pose
+    durationSec: 0
+
+  diagnostic_fail:
+    output: none
+    plan: []
+    note: returns ACTION_FAILED without actuating anything
+
+safety:
+  # The policy clamps every command to the joint limits before it leaves,
+  # rather than relying on the engine to saturate it, so both engines receive
+  # identical targets.
+  jointLimitClamp: policy-side
+  emergencyStop: the free `stop` skill, and SIGINT on the bridge process
+  maxCommandRateHz: 100
+  # Only joints that can carry a load are planned. Wrist pitch and roll are
+  # 2.2 Nm and stall against any contact -- asked to roll 2.3 rad, wrist roll
+  # saturated and jammed against the hip with an equal and opposite constraint
+  # force -- so they are held at their rest command instead.
+  plannedJoints:
+    - left_shoulder_pitch_joint
+    - left_shoulder_roll_joint
+    - left_shoulder_yaw_joint
+    - left_elbow_joint
+    - left_wrist_yaw_joint
+  # A stalled stage cannot spin forever; each has a budget and a reason string
+  # that reaches the payer.
+  stageTimeouts:
+    raise: 25.0
+    traverse: 15.0
+    descend: 15.0
+    push: 35.0

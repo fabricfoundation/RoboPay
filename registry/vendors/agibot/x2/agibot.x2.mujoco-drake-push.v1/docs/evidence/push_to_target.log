@@ -1,0 +1,23 @@
+2026-08-17 17:21:46,121 INFO    robopay.x2: skill catalogue published: ['push_to_target', 'stop', 'diagnostic_fail']
+2026-08-17 17:21:46,121 INFO    robopay.x2: UNPAID request act_18af29e8b72b skill=push_to_target
+2026-08-17 17:21:46,121 WARNING robopay.x2: refused: code=PAYMENT_REQUIRED settle=False -- payment has not been verified by the tunnel
+2026-08-17 17:21:46,121 INFO    robopay.x2: PAID request act_0ae3538fb65e skill=push_to_target params={"goal_x": 0.27, "goal_y": 0.3, "puck_x": 0.26, "puck_y": 0.17}
+2026-08-17 17:21:46,121 INFO    robopay.x2: payment verified=True txHash=0xabb3ef3fa3b841dda1a18df7d5c2dd461aebb58594f44aa6b7affc74ca07c1d7
+2026-08-17 17:21:46,121 INFO    robopay.x2: zenoh robot/tunnel/action <- {"actionId": "act_0ae3538fb65e", "idempotencyKey": "idem-4f9a3521a1", "params": {"goal_x": 0.27, "goal_y": 0.3, "puck_x": 0.26, "puck_y": 0.17}, "paramsHash": "...
+2026-08-17 17:21:49,381 INFO    robopay.x2: zenoh robot/tunnel/result -> status=success settle=True
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric engine             mujoco
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric success            True
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric reason             None
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric puckStart          [0.26, 0.17]
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric puckEnd            [0.2682, 0.2551]
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric goal               [0.27, 0.3]
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric displacementM      0.0855
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric finalDistanceM     0.0479
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric toleranceM         0.05
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric peakContacts       2
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric peakContactForceN  34.1
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric foreignCollision   False
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric simSeconds         2.63
+2026-08-17 17:21:49,381 INFO    robopay.x2:   metric wallSeconds        3.25
+2026-08-17 17:21:49,531 INFO    robopay.x2: recorded 34 frames -> /Users/hossein/robopay-g1/registry/vendors/agibot/x2/agibot.x2.mujoco-drake-push.v1/docs/evidence/push_to_target.mp4
+2026-08-17 17:21:49,531 INFO    robopay.x2: log -> /Users/hossein/robopay-g1/registry/vendors/agibot/x2/agibot.x2.mujoco-drake-push.v1/docs/evidence/push_to_target.log
