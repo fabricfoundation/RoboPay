@@ -1,0 +1,84 @@
+schemaVersion: robot-profile.v1
+profileId: limx.tron2.wheeled-mujoco-webots-obstacle-nav.v1
+profileVersion: 1.0.0
+vendor: limx
+robotModel: tron2-wf
+robotId: limx-tron2-wf-sim-01
+robotType: wheeled-biped-simulator
+scope: simulator-only
+status: experimental
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/limx_tron2/metrics
+  readyTopic: robot/limx_tron2/ready
+  bridge: bridge/limx_tron2_sim/bridge.py
+  replayStore: artifacts/state/limx_tron2_replay.sqlite3
+simulators:
+  - MuJoCo 3.3.0
+  - Webots R2025a
+modelIdentity:
+  label: LimX Dynamics TRON 2 wheeled-foot variant WF_TRON2A
+  source: https://github.com/limxdynamics/tron2-robot-description
+  sourceCommit: 682d513d03f7e3d2a59ae791d50adc5ccb84dd1a
+  sourceLicense: Apache-2.0
+  distribution: downloaded-at-setup-and-sha256-verified
+  downloader: bridge/download_vendor_assets.py
+  upstreamRoot: tron2/WF_TRON2A
+  assetNotices: vendor/limx-tron2/robot-description/THIRD_PARTY_NOTICES.md
+  assetLicenseStatus: governed by the pinned upstream NOTICE and third-party notices
+  urdf: vendor/limx-tron2/robot-description/WF_TRON2A/urdf/robot.urdf
+  urdfSha256: 33e5137702f0c602a703c6a98800f31bc0635ea09c1341970cee64cc08fef997
+  mjcf: vendor/limx-tron2/robot-description/WF_TRON2A/xml/robot.xml
+  mjcfSha256: aebf198529d8fa8dc98224c9cf58597d0b7f5303b6c5ef95c835cea0cae78d06
+  meshes:
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/base_Link.STL
+      sha256: af0a489a76e13223f82bc523f6f16c80922ee9182b2b674e75b41588c40413c8
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/knee_L_Link.STL
+      sha256: 688c03378a2a7c80b47eb82c59dc4da64ffa2335fdb981bedd0666cdfbba9ca9
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/knee_R_Link.STL
+      sha256: f762b8f5635f39a2d8aee3916aa1e866eac6ca24e87f98dc7b171767d40d3a3f
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/proximal_pitch_L_Link.STL
+      sha256: e7ec21fce1f8a8a877437df78da1dd44dbee500b6d2bf18ae19e6e0a44fb0e3d
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/proximal_pitch_R_Link.STL
+      sha256: 18d038d6ab285f6ed9caa84cc30575b0289e9da5f99aef2f4be44f96a1d6b501
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/proximal_roll_L_Link.STL
+      sha256: b393fb46129cb5faca4da07880a7f146a0386f28ae8569b221980d6f08a5cb7d
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/proximal_roll_R_Link.STL
+      sha256: 399f3fcd0e8392e9d1ef8366df32ad1d2dc5a8e3796a0911298335e88ca9b295
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/proximal_yaw_L_Link.STL
+      sha256: ea8fe400b5242ae5cef0c192e10b52a438a7cf3140eb3c1cd633692c0ced73c8
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/proximal_yaw_R_Link.STL
+      sha256: ff37bb272dfdd3ef1bf02788b03139f0522de02b91e6502588d7af51e9c6fc1d
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/wheel_L_Link.STL
+      sha256: d46ba856d43f16313c7ac4bfcf6d9ff3d67585df19fe907099588f81847dc74b
+    - path: vendor/limx-tron2/robot-description/WF_TRON2A/meshes/wheel_R_Link.STL
+      sha256: 4ef27a449de13ce84f85cecbb6b6e701c0b4db3736eae8aa054bb9ae8ead9e7e
+  webotsModel: Generated from the same pinned vendor URDF; no substitute geometry.
+controlIdentity:
+  source: https://github.com/limxdynamics/tron2_rl_deploy_python
+  sourceCommit: 16db4e19eb28664a101fed7135d20d6c7f52bd38
+  sourceLicense: Apache-2.0
+  distribution: downloaded-at-setup-and-sha256-verified
+  assetNotices: vendor/limxdynamics/tron2_rl_deploy_python/THIRD_PARTY_NOTICES.md
+  modelCard: vendor/limxdynamics/tron2_rl_deploy_python/MODEL_CARD.md
+  assetLicenseStatus: governed by the pinned upstream NOTICE, third-party notices and model card
+  policy: vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/policy.onnx
+  policySha256: 3000df452681056738a15b46fa67f4f8436b34bbb6dcc6b22fa08b1b1f8dd071
+  encoder: vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/encoder.onnx
+  encoderSha256: 507d0630d78873f7aabfeab4eae9d7669610d709fcc903c4296d1908da54b3e7
+  parameters: vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/params.yaml
+  parametersSha256: 6ef76b28d28055686a3dd0670cd5698cb87a58636e84871c4fd34606239e328d
+tunnelBoundary:
+  requiredContract: correlated-post-verification-action-event.v1
+  trust: >-
+    The bridge accepts only the private Tunnel-to-robot Zenoh boundary after
+    x402 verification. It rejects uncorrelated events and never verifies or
+    settles payment itself.
+  identityBinding: >-
+    Robot WebSocket identity-to-payee binding is an upstream shared
+    Tunnel/Gateway protocol responsibility. This profile does not invent a
+    local identity-signing protocol.
+maintainers:
+  - github: RobotDeveloper1

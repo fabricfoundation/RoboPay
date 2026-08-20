@@ -1,0 +1,30 @@
+schemaVersion: skill-contract-tests.v1
+profileId: limx.tron2.wheeled-mujoco-webots-obstacle-nav.v1
+cases:
+  - name: skill discovery exposes fixed navigation price
+    request: {method: GET, path: /skills}
+    expect: {status: 200, skills: [navigate_obstacle_course, stop], priceUSDC: "0.001"}
+  - name: unpaid navigation is challenged
+    request:
+      method: POST
+      path: /action
+      body: {action: navigate_obstacle_course, robot_id: limx-tron2-wf-sim-01, action_id: unpaid-1, idempotency_key: unpaid-1, params: {}}
+    expect: {status: 402, actionEvents: 0, simulatorExecutions: 0, settlementCalls: 0}
+  - name: verified action preserves complete correlation
+    request: {skillId: navigate_obstacle_course, params: {}, payment: verified}
+    expect:
+      accepted: true
+      immediateStatus: 202
+      preserves: [action_id, robot_id, skill_id, idempotency_key, params_hash, transaction_details]
+  - name: invalid facilitator verification fails before action
+    facilitator: {status: 200, isValid: false, invalidReason: reviewer-tampered-payment}
+    expect: {status: 402, actionEvents: 0, simulatorExecutions: 0, settlementCalls: 0}
+  - name: simulator failure remains unsettled
+    simulator: {terminalStatus: failure}
+    expect: {state: failed, settled: false, settlementCalls: 0}
+  - name: simulator timeout remains unsettled and reserved
+    simulator: {terminalStatus: timeout}
+    expect: {state: timeout, settled: false, durableReplayStatus: 409}
+  - name: stop cannot start navigation
+    request: {skillId: stop, params: {}, payment: verified}
+    expect: {status: success, navigationExecutions: 0, zeroVelocityRetained: true}

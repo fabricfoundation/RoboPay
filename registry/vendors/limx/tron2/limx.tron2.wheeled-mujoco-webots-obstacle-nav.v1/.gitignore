@@ -1,0 +1,9 @@
+artifacts/
+simulators/webots/generated/
+simulators/webots/scenes/*.generated.wbt
+simulators/webots/scenes/.*.wbproj
+vendor/limx-tron2/robot-description/WF_TRON2A/
+vendor/limxdynamics/tron2_rl_deploy_python/controllers/model/WF_TRON2A/
+__pycache__/
+.pytest_cache/
+*.py[cod]

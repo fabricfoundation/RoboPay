@@ -1,0 +1,13 @@
+{
+  "actionId": "act_tron2_navigation_001",
+  "robotId": "limx-tron2-wf-sim-01",
+  "skillId": "navigate_obstacle_course",
+  "params": {},
+  "idempotencyKey": "tron2-navigation-example-001",
+  "payment": {
+    "provider": "x402",
+    "amount": "1000",
+    "asset": "USDC",
+    "network": "eip155:84532"
+  }
+}

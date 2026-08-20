@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-08-16T19:18:45Z",
+  "source_commit": "d11ab49fdb051c8eb9fa73fb216b2b46f2c638ab",
+  "network": "eip155:84532",
+  "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "payee": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "robot_id": "limx-tron2-wf-sim-01",
+  "action_id": "limx-tron2-navigation-1786907880",
+  "unpaid_http_status": 402,
+  "paid_http_status": 202,
+  "terminal_status": {
+    "action_id": "limx-tron2-navigation-1786907880",
+    "idempotency_key": "limx-tron2-navigation-1786907880",
+    "params_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "result": {
+      "collision": false,
+      "detected_obstacles": [
+        "amber_gate",
+        "cyan_gate",
+        "violet_gate"
+      ],
+      "final_base_pose": {
+        "pitch": 0.0332,
+        "roll": 0,
+        "x": 5.3732,
+        "y": -0.0779,
+        "yaw": 0.1612,
+        "z": 0.7326
+      },
+      "goal_distance_m": 0.2398,
+      "low_level_controller": "limx-isaacgym-onnx-policy",
+      "max_tilt_rad": 0.0801,
+      "minimum_clearance_m": 0.1976,
+      "model_variant": "WF_TRON2A",
+      "path_length_m": 5.6686,
+      "simulator": "mujoco",
+      "skill": "navigate_obstacle_course",
+      "success": true,
+      "terminal_reason": "goal_reached",
+      "waypoints_completed": 10,
+      "waypoints_total": 10
+    },
+    "robot_id": "limx-tron2-wf-sim-01",
+    "settled": true,
+    "settlement": {
+      "network": "eip155:84532",
+      "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+      "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHhhMjlkYTFiNDQ0NzViMzZiNjJmNzBlZDYzYTYwYzhkZmI1NjI2M2Q1M2UzMWNiYmNkYWI5NGNlODc3ODYzZTM5IiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+      "transaction": "0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39"
+    },
+    "skill_id": "navigate_obstacle_course",
+    "state": "succeeded",
+    "updated_at": "2026-08-16T16:18:44-03:00"
+  },
+  "transaction_hash": "0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39",
+  "basescan_url": "https://sepolia.basescan.org/tx/0xa29da1b44475b36b62f70ed63a60c8dfb56263d53e31cbbcdab94ce877863e39"
+}
