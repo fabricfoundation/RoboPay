@@ -265,6 +265,7 @@ jobs:
           SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
           SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
         run: |
+          set -o pipefail
           python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel"             --json-output artifacts/live-paid-run.json             | tee artifacts/live-paid-run.txt
       # The negative half, in the same trusted run: an action the catalogue
       # refuses is answered, reported failed, and settles nothing — proven by
@@ -275,7 +276,11 @@ jobs:
           SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
           SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
         run: |
-          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --expect-failure             --json-output artifacts/live-refused-run.json             | tee artifacts/live-refused-run.txt
+          set -o pipefail
+          # 1s is outside the 5..60 the catalogue declares, so the bridge
+          # refuses the action rather than running it. --expect-failure only
+          # asserts the failure; this is what produces it.
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --expect-failure --max-duration 1             --json-output artifacts/live-refused-run.json             | tee artifacts/live-refused-run.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
