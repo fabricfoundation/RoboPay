@@ -501,6 +501,21 @@ property of a well-chosen bound rather than a gap. Execution-level failures that
 must not settle — falls, shelf contact, safe stop — are covered in section 6 and
 by `tests/test_x402_payment_safety.py`.
 
+### 9.2 What this profile does not prove
+
+**Robot identity and payee binding.** The payee is configured
+(`evm_payee_address` in the tunnel's config, `payTo` in the advertised payment
+requirements) and the settlements above did go to it — but that is
+configuration matching, not a cryptographic binding between the robot's
+identity and the wallet. The authenticating handshake between a robot and its
+payee lives in the shared upstream tunnel and gateway; this profile consumes the
+authenticated identity it is given and does not reimplement or re-verify it. No
+artifact here should be read as proving that binding.
+
+What *is* bound cryptographically is the settlement to the action: the
+authorization nonce is `keccak256(action_id)` and the token records it on chain.
+That is a different property and it is proven in 8.1 and 9.
+
 ## 10. Reproducing
 
 ```bash

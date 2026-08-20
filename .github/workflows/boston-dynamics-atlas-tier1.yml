@@ -77,6 +77,52 @@ jobs:
           name: atlas-simulation-evidence
           path: artifacts/
 
+  tunnel:
+    name: Go tunnel builds and its payment contract holds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: tunnel/go.sum
+      # zenoh-go is a cgo binding, so the tunnel cannot be built without the
+      # native library. Fetching it here is what makes "the tunnel builds from a
+      # clean checkout" a check rather than a claim.
+      - name: Fetch zenoh-c
+        run: |
+          curl -sSLO https://github.com/eclipse-zenoh/zenoh-c/releases/download/1.9.0/zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+          unzip -q zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d zenohc
+          echo "ZENOHC=$PWD/zenohc" >> $GITHUB_ENV
+      - name: Build the tunnel
+        working-directory: tunnel
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          export CGO_CFLAGS="-I$ZENOHC/include"
+          export CGO_LDFLAGS="-L$ZENOHC/lib -lzenohc"
+          go build -o "$RUNNER_TEMP/tunnel" ./cmd
+          ls -la "$RUNNER_TEMP/tunnel"
+      # The payment guarantee the bounty turns on, held without a wallet or a
+      # chain: a 202 says nothing about the outcome, success settles once,
+      # failure and timeout settle zero times, and a request that cannot be
+      # correlated never reaches Zenoh.
+      - name: Payment contract tests
+        working-directory: tunnel
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          export CGO_CFLAGS="-I$ZENOHC/include"
+          export CGO_LDFLAGS="-L$ZENOHC/lib -lzenohc"
+          export LD_LIBRARY_PATH="$ZENOHC/lib:$LD_LIBRARY_PATH"
+          go vet ./...
+          go test ./... -v
+      - name: Formatting
+        working-directory: tunnel
+        run: |
+          unformatted=$(gofmt -l cmd internal config)
+          if [ -n "$unformatted" ]; then echo "$unformatted"; exit 1; fi
+
   payment:
     name: x402 payment gate
     runs-on: ubuntu-latest
