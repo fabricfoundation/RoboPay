@@ -1,0 +1,21 @@
+======================================================================
+  Atlas paid action through the real Go tunnel
+======================================================================
+  proxy listening on ws://127.0.0.1:8791/api/core/ws/robot
+  bridge listening on robot/tunnel/action as atlas-sim-01
+  Go tunnel connected to the proxy
+
+  [unpaid]            HTTP 402
+    payment-required : True
+  [forged payment]    HTTP 400
+    tunnel said       : {"error": "Invalid payment"}
+
+======================================================================
+  INVARIANTS
+======================================================================
+  [OK] the tunnel refused an unpaid action with HTTP 402
+  [OK] the tunnel advertised payment requirements
+  [OK] the tunnel refused a forged payment
+  [OK] no unpaid or forged action ever reached the simulator
+
+  evidence written to docs\evidence\go-tunnel-e2e-evidence.json

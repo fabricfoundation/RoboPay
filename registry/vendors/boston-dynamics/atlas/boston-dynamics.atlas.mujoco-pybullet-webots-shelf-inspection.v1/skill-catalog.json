@@ -1,0 +1,23 @@
+[
+  {
+    "skill_id": "inspect_shelf",
+    "description": "Drive free-standing Atlas through a three-point shelf inspection. A state machine sequences STAND, REACH and VERIFY per target while a damped least-squares resolved-rate loop closes on the measured end-effector pose. Succeeds only when every target is reached and held, the robot is still standing, and nothing touched the shelf.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "maxDurationSec": {
+        "type": "number",
+        "minimum": 5,
+        "maximum": 60,
+        "default": 30
+      }
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Interrupt an active episode, release every actuator and freeze the robot. An interrupted inspection returns a correlated safe_stopped failure, so that action can never settle. Priced like any other skill because it arrives over the same paid-action channel; safety does not depend on it, since the episode is bounded by maxDurationSec and the bridge stops on its own when the budget expires.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]

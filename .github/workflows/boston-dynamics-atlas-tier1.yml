@@ -1,0 +1,296 @@
+name: Boston Dynamics Atlas Tier 1
+
+on:
+  pull_request:
+    branches: [main, boston-dynamics-atlas-tier-1]
+    paths:
+      - 'bridge/boston_dynamics/atlas_bridge/**'
+      - 'bridge/common/zenoh_bridge/**'
+      - 'registry/vendors/boston-dynamics/atlas/**'
+      - '.github/workflows/boston-dynamics-atlas-tier1.yml'
+  push:
+    branches: [main, boston-dynamics-atlas-tier-1]
+  workflow_dispatch:
+
+concurrency:
+  group: atlas-tier1-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BRIDGE: bridge/boston_dynamics/atlas_bridge
+
+jobs:
+  tests:
+    name: Unit and contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r $BRIDGE/requirements.txt
+      - name: Fetch the pinned Atlas v4 description
+        run: python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      - name: Run the test suite
+        run: python -m pytest $BRIDGE/tests -v
+
+  task:
+    name: Inspection episode must succeed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r $BRIDGE/requirements.txt
+      - name: Fetch the pinned Atlas v4 description
+        run: python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      - name: MuJoCo episode
+        # The runner exits non-zero unless every target was reached, the robot
+        # stayed standing and nothing touched the shelf.
+        run: |
+          mkdir -p artifacts
+          python -m bridge.boston_dynamics.atlas_bridge.runner \
+            --json-output artifacts/mujoco-inspection-episode.json
+      - name: PyBullet episode
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.pybullet_runner \
+            --json-output artifacts/pybullet-inspection-episode.json
+      - name: Webots world generation
+        # Webots itself is not on GitHub's runners, so CI verifies that the
+        # PROTO and the world still generate from the pinned URDF. The Webots
+        # episode is run locally and its result is committed under docs/evidence.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.webots_env --setup-only
+      - name: Sim-to-sim comparison
+        # Reports Webots as unavailable here and scores the engines that ran;
+        # a missing engine never turns a failing comparison into a passing one.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.sim2sim \
+            --json-output artifacts/sim2sim-validation.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-simulation-evidence
+          path: artifacts/
+
+  tunnel:
+    name: Go tunnel builds and its payment contract holds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: tunnel/go.sum
+      # zenoh-go is a cgo binding, so the tunnel cannot be built without the
+      # native library. Fetching it here is what makes "the tunnel builds from a
+      # clean checkout" a check rather than a claim.
+      - name: Fetch zenoh-c
+        run: |
+          curl -sSLO https://github.com/eclipse-zenoh/zenoh-c/releases/download/1.9.0/zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+          unzip -q zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d zenohc
+          echo "ZENOHC=$PWD/zenohc" >> $GITHUB_ENV
+      - name: Build the tunnel
+        working-directory: tunnel
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          export CGO_CFLAGS="-I$ZENOHC/include"
+          export CGO_LDFLAGS="-L$ZENOHC/lib -lzenohc"
+          go build -o "$RUNNER_TEMP/tunnel" ./cmd
+          ls -la "$RUNNER_TEMP/tunnel"
+      # The payment guarantee the bounty turns on, held without a wallet or a
+      # chain: a 202 says nothing about the outcome, success settles once,
+      # failure and timeout settle zero times, and a request that cannot be
+      # correlated never reaches Zenoh.
+      - name: Payment contract tests
+        working-directory: tunnel
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          export CGO_CFLAGS="-I$ZENOHC/include"
+          export CGO_LDFLAGS="-L$ZENOHC/lib -lzenohc"
+          export LD_LIBRARY_PATH="$ZENOHC/lib:$LD_LIBRARY_PATH"
+          go vet ./...
+          go test ./... -v
+      - name: Formatting
+        working-directory: tunnel
+        run: |
+          unformatted=$(gofmt -l cmd internal config)
+          if [ -n "$unformatted" ]; then echo "$unformatted"; exit 1; fi
+
+  payment:
+    name: x402 payment gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r $BRIDGE/requirements.txt
+      - name: Fetch the pinned Atlas v4 description
+        run: python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      - name: Payment-safety tests
+        run: python -m pytest $BRIDGE/tests/test_x402_payment_safety.py -v
+      - name: Durable idempotency tests
+        run: python -m pytest $BRIDGE/tests/test_idempotency.py -v
+      - name: Live x402 facilitator must refuse a forged authorization
+        # Drives https://x402.org/facilitator. Protocol checks alone accept the
+        # payload; only the facilitator can tell it was never signed.
+        run: python -m pytest $BRIDGE/tests/test_facilitator.py -v
+      - name: End-to-end paid-action demo (in-process)
+        run: |
+          mkdir -p artifacts
+          python -m bridge.boston_dynamics.atlas_bridge.demo_e2e \n            --json-output artifacts/demo-e2e-evidence.json | tee artifacts/demo-e2e.txt
+      - name: End-to-end paid action over the real Zenoh transport
+        # Publishes on robot/tunnel/action, the bridge executes the MuJoCo
+        # episode, and the result is correlated back by action_id. Exits
+        # non-zero unless every payment invariant holds.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.demo_tunnel \n            --json-output artifacts/tunnel-e2e-evidence.json | tee artifacts/demo-tunnel.txt
+      - name: Re-verify the on-chain settlement for the paid action
+        # Reads the settlement named by real-paid-run.json back from a public
+        # Base Sepolia RPC. Exits non-zero if it is missing, reverted, carries no
+        # USDC transfer, or its AuthorizationUsed nonce is not keccak256 of the
+        # action id it claims to have paid for.
+        run: |
+          python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence \
+            --json-output artifacts/onchain-settlement.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-x402-evidence
+          path: |
+            artifacts/demo-e2e.txt
+            artifacts/demo-tunnel.txt
+            artifacts/onchain-settlement.json
+            artifacts/demo-e2e-evidence.json
+            artifacts/tunnel-e2e-evidence.json
+
+  secrets:
+    name: No secrets in the diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject key material and wallet files
+        run: |
+          if git log --diff-filter=A --name-only --pretty=format: origin/main..HEAD \
+             | grep -Ei '(^|/)(wallet|secret|credentials)\.json$|\.pem$|id_rsa'; then
+            echo "::error::A key or wallet file was added on this branch."
+            exit 1
+          fi
+          if git grep -nIE '"private_key"\s*:\s*"[0-9a-fA-F]{64}"' -- . ; then
+            echo "::error::A raw private key is present in the tree."
+            exit 1
+          fi
+          echo "No key material found."
+
+  live:
+    name: One real paid action, executed in this run
+    # Secrets do not exist in a workflow triggered by a pull request from a
+    # fork, so this job runs where they do: a push to this branch, or a manual
+    # dispatch. On a pull request it is skipped rather than failed — a job that
+    # cannot pay should not pretend the payment failed.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Nothing above should be trusted with money until the payment contract
+    # itself has held on this commit.
+    needs: [tunnel, payment]
+    # A settlement already in flight must never be cancelled half-way, so this
+    # job opts out of the workflow-level cancel-in-progress.
+    concurrency:
+      group: atlas-live-paid-${{ github.ref }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: tunnel/go.sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Fetch zenoh-c and build the tunnel this run will dial through
+        run: |
+          curl -sSLO https://github.com/eclipse-zenoh/zenoh-c/releases/download/1.9.0/zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip
+          unzip -q zenoh-c-1.9.0-x86_64-unknown-linux-gnu-standalone.zip -d zenohc
+          cd tunnel
+          CGO_ENABLED=1 CGO_CFLAGS="-I$PWD/../zenohc/include"             CGO_LDFLAGS="-L$PWD/../zenohc/lib -lzenohc"             go build -o "$RUNNER_TEMP/tunnel" ./cmd
+          echo "LD_LIBRARY_PATH=$PWD/../zenohc/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+      - name: Install dependencies and the pinned Atlas v4 description
+        run: |
+          pip install -r $BRIDGE/requirements.txt
+          python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+      # Reports only whether the secret is set. The value is never echoed, never
+      # interpolated into a command, and never written to a file.
+      - name: Are signing credentials available to this run?
+        id: creds
+        env:
+          SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
+          SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
+        run: |
+          if [ -n "$SETTLEMENT_PRIVATE_KEY" ] || [ -n "$SETTLEMENT_MNEMONIC" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Signing credentials are present; the paid steps will run."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Neither SETTLEMENT_PRIVATE_KEY nor SETTLEMENT_MNEMONIC is set here."
+            echo "The rehearsal below still proves the path; nothing will be paid."
+          fi
+      # Everything except the signature: the tunnel dials the hosted relay, the
+      # robot is discovered, the price is read from the catalogue and the relay
+      # answers 402. Runs with or without credentials, so a broken harness is
+      # caught before money is involved rather than after.
+      - name: Rehearse the whole path, signing nothing
+        run: |
+          # `cmd | tee` reports tee's exit status, which is always 0. Without
+          # this, a run whose invariants fail is reported as a pass.
+          set -o pipefail
+          mkdir -p artifacts
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e \
+            --tunnel "$RUNNER_TEMP/tunnel" --dry-run \
+            --json-output artifacts/live-dry-run.json \
+            | tee artifacts/live-dry-run.txt
+      # The claim this job exists to make checkable: one action, paid for with a
+      # real EIP-3009 authorization whose nonce is keccak256(action_id), executed
+      # on Atlas in this run, settled only after the correlated result reports
+      # success.
+      - name: One paid action, settled only after the robot succeeds
+        if: steps.creds.outputs.available == 'true'
+        env:
+          SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
+          SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
+        run: |
+          set -o pipefail
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel"             --json-output artifacts/live-paid-run.json             | tee artifacts/live-paid-run.txt
+      # The negative half, in the same trusted run: an action the catalogue
+      # refuses is answered, reported failed, and settles nothing — proven by
+      # asking USDC whether the authorization nonce was ever spent.
+      - name: A refused action must settle nothing
+        if: steps.creds.outputs.available == 'true'
+        env:
+          SETTLEMENT_PRIVATE_KEY: ${{ secrets.SETTLEMENT_PRIVATE_KEY }}
+          SETTLEMENT_MNEMONIC: ${{ secrets.SETTLEMENT_MNEMONIC }}
+        run: |
+          set -o pipefail
+          # 1s is outside the 5..60 the catalogue declares, so the bridge
+          # refuses the action rather than running it. --expect-failure only
+          # asserts the failure; this is what produces it.
+          python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e             --tunnel "$RUNNER_TEMP/tunnel" --expect-failure --max-duration 1             --json-output artifacts/live-refused-run.json             | tee artifacts/live-refused-run.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atlas-live-paid-action
+          path: artifacts/live-*
+          retention-days: 90
+          if-no-files-found: error

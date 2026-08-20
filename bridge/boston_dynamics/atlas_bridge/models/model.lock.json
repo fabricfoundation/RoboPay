@@ -1,0 +1,17 @@
+{
+  "atlas_v4": {
+    "robot": "Boston Dynamics Atlas v4 (with Multisense head)",
+    "source": "https://github.com/openai/roboschool",
+    "commit": "d32bcb2b35b94168b5ce27233ca62f3c8678886f",
+    "directory": "roboschool/models_robot/atlas_description",
+    "urdf": "urdf/atlas_v4_with_multisense.urdf",
+    "license": "MIT",
+    "license_file": "LICENSE.md",
+    "notes": [
+      "Collision geometry in this URDF is analytic (boxes/cylinders/spheres) only,",
+      "so no mesh assets are needed for physics and none are vendored into this repo.",
+      "MuJoCo imports the URDF with discardvisual=true; PyBullet and Webots consume",
+      "the same pinned URDF, so all three simulators run one identical robot."
+    ]
+  }
+}

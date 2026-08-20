@@ -1,0 +1,167 @@
+schemaVersion: evidence-manifest.v1
+profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
+skillId: inspect_shelf
+policyId: atlas-shelf-inspection-dls-v1
+robot:
+  model: Boston Dynamics Atlas v4
+  source: https://github.com/openai/roboschool
+  commit: d32bcb2b35b94168b5ce27233ca62f3c8678886f
+  license: MIT
+  vendoredAssets: none
+base: free-standing
+engines:
+  - name: MuJoCo
+    status: validated
+  - name: PyBullet
+    status: validated
+  - name: Webots R2025a
+    status: validated
+artifacts:
+  - path: docs/evidence/mujoco-inspection-episode.json
+    description: "MuJoCo episode metrics for the free-standing inspection run"
+    bytes: 2021
+    sha256: 891589272615182bb67cf1a6f19ced3251d62a40fcb227055c54b9f724f2e5bf
+  - path: docs/evidence/pybullet-inspection-episode.json
+    description: "PyBullet episode metrics for the same task and controller"
+    bytes: 2026
+    sha256: 3be0e9ffac131bcac884381b7a62d710114d182ef7f2aae69008f22f86722d86
+  - path: docs/evidence/webots-inspection-episode.json
+    description: "Webots R2025a episode metrics for the same task and controller"
+    bytes: 1994
+    sha256: 8d3115316ec9dbb33d1b139bdfd5f8c33607e9fc9d0b1d9221c7cfdd88bcaca8
+  - path: docs/evidence/sim2sim-validation.json
+    description: "Cross-simulator comparison and verdict"
+    bytes: 10430
+    sha256: f95dcb9b315c107157fdb09d8ef7d11767bd4e6a6912969296afbf8b55b6579f
+  - path: docs/evidence/reach-envelope.json
+    description: "Measured reach envelope the shelf targets are chosen from"
+    bytes: 12552
+    sha256: 2aab090fb2e8cdb353b53900ceb43dc027d6f1384dfc7a6b6eba635d1cabdbe3
+  - path: docs/evidence/go-tunnel-e2e-evidence.json
+    description: "Unpaid and forged actions refused by the repository's real Go tunnel"
+    bytes: 1157
+    sha256: 77e08dec75f3caa23246f54b6df3b5a34a536947ad79bad98fdb640c7b9abdc6
+  - path: docs/evidence/go-tunnel-e2e-terminal.txt
+    description: "Terminal transcript of the Go tunnel run"
+    bytes: 938
+    sha256: 688c502f07e007525149bf1636f23fb7ad5378b10386fa581e0729d72019d99b
+  - path: docs/evidence/tunnel-e2e-evidence.json
+    description: "Paid action over the real Zenoh transport, with the settlement ledger"
+    bytes: 7945
+    sha256: 8deeb0c02fee1c176daaf51fe24b375eb6c4de820ecbf121c9fef8ebeda6cccc
+  - path: docs/evidence/tunnel-e2e-terminal.txt
+    description: "Terminal transcript of that same Zenoh run"
+    bytes: 2196
+    sha256: 8ca56c67b3d02e9d13772aa0bfe46a5040ff3811a33d724b10aab88d1c2915ae
+  - path: docs/evidence/onchain-settlement.json
+    description: "Base Sepolia settlement transaction, re-read from a public RPC"
+    bytes: 3008
+    sha256: 46984f5242af9bca2468194e9d961eecc13347e72a734c5dd2151e6afdc3e29b
+  - path: docs/evidence/demo-e2e-evidence.json
+    description: "x402 gate: unpaid, invalid, paid-and-settled, replayed"
+    bytes: 3187
+    sha256: e222a0f25bdd0282d1140c9dfe183e447cb196a238aa35c60e9751187e1cf2e2
+  - path: docs/evidence/atlas-shelf-inspection.gif
+    description: "Rendered MuJoCo episode, same run as the metrics"
+    bytes: 2413354
+    sha256: b115c21d8b917afd3067d16de8ae01ca7b405cbe2c8e35436d03da63329001c5
+  - path: docs/evidence/real-paid-run.json
+    description: "One real payment: live facilitator acceptance, execution, and 0.001 USDC settled on Base Sepolia, bound to the action_id"
+    bytes: 6726
+    sha256: b5a69f69115f1b9bccedefa230fba9948f177908a0dbfe0ce8ac6ec8113c6e42
+  - path: docs/evidence/fabric-relay-e2e.json
+    description: "The whole path with nothing stood in for: hosted Fabric relay, robot and skill discovery, priced 402, paid action, Zenoh, Atlas 3/3, relay terminal status, and 0.001 USDC settled bound to the action_id"
+    bytes: 12322
+    sha256: 9c5d4f45a51cb82f792b258776c5a726aff6916f702f180dfa529ea2bc44ae96
+  - path: docs/evidence/fabric-relay-failure.json
+    description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, answered 202 immediately, reported failed with its real reason and correlated by action_id — and never charged, confirmed by the token contract's own record of spent authorizations"
+    bytes: 7946
+    sha256: 2e01b79d8b8e495c5d7ac08e39423b634e334e38ac6c0b4c795247022befe451
+  - path: docs/evidence/atlas-paid-action.gif
+    description: "One continuous recording of one paid action, rendered from inside the scored episode: the terminal trace from discovery through the 402, the signed authorization, the 202, the correlated result and the settlement, beside the simulator rendering the episode that payment bought"
+    bytes: 4023382
+    sha256: 8ea1e7428d2db0fad4a03e23c52bc749dc883e90218615207dbb180f4b496693
+settlement:
+  paid_action:
+    note: >-
+      The settlement for the demonstrated action. The authorization nonce is
+      keccak256(action_id), so this transfer is verifiably the one that paid for
+      this action rather than any other; the same value appears in the token's
+      AuthorizationUsed event.
+    action_id: "act-paid-de66513f791b"
+    network: Base Sepolia (eip155:84532)
+    asset: USDC 0x036CbD53842c5426634e7929541eC2318f3dCF7e
+    transaction: "0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39"
+    explorer: https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39
+    block: 45706216
+    transferred: 0.001 USDC
+    payer: "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
+    payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
+    authorization_nonce: "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de"
+    submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+    submitted_by_note: >-
+      The x402 facilitator's own address, as advertised by its /supported
+      endpoint. The facilitator submitted the transaction and paid the gas,
+      which is what EIP-3009 is for and why the payer needs no ETH. It is also
+      independent evidence that this settlement went through the live
+      facilitator rather than being self-submitted.
+  fabric_relay_action:
+    note: >-
+      The settlement for the action that ran through the hosted Fabric relay.
+      Its nonce is keccak256(action_id) too, so it is bound to that action and
+      not to any other. The tunnel answered 202 immediately and settled from a
+      background watcher, only after the correlated result reported every target
+      reached.
+    action_id: "atlas-inspect-1787197727"
+    transaction: "0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940"
+    explorer: https://sepolia.basescan.org/tx/0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940
+    block: 45714728
+    transferred: 0.001 USDC
+    payer: "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
+    payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
+    authorization_nonce: "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d"
+    submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+  recorded_action:
+    note: >-
+      The settlement shown in atlas-paid-action.gif, and the episode in that
+      recording is the one this payment bought: the frames are rendered from
+      inside the scored run rather than from a second run alongside it. Located
+      on chain by its nonce rather than by its hash — keccak256(action_id) is
+      enough to find the AuthorizationUsed event, which is the binding working
+      in the direction a reviewer would use it.
+    action_id: "atlas-inspect-1787242629"
+    transaction: "0x7fc1c1ff21e535376bf22b3409b751d769dadfdcb2491d3803c5712905b5b197"
+    explorer: https://sepolia.basescan.org/tx/0x7fc1c1ff21e535376bf22b3409b751d769dadfdcb2491d3803c5712905b5b197
+    block: 45737187
+    transferred: 0.001 USDC
+    authorization_nonce: "0x97b7245b38f9b8d38bd14485f3a912f57621039933d21480dae6fb7a44aa0c40"
+  refused_action_not_settled:
+    note: >-
+      The failing counterpart of the run above, through the same relay with the
+      same wallet. The tunnel accepted the request with 202, the bridge refused
+      the action, and nothing
+      settled. The proof is the token's own record rather than the absence of a
+      hash on our side: authorizationState(payer, keccak256(action_id)) is
+      false, so USDC itself says this action was never paid for.
+    action_id: "atlas-inspect-1787197752"
+    execution: "refused — INVALID_DURATION"
+    tunnel_response: 202 (accepted; the outcome arrives on the status endpoint)
+    transaction: null
+    authorization_spent_on_chain: false
+  note: >-
+    Testnet only, no monetary value. Both payer wallets are disposable test
+    wallets and are treated as compromised; no key material is stored in this
+    repository.
+reproduce:
+  - pip install -r bridge/boston_dynamics/atlas_bridge/requirements.txt
+  - python -m bridge.boston_dynamics.atlas_bridge.download_atlas_model
+  - python -m bridge.boston_dynamics.atlas_bridge.runner
+  - python -m bridge.boston_dynamics.atlas_bridge.pybullet_runner
+  - python -m bridge.boston_dynamics.atlas_bridge.sim2sim
+  - python -m bridge.boston_dynamics.atlas_bridge.demo_e2e
+  - python -m bridge.boston_dynamics.atlas_bridge.demo_tunnel
+  - python -m bridge.boston_dynamics.atlas_bridge.demo_go_tunnel --tunnel <built tunnel>
+  - python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence
+  - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.real_paid_run --payer <funded wallet>
+  - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.demo_fabric_e2e --tunnel <built tunnel>
+  - SETTLEMENT_PRIVATE_KEY=... python -m bridge.boston_dynamics.atlas_bridge.evidence_recording --tunnel <built tunnel>

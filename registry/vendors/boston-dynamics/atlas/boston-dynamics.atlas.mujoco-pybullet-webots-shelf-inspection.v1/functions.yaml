@@ -1,0 +1,82 @@
+schemaVersion: agent-functions.v1
+profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
+functions:
+  - name: get_robot_profile
+    method: GET
+    url: /robot
+    returns:
+      "200": robot_id, profile_id, network, pay_to, and the skill IDs on offer
+  - name: list_robot_skills
+    method: GET
+    url: /skills
+    returns:
+      "200": >-
+        robot_id and the profile's own skill catalogue — skill_id, description,
+        payment_required, price_usdc and the parameter schema, read from
+        skill-catalog.json so a quoted price cannot drift from the published one
+      "503": >-
+        the catalogue is unreadable, so the tunnel says it cannot list skills
+        rather than serving an empty or invented one
+  - name: get_action_status
+    method: GET
+    url: /action/{action_id}/status
+    returns:
+      "200": >-
+        action_id, robot_id, skill_id, params_hash, idempotency_key, profile_id
+        and state — pending until the simulator answers, then succeeded or
+        failed with the result it reported
+      "400": action_id missing from the path
+  - name: request_robot_action
+    method: POST
+    url: /action
+    body:
+      action: string
+      skill_id: string        # required; never inferred from action
+      robot_id: string
+      params: object          # bounded duration
+      action_id: string       # required; the result is correlated on it
+      idempotency_key: string
+    payment:
+      unpaidStatus: 402
+      paymentRequiredHeader: PAYMENT-REQUIRED
+  - name: submit_paid_robot_action
+    method: POST
+    url: /action
+    headers:
+      PAYMENT-SIGNATURE: string
+    body: same as request_robot_action
+    returns:
+      "202": >-
+        accepted/pending, carrying action_id and status_url; the terminal
+        outcome is read from GET /action/{action_id}/status
+      "400": >-
+        a malformed or undecodable request or payment at the HTTP layer, or a
+        body missing any of action_id, robot_id, skill_id and idempotency_key;
+        nothing is published to Zenoh. Recorded in go-tunnel-e2e-evidence.json
+        as the answer to a forged authorization
+      "402": >-
+        payment required, or a payment the gate or the live facilitator refuses;
+        answered with the requirements in the PAYMENT-REQUIRED header, and where
+        a refusal has a reason, a PAYMENT-RESPONSE header carrying it. Recorded
+        in go-tunnel-e2e-evidence.json as the answer to an unpaid action
+      "500": the action event could not be encoded; nothing is published
+      "502": the robot transport is unavailable, or publishing to Zenoh failed
+    returns_note: >-
+      These are the codes this route produces, and no others. Outcomes the robot
+      decides — a refused skill, a replayed idempotency key, a failed or
+      timed-out episode — cannot appear here, because the route has already
+      answered 202 by the time they are known. They arrive as the state and
+      error_code of GET /action/{action_id}/status, which is where a caller must
+      look for them.
+    settlement: >-
+      Deferred until the correlated result carries status success. A failed,
+      timed-out or safely stopped episode never settles.
+    how_settlement_is_deferred: >-
+      The stock x402 gin middleware settles as soon as a protected route answers
+      anything under 400, which would charge the payer on the 202 above, before
+      the robot had run. The tunnel therefore replaces it with a gate that keeps
+      the 402/verify half unchanged but hands a settlement callback to the action
+      handler; a background watcher invokes that callback only after the
+      correlated result reports success. An earlier revision of this profile
+      settled on acceptance and a refused action was charged for — measured, not
+      assumed, which is why the gate exists.

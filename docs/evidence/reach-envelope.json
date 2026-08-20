@@ -1,0 +1,563 @@
+{
+  "validation_type": "reach_envelope",
+  "robot_model": "Boston Dynamics Atlas v4",
+  "base": "free-standing (no weld, no external support)",
+  "tolerance_m": 0.03,
+  "fall_threshold_m": 0.7,
+  "probe_budget_s": 12.0,
+  "probes_total": 36,
+  "probes_usable": 23,
+  "conservative_core": {
+    "cells": 15,
+    "forward_range_m": [
+      0.06,
+      0.18
+    ],
+    "vertical_range_m": [
+      -0.12,
+      0.2
+    ]
+  },
+  "probes": [
+    {
+      "offset_forward_m": 0.06,
+      "offset_vertical_m": 0.2,
+      "goal": [
+        0.4534,
+        -0.5631,
+        1.1654
+      ],
+      "reached": true,
+      "final_error_m": 0.01454,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.12,
+      "offset_vertical_m": 0.2,
+      "goal": [
+        0.5134,
+        -0.5631,
+        1.1654
+      ],
+      "reached": true,
+      "final_error_m": 0.01395,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 5,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.18,
+      "offset_vertical_m": 0.2,
+      "goal": [
+        0.5734,
+        -0.5631,
+        1.1654
+      ],
+      "reached": true,
+      "final_error_m": 0.02296,
+      "min_pelvis_height_m": 0.9095,
+      "fall_detected": false,
+      "shelf_contacts": 171,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.21,
+      "offset_vertical_m": 0.2,
+      "goal": [
+        0.6034,
+        -0.5631,
+        1.1654
+      ],
+      "reached": true,
+      "final_error_m": 0.02531,
+      "min_pelvis_height_m": 0.9068,
+      "fall_detected": false,
+      "shelf_contacts": 354,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.24,
+      "offset_vertical_m": 0.2,
+      "goal": [
+        0.6334,
+        -0.5631,
+        1.1654
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6992,
+      "fall_detected": true,
+      "shelf_contacts": 1201,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.3,
+      "offset_vertical_m": 0.2,
+      "goal": [
+        0.6934,
+        -0.5631,
+        1.1654
+      ],
+      "reached": false,
+      "final_error_m": 0.16783,
+      "min_pelvis_height_m": 0.8712,
+      "fall_detected": false,
+      "shelf_contacts": 2951,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.06,
+      "offset_vertical_m": 0.1,
+      "goal": [
+        0.4534,
+        -0.5631,
+        1.0654
+      ],
+      "reached": true,
+      "final_error_m": 0.01507,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.12,
+      "offset_vertical_m": 0.1,
+      "goal": [
+        0.5134,
+        -0.5631,
+        1.0654
+      ],
+      "reached": true,
+      "final_error_m": 0.01527,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.18,
+      "offset_vertical_m": 0.1,
+      "goal": [
+        0.5734,
+        -0.5631,
+        1.0654
+      ],
+      "reached": true,
+      "final_error_m": 0.01216,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.21,
+      "offset_vertical_m": 0.1,
+      "goal": [
+        0.6034,
+        -0.5631,
+        1.0654
+      ],
+      "reached": false,
+      "final_error_m": 0.04505,
+      "min_pelvis_height_m": 0.8945,
+      "fall_detected": false,
+      "shelf_contacts": 832,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.24,
+      "offset_vertical_m": 0.1,
+      "goal": [
+        0.6334,
+        -0.5631,
+        1.0654
+      ],
+      "reached": false,
+      "final_error_m": 0.12941,
+      "min_pelvis_height_m": 0.6998,
+      "fall_detected": true,
+      "shelf_contacts": 2030,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.3,
+      "offset_vertical_m": 0.1,
+      "goal": [
+        0.6934,
+        -0.5631,
+        1.0654
+      ],
+      "reached": false,
+      "final_error_m": 0.22142,
+      "min_pelvis_height_m": 0.6991,
+      "fall_detected": true,
+      "shelf_contacts": 2762,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.06,
+      "offset_vertical_m": 0.0,
+      "goal": [
+        0.4534,
+        -0.5631,
+        0.9654
+      ],
+      "reached": true,
+      "final_error_m": 0.02086,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.12,
+      "offset_vertical_m": 0.0,
+      "goal": [
+        0.5134,
+        -0.5631,
+        0.9654
+      ],
+      "reached": true,
+      "final_error_m": 0.016,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.18,
+      "offset_vertical_m": 0.0,
+      "goal": [
+        0.5734,
+        -0.5631,
+        0.9654
+      ],
+      "reached": true,
+      "final_error_m": 0.01257,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.21,
+      "offset_vertical_m": 0.0,
+      "goal": [
+        0.6034,
+        -0.5631,
+        0.9654
+      ],
+      "reached": true,
+      "final_error_m": 0.01142,
+      "min_pelvis_height_m": 0.907,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.24,
+      "offset_vertical_m": 0.0,
+      "goal": [
+        0.6334,
+        -0.5631,
+        0.9654
+      ],
+      "reached": true,
+      "final_error_m": 0.01101,
+      "min_pelvis_height_m": 0.9,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.3,
+      "offset_vertical_m": 0.0,
+      "goal": [
+        0.6934,
+        -0.5631,
+        0.9654
+      ],
+      "reached": true,
+      "final_error_m": 0.01197,
+      "min_pelvis_height_m": 0.8516,
+      "fall_detected": false,
+      "shelf_contacts": 11,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.06,
+      "offset_vertical_m": -0.06,
+      "goal": [
+        0.4534,
+        -0.5631,
+        0.9054
+      ],
+      "reached": true,
+      "final_error_m": 0.01974,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.12,
+      "offset_vertical_m": -0.06,
+      "goal": [
+        0.5134,
+        -0.5631,
+        0.9054
+      ],
+      "reached": true,
+      "final_error_m": 0.01555,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.18,
+      "offset_vertical_m": -0.06,
+      "goal": [
+        0.5734,
+        -0.5631,
+        0.9054
+      ],
+      "reached": true,
+      "final_error_m": 0.01381,
+      "min_pelvis_height_m": 0.9057,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.21,
+      "offset_vertical_m": -0.06,
+      "goal": [
+        0.6034,
+        -0.5631,
+        0.9054
+      ],
+      "reached": true,
+      "final_error_m": 0.01362,
+      "min_pelvis_height_m": 0.8965,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.24,
+      "offset_vertical_m": -0.06,
+      "goal": [
+        0.6334,
+        -0.5631,
+        0.9054
+      ],
+      "reached": true,
+      "final_error_m": 0.01321,
+      "min_pelvis_height_m": 0.872,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.3,
+      "offset_vertical_m": -0.06,
+      "goal": [
+        0.6934,
+        -0.5631,
+        0.9054
+      ],
+      "reached": true,
+      "final_error_m": 0.02674,
+      "min_pelvis_height_m": 0.7812,
+      "fall_detected": false,
+      "shelf_contacts": 129,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.06,
+      "offset_vertical_m": -0.12,
+      "goal": [
+        0.4534,
+        -0.5631,
+        0.8454
+      ],
+      "reached": true,
+      "final_error_m": 0.01887,
+      "min_pelvis_height_m": 0.91,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.12,
+      "offset_vertical_m": -0.12,
+      "goal": [
+        0.5134,
+        -0.5631,
+        0.8454
+      ],
+      "reached": true,
+      "final_error_m": 0.01769,
+      "min_pelvis_height_m": 0.9059,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.18,
+      "offset_vertical_m": -0.12,
+      "goal": [
+        0.5734,
+        -0.5631,
+        0.8454
+      ],
+      "reached": true,
+      "final_error_m": 0.01769,
+      "min_pelvis_height_m": 0.8598,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.21,
+      "offset_vertical_m": -0.12,
+      "goal": [
+        0.6034,
+        -0.5631,
+        0.8454
+      ],
+      "reached": true,
+      "final_error_m": 0.01946,
+      "min_pelvis_height_m": 0.8044,
+      "fall_detected": false,
+      "shelf_contacts": 100,
+      "usable": true
+    },
+    {
+      "offset_forward_m": 0.24,
+      "offset_vertical_m": -0.12,
+      "goal": [
+        0.6334,
+        -0.5631,
+        0.8454
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6986,
+      "fall_detected": true,
+      "shelf_contacts": 337,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.3,
+      "offset_vertical_m": -0.12,
+      "goal": [
+        0.6934,
+        -0.5631,
+        0.8454
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6995,
+      "fall_detected": true,
+      "shelf_contacts": 481,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.06,
+      "offset_vertical_m": -0.2,
+      "goal": [
+        0.4534,
+        -0.5631,
+        0.7654
+      ],
+      "reached": false,
+      "final_error_m": 0.08405,
+      "min_pelvis_height_m": 0.6987,
+      "fall_detected": true,
+      "shelf_contacts": 110,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.12,
+      "offset_vertical_m": -0.2,
+      "goal": [
+        0.5134,
+        -0.5631,
+        0.7654
+      ],
+      "reached": false,
+      "final_error_m": 0.23779,
+      "min_pelvis_height_m": 0.6994,
+      "fall_detected": true,
+      "shelf_contacts": 174,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.18,
+      "offset_vertical_m": -0.2,
+      "goal": [
+        0.5734,
+        -0.5631,
+        0.7654
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6988,
+      "fall_detected": true,
+      "shelf_contacts": 269,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.21,
+      "offset_vertical_m": -0.2,
+      "goal": [
+        0.6034,
+        -0.5631,
+        0.7654
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6985,
+      "fall_detected": true,
+      "shelf_contacts": 375,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.24,
+      "offset_vertical_m": -0.2,
+      "goal": [
+        0.6334,
+        -0.5631,
+        0.7654
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6984,
+      "fall_detected": true,
+      "shelf_contacts": 369,
+      "usable": false
+    },
+    {
+      "offset_forward_m": 0.3,
+      "offset_vertical_m": -0.2,
+      "goal": [
+        0.6934,
+        -0.5631,
+        0.7654
+      ],
+      "reached": false,
+      "final_error_m": null,
+      "min_pelvis_height_m": 0.6994,
+      "fall_detected": true,
+      "shelf_contacts": 444,
+      "usable": false
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "evidence": "on_chain_settlement",
+  "network": {
+    "name": "Base Sepolia",
+    "chain_id": 84532,
+    "caip2": "eip155:84532"
+  },
+  "asset": {
+    "symbol": "USDC",
+    "contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "decimals": 6,
+    "explorer": "https://sepolia.basescan.org/token/0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  },
+  "settlement_transaction": {
+    "hash": "0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39",
+    "action_id": "act-paid-de66513f791b",
+    "expected": {
+      "amount_raw": 1000,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "payer": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
+      "payee": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "network": "eip155:84532"
+    },
+    "mismatches": [],
+    "matches_profile": true,
+    "succeeded": true,
+    "authorization_nonce": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
+    "expected_nonce_from_action_id": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
+    "nonce_binds_settlement_to_action": true,
+    "block_number": 45706216,
+    "gas_used": 85696,
+    "contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+    "explorer": "https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39",
+    "transfer": {
+      "event": "Transfer(address,address,uint256)",
+      "token": "USDC",
+      "token_contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "from": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
+      "to": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "raw_amount": 1000,
+      "decimals": 6,
+      "amount": 0.001
+    }
+  },
+  "funding_transaction": {
+    "hash": "0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb",
+    "succeeded": true,
+    "block_number": 45669921,
+    "explorer": "https://sepolia.basescan.org/tx/0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb",
+    "description": "Coinbase Developer Platform faucet request that funded the payer wallet with testnet USDC before the settlement above."
+  },
+  "wallets": {
+    "payer": {
+      "address": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
+      "explorer": "https://sepolia.basescan.org/address/0xa0597a74f3c3f33797007495bc3dc676f10fc2dc"
+    },
+    "payee": {
+      "address": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "explorer": "https://sepolia.basescan.org/address/0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8"
+    }
+  },
+  "notes": [
+    "Testnet only. Base Sepolia USDC has no monetary value.",
+    "This artefact deliberately records no balances: balances change after the fact, while the transaction and its Transfer event do not.",
+    "The payer wallet is a disposable test wallet and is treated as compromised; no key material is stored in this repository."
+  ],
+  "reproduce": "python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence"
+}

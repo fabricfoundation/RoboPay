@@ -1,0 +1,183 @@
+{
+  "evidence": "real_paid_action_end_to_end",
+  "profile_id": "boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1",
+  "skill_id": "inspect_shelf",
+  "robot_id": "atlas-sim-01",
+  "action_id": "act-paid-de66513f791b",
+  "idempotency_key": "idem-act-paid-de66513f791b",
+  "payment": {
+    "scheme": "exact",
+    "protocol": "x402 + EIP-3009 transferWithAuthorization",
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount_raw": "1000",
+    "amount_usdc": "0.001",
+    "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
+    "payee": "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8",
+    "authorization": {
+      "from": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
+      "to": "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8",
+      "value": "1000",
+      "validAfter": "0",
+      "validBefore": "1787182506",
+      "nonce": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de"
+    },
+    "nonce_derivation": "keccak256(action_id)",
+    "expected_nonce": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
+    "facilitator": "https://x402.org/facilitator",
+    "requirements": {
+      "scheme": "exact",
+      "network": "base-sepolia",
+      "maxAmountRequired": "1000",
+      "resource": "https://robopay.invalid/atlas/inspect_shelf?action_id=act-paid-de66513f791b",
+      "description": "Boston Dynamics Atlas shelf inspection",
+      "mimeType": "application/json",
+      "payTo": "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8",
+      "maxTimeoutSeconds": 60,
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "extra": {
+        "name": "USDC",
+        "version": "2"
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": "facilitator_verify",
+      "http_status": 200,
+      "is_valid": true,
+      "reason": "",
+      "payer_recovered_by_facilitator": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
+      "decided_by": "live x402 facilitator"
+    },
+    {
+      "step": "robot_execution",
+      "action_id_echoed": "act-paid-de66513f791b",
+      "correlated": true,
+      "status": "success",
+      "targets_completed": 3,
+      "targets_total": 3,
+      "success": true,
+      "transport": "Zenoh (peer mode)"
+    },
+    {
+      "step": "facilitator_settle",
+      "http_status": 200,
+      "success": true,
+      "tx_hash": "0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39",
+      "error": "",
+      "decided_by": "live x402 facilitator"
+    }
+  ],
+  "execution_result": {
+    "action_id": "act-paid-de66513f791b",
+    "robot_id": "atlas-sim-01",
+    "skill_id": "inspect_shelf",
+    "params_hash": "sha256:2dd39a34d5a95b171816080d6b615a61c371255e418a130078ab4854f8700fb9",
+    "idempotency_key": "idem-act-paid-de66513f791b",
+    "status": "success",
+    "profile_id": "boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1",
+    "result": {
+      "simulator_engine": "MuJoCo",
+      "robot_model": "Boston Dynamics Atlas v4",
+      "model_source": "openai/roboschool @ d32bcb2 \u2014 atlas_v4_with_multisense.urdf (MIT)",
+      "base": "free-standing (no weld, no external support)",
+      "task": "inspect_shelf",
+      "policy_id": "atlas-shelf-inspection-dls-v1",
+      "status": "success",
+      "success": true,
+      "completion_reason": "sequence_complete",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 4.606,
+      "wall_time_seconds": 8.918,
+      "control_steps": 2303,
+      "targets_total": 3,
+      "targets_completed": 3,
+      "mean_position_error_m": 0.00954,
+      "max_position_error_m": 0.01349,
+      "final_pelvis_height_m": 0.9084,
+      "min_pelvis_height_m": 0.9084,
+      "fall_threshold_m": 0.7,
+      "fall_detected": false,
+      "shelf_contacts": 0,
+      "max_end_effector_speed_mps": 1.1339,
+      "max_end_effector_speed_inspecting_mps": 0.3355,
+      "final_torso_roll_rad": 0.0343,
+      "final_torso_pitch_rad": 0.0971,
+      "final_phase": "DONE",
+      "policy_state": {
+        "policy_id": "atlas-shelf-inspection-dls-v1",
+        "controller": "state_machine + damped_least_squares_resolved_rate",
+        "phase": "DONE",
+        "chain": [
+          "r_arm_shz",
+          "r_arm_shx",
+          "r_arm_ely",
+          "r_arm_elx"
+        ],
+        "targets_total": 3,
+        "targets_completed": 3,
+        "per_target": [
+          {
+            "name": "shelf-top",
+            "reached": true,
+            "final_error_m": 0.0051,
+            "best_error_m": 0.0051,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-middle",
+            "reached": true,
+            "final_error_m": 0.01004,
+            "best_error_m": 0.01004,
+            "control_steps": 250
+          },
+          {
+            "name": "shelf-lower",
+            "reached": true,
+            "final_error_m": 0.01349,
+            "best_error_m": 0.01347,
+            "control_steps": 250
+          }
+        ],
+        "parameters": {
+          "dls_damping": 0.12,
+          "step_gain": 0.006,
+          "max_joint_step_rad": 0.01,
+          "reach_timeout_steps": 1500
+        }
+      }
+    }
+  },
+  "on_chain": {
+    "confirmed": true,
+    "block_number": 45706216,
+    "gas_used": 85696,
+    "explorer": "https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39",
+    "transfer": {
+      "token_contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "from": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
+      "to": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "raw_amount": 1000,
+      "amount_usdc": 0.001,
+      "asset": "USDC"
+    },
+    "authorization_nonce": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
+    "expected_nonce_from_action_id": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
+    "nonce_binds_settlement_to_action": true,
+    "asset_is_declared_usdc": true,
+    "amount_matches_declared_price": true
+  },
+  "invariants": {
+    "the live facilitator verified the authorization": true,
+    "the robot executed only after that verification": true,
+    "every inspection target was reached": true,
+    "the result came back correlated by action_id": true,
+    "the facilitator settled a real transaction": true,
+    "the settlement is confirmed on Base Sepolia": true,
+    "the settled amount is the declared skill price": true,
+    "the asset is the USDC contract the profile declares": true,
+    "the on-chain authorization nonce is keccak256(action_id)": true
+  },
+  "all_invariants_hold": true
+}

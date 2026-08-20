@@ -1,0 +1,46 @@
+schemaVersion: execution-mapping.v1
+profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/boston_dynamics_atlas/metrics
+  readyTopic: robot/boston_dynamics_atlas/ready
+paramsHashFormat: "sha256:<hex>"
+mappings:
+  inspect_shelf:
+    task: multi_target_shelf_inspection
+    output: >-
+      MuJoCo episode on free-standing Atlas v4; PyBullet and Webots R2025a
+      cross-engine validation of the same URDF, task and controller.
+    policy: >-
+      atlas-shelf-inspection-dls-v1 — STAND, then REACH/VERIFY per target, then
+      RETURN. Recomputed from the measured end-effector pose and the measured
+      joint configuration at every control tick; no recorded trajectory.
+    controller: >-
+      Damped least-squares resolved-rate loop on the right-arm chain, sharing one
+      URDF-derived Jacobian across all engines. MuJoCo applies a PD torque law
+      with gravity feedforward; PyBullet and Webots apply joint-position commands
+      saturated at the same URDF effort limits.
+    inputs: [end_effector_position, joint_positions, pelvis_pose, simulator_time]
+    metrics:
+      - targets_completed
+      - mean_position_error_m
+      - max_position_error_m
+      - min_pelvis_height_m
+      - fall_detected
+      - shelf_contacts
+      - max_end_effector_speed_mps
+      - max_end_effector_speed_inspecting_mps
+      - sim_duration_seconds
+      - policy_id
+    limits:
+      maxDurationSec: 60
+      maxJointStepRad: 0.01
+  stop:
+    task: safe_stop
+    output: every actuator released and simulated velocity zeroed
+    result: >-
+      correlated success for stop; an active inspection returns failure with
+      completion_reason safe_stopped
+    metrics: [safe_stop_applied, completion_reason]
