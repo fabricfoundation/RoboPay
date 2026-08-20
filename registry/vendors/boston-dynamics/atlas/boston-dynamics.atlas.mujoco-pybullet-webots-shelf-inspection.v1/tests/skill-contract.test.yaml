@@ -28,14 +28,52 @@ cases:
       settled: false
     enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_replay_rejected
 
-  - name: paid_request_executes_and_settles
-    given: a valid receipt and an episode that reaches every target
+  - name: in_process_valid_request_executes_and_becomes_eligible
+    given: a protocol-valid receipt and an episode that reaches every target
+    path: in-process relay — holds no wallet, so it settles nothing
     expect:
       httpStatus: 200
       executed: true
-      settled: true
+      settled: false
+      settlement: eligible_not_on_chain
       targetsCompleted: 3
     enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_valid_payment_success_settles
+
+  - name: hosted_paid_action_is_accepted_immediately
+    given: a paid action submitted through the hosted Fabric relay
+    path: hosted relay -> Go tunnel -> Zenoh -> simulator
+    expect:
+      httpStatus: 202
+      accepted: true
+      actionIdPresent: true
+      statusUrlPresent: true
+      settledImmediately: false
+    enforcedBy: tunnel/internal/handlers/handlers_test.go::TestPostActionAnswersImmediatelyWithAccepted
+    note: >-
+      Acceptance is about the request, not the outcome. The terminal result is
+      read from GET /action/{action_id}/status and the settlement follows it.
+
+  - name: hosted_paid_action_settles_only_after_success
+    given: a paid action whose correlated result reports every target reached
+    expect:
+      settled: true
+      settlementFollowsResult: true
+      amountRaw: "1000"
+      authorizationNonce: keccak256(action_id)
+    enforcedBy: tunnel/internal/handlers/handlers_test.go::TestSettlementFollowsSuccess
+
+  - name: hosted_failed_action_is_never_settled
+    given: a paid action the bridge refuses, or a robot that never answers
+    expect:
+      httpStatus: 202
+      settled: false
+      settlementTransaction: null
+      authorizationSpentOnChain: false
+    enforcedBy: tunnel/internal/handlers/handlers_test.go::TestAFailedEpisodeIsNeverSettled
+    note: >-
+      Proven on chain as well as in test: authorizationState(payer,
+      keccak256(action_id)) on the USDC contract is false for the refused
+      action in fabric-relay-failure.json.
 
   - name: stopped_episode_never_settles
     given: a stop request raised mid-episode

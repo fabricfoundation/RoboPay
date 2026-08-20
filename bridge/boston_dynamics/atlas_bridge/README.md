@@ -133,21 +133,36 @@ python -m pytest bridge/boston_dynamics/atlas_bridge/tests -q
 `relay.py` gates execution behind it. `payment.py` holds the settlement ledger.
 The invariant the tests pin down:
 
-| Case | HTTP | Executed | Settled |
-| --- | --- | --- | --- |
-| No payment | 402 | no | no |
-| Wrong amount / asset / network | 400 | no | no |
-| Valid payment, task succeeds | 200 | yes | **yes** |
-| Valid payment, task fails or is stopped | 200 | yes | no |
-| Replayed receipt | 409 | no | no |
-| Forged authorization (facilitator) | 400 | no | no |
-| Repeat of an idempotency key | — | no | no |
+This relay runs **in process and holds no wallet**, so its accepted case is
+eligible for settlement rather than settled — the ledger enforces that
+distinction, and `SETTLED` requires a transaction hash and its block:
 
-A settlement of this skill on Base Sepolia:
-[`0x5b04259e…26b6e`](https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e)
-— 1.0 USDC, block 45670338, status success. `settlement_evidence.py` re-reads it
-from a public RPC and fails if it does not verify. Testnet only, and no key
-material lives in this repository.
+| Case | HTTP | Executed | Settlement |
+| --- | --- | --- | --- |
+| No payment | 402 | no | none |
+| Wrong amount / asset / network | 400 | no | none |
+| Valid payment, task succeeds | 200 | yes | eligible, **not on chain** |
+| Valid payment, task fails or is stopped | 200 | yes | none |
+| Replayed receipt | 409 | no | none |
+| Forged authorization (facilitator) | 400 | no | none |
+| Repeat of an idempotency key | — | no | none |
+
+Money actually moves on the two paid paths, and both answer differently because
+they run through the tunnel rather than in process:
+
+| Path | HTTP | Settlement |
+| --- | --- | --- |
+| Hosted Fabric relay (`demo_fabric_e2e.py`) | **202** accepted, then async | after the result reports success |
+| Direct facilitator (`real_paid_run.py`) | — | after the episode reports success |
+
+The settlement for the profile's paid action, on Base Sepolia:
+[`0x2b3b71d0…c0f39`](https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39)
+— **0.001 USDC**, the price the catalogue publishes, block 45706216, status
+success, bound to `act-paid-de66513f791b` because its authorization nonce is
+`keccak256(action_id)`. `settlement_evidence.py` reads that transaction out of
+`real-paid-run.json` and re-checks it against a public RPC, failing if the
+amount, asset, payer, payee, network or binding is not what the profile
+declares. Testnet only, and no key material lives in this repository.
 
 ## Operating the bridge
 

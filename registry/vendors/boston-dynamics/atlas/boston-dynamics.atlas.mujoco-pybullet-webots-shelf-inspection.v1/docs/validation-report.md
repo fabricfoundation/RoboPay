@@ -374,19 +374,11 @@ An earlier revision of this file verified a 1.0 USDC transfer that predated the
 paid run and was bound to no action at all, while the profile's real settlement
 was 0.001 USDC. The step was green and was checking the wrong transaction.
 
-The funding record below is the faucet request for the first test wallet:
-
-| Field | Value |
-| --- | --- |
-| Network | Base Sepolia (`eip155:84532`, chain id 84532) |
-| Asset | USDC [`0x036CbD53…3dCF7e`](https://sepolia.basescan.org/token/0x036CbD53842c5426634e7929541eC2318f3dCF7e) |
-| Settlement tx | [`0x5b04259e…26b6e`](https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e) |
-| Status | success (`0x1`), block 45670338, gas 62147 |
-| Event | `Transfer(address,address,uint256)` on the USDC contract |
-| Amount | 1.0 USDC (`1000000` raw, 6 decimals) |
-| Payer | [`0x520C3Ff276456A217c0dFadABeEb2d7081d6cCd4`](https://sepolia.basescan.org/address/0x520C3Ff276456A217c0dFadABeEb2d7081d6cCd4) |
-| Payee | [`0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8`](https://sepolia.basescan.org/address/0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8) |
-| Funding | CDP faucet request [`0xb37252fd…fdbbb`](https://sepolia.basescan.org/tx/0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb), block 45669921 |
+The wallet that made it was funded by a CDP faucet request,
+[`0xb37252fd…fdbbb`](https://sepolia.basescan.org/tx/0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb),
+block 45669921. No settlement other than the ones in 8.1 and 9 is evidence for
+this skill; an earlier 1.0 USDC transfer between two test wallets exists on
+chain but is bound to no action and is not cited here.
 
 Two deliberate choices about how this is reported:
 

@@ -47,8 +47,13 @@ Reviewer-facing expectations, each mapped to the test that enforces it, are in
 ## On-chain settlement
 
 A real settlement of this skill on Base Sepolia:
-[`0x5b04259e…26b6e`](https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e)
-— 1.0 USDC transferred, block 45670338, status success. Re-read from chain by
-`settlement_evidence.py` into
-[`docs/evidence/onchain-settlement.json`](../../../../../../docs/evidence/onchain-settlement.json).
-Testnet only; no key material is stored in this repository.
+[`0x2b3b71d0…c0f39`](https://sepolia.basescan.org/tx/0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39)
+— **0.001 USDC**, the price this catalogue publishes, block 45706216, status
+success. It is bound to the action it paid for: the authorization nonce is
+`keccak256("act-paid-de66513f791b")`, which the USDC contract records in its
+`AuthorizationUsed` event, so a reviewer can recompute it from the action id
+alone. `settlement_evidence.py` reads the transaction out of
+`real-paid-run.json` and re-checks it against a public RPC into
+[`docs/evidence/onchain-settlement.json`](../../../../../../docs/evidence/onchain-settlement.json),
+failing if the amount, asset, payer, payee or binding is not what this profile
+declares. Testnet only; no key material is stored in this repository.

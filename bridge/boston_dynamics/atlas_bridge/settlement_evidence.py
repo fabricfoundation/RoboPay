@@ -57,6 +57,26 @@ def settlement_under_test() -> tuple[str, str]:
     return tx_hash, action_id
 
 
+def expectations() -> dict:
+    """What the profile says a settlement of this skill must look like.
+
+    Taken from the profile and the paid run rather than restated here, so a
+    price or payee changed in one place cannot leave this check agreeing with
+    a stale copy of itself.
+    """
+    from .task import SKILL_PRICE_RAW
+
+    artifact = json.loads(PAID_RUN_ARTIFACT.read_text(encoding="utf-8"))
+    payment = artifact.get("payment") or {}
+    return {
+        "amount_raw": int(SKILL_PRICE_RAW),
+        "asset": USDC_ADDRESS.lower(),
+        "payer": str(payment.get("payer", "")).lower(),
+        "payee": str(payment.get("payee", "")).lower(),
+        "network": NETWORK,
+    }
+
+
 def _rpc(method: str, params: list) -> dict | None:
     payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
     request = urllib.request.Request(
@@ -113,9 +133,26 @@ def verify_settlement(tx_hash: str = "", action_id: str = "") -> dict:
 
         expected_nonce = "0x" + keccak(text=action_id).hex()
 
+    expected = expectations()
+    mismatches = []
+    if raw != expected["amount_raw"]:
+        mismatches.append(
+            f"amount {raw} is not the declared price {expected['amount_raw']}")
+    if transfer["address"].lower() != expected["asset"]:
+        mismatches.append(f"asset {transfer['address']} is not {USDC_ADDRESS}")
+    if expected["payer"] and _address(transfer["topics"][1]).lower() != expected["payer"]:
+        mismatches.append(
+            f"payer {_address(transfer['topics'][1])} is not {expected['payer']}")
+    if expected["payee"] and _address(transfer["topics"][2]).lower() != expected["payee"]:
+        mismatches.append(
+            f"payee {_address(transfer['topics'][2])} is not {expected['payee']}")
+
     return {
         "hash": tx_hash,
         "action_id": action_id,
+        "expected": expected,
+        "mismatches": mismatches,
+        "matches_profile": not mismatches,
         "succeeded": receipt["status"] == "0x1",
         "authorization_nonce": nonce,
         "expected_nonce_from_action_id": expected_nonce,
@@ -207,6 +244,10 @@ def main() -> None:
     print(f"  succeeded   : {settlement['succeeded']}")
     print(f"  bound to it : {settlement['nonce_binds_settlement_to_action']}"
           f"  (nonce = keccak256(action_id))")
+    print(f"  matches     : {settlement['matches_profile']}"
+          f"  (amount, asset, payer, payee against the profile)")
+    for mismatch in settlement["mismatches"]:
+        print(f"    !! {mismatch}")
     print(f"  block       : {settlement['block_number']}")
     print(f"  transfer    : {transfer['amount']} {transfer['token']}")
     print(f"  from        : {transfer['from']}")
@@ -216,7 +257,8 @@ def main() -> None:
     # asset moved, not that this action was the reason.
     raise SystemExit(
         0 if settlement["succeeded"]
-        and settlement["nonce_binds_settlement_to_action"] else 1
+        and settlement["nonce_binds_settlement_to_action"]
+        and settlement["matches_profile"] else 1
     )
 
 

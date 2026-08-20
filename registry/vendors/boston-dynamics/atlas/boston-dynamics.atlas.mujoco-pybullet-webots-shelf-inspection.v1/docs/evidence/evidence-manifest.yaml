@@ -55,8 +55,8 @@ artifacts:
     sha256: 8ca56c67b3d02e9d13772aa0bfe46a5040ff3811a33d724b10aab88d1c2915ae
   - path: docs/evidence/onchain-settlement.json
     description: "Base Sepolia settlement transaction, re-read from a public RPC"
-    bytes: 2682
-    sha256: c0dc7c12e35905555e9e6bccb9b38f673487b805a9d83ea56ccf680569cb4c4d
+    bytes: 3008
+    sha256: 46984f5242af9bca2468194e9d961eecc13347e72a734c5dd2151e6afdc3e29b
   - path: docs/evidence/demo-e2e-evidence.json
     description: "x402 gate: unpaid, invalid, paid-and-settled, replayed"
     bytes: 3187
@@ -74,7 +74,7 @@ artifacts:
     bytes: 12322
     sha256: 9c5d4f45a51cb82f792b258776c5a726aff6916f702f180dfa529ea2bc44ae96
   - path: docs/evidence/fabric-relay-failure.json
-    description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, answered 502, reported failed with its real reason and correlated by action_id — and never charged, confirmed by the token contract's own record of spent authorizations"
+    description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, answered 202 immediately, reported failed with its real reason and correlated by action_id — and never charged, confirmed by the token contract's own record of spent authorizations"
     bytes: 7946
     sha256: 2e01b79d8b8e495c5d7ac08e39423b634e334e38ac6c0b4c795247022befe451
 settlement:
@@ -120,7 +120,8 @@ settlement:
   refused_action_not_settled:
     note: >-
       The failing counterpart of the run above, through the same relay with the
-      same wallet. The bridge refused it, the tunnel answered 502, and nothing
+      same wallet. The tunnel accepted the request with 202, the bridge refused
+      the action, and nothing
       settled. The proof is the token's own record rather than the absence of a
       hash on our side: authorizationState(payer, keccak256(action_id)) is
       false, so USDC itself says this action was never paid for.
@@ -129,15 +130,6 @@ settlement:
     tunnel_response: 202 (accepted; the outcome arrives on the status endpoint)
     transaction: null
     authorization_spent_on_chain: false
-  earlier_transfer:
-    note: >-
-      An earlier 1.0 USDC transfer between two test wallets, kept because the
-      profile's first settlement evidence referred to it. It is not bound to any
-      action_id and proves only that the asset and network are real.
-    transaction: "0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e"
-    explorer: https://sepolia.basescan.org/tx/0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e
-    transferred: 1.0 USDC
-    payer: "0x520C3Ff276456A217c0dFadABeEb2d7081d6cCd4"
   note: >-
     Testnet only, no monetary value. Both payer wallets are disposable test
     wallets and are treated as compromised; no key material is stored in this

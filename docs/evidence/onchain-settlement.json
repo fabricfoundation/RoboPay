@@ -14,6 +14,15 @@
   "settlement_transaction": {
     "hash": "0x2b3b71d0ce18554a4927e1145a704359bad35c209f632dc414926b995aac0f39",
     "action_id": "act-paid-de66513f791b",
+    "expected": {
+      "amount_raw": 1000,
+      "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "payer": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
+      "payee": "0x7b9163254a21b249a0d3e34300fc81bb0a43c3e8",
+      "network": "eip155:84532"
+    },
+    "mismatches": [],
+    "matches_profile": true,
     "succeeded": true,
     "authorization_nonce": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
     "expected_nonce_from_action_id": "0xaa6cf89a24e6ee6471a1dde2a1e9eee101d60213f9231132ea717affd03b47de",
