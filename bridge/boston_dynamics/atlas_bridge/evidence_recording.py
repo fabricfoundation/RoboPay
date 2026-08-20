@@ -142,71 +142,61 @@ class Recorder:
 
 
 def rendering_executor(recorder: Recorder):
-    """An episode runner that renders the episode it is running.
+    """An episode runner that renders the episode it is scoring.
 
-    Signature matches what the bridge's handler calls, so the paid action
-    reaches this and the frames are of that action's episode.
+    The frames and the metrics come out of one pass. An earlier version drove
+    its own loop for the frames and then called run_episode again for the
+    numbers, which produced a recording of one episode beside the metrics of
+    another — and this profile claims the two describe the same paid action.
+    Determinism would have made them agree, but agreeing is not the same as
+    being the same run. Rendering from inside the shared loop's own callback
+    keeps the claim true by construction rather than by coincidence.
     """
     def execute(max_duration_seconds: float, stop_requested=None) -> dict:
         import mujoco
         from PIL import Image
 
-        from .control_core import ShelfInspectionController
         from .episode import run_episode
-        from .kinematics import jacobian
         from .mujoco_env import AtlasInspectionEnvironment
         from .visual_evidence import _annotate, _camera
 
         environment = AtlasInspectionEnvironment(show_targets=True)
-        controller = ShelfInspectionController(budget_seconds=max_duration_seconds)
         renderer = mujoco.Renderer(environment.model, height=SIM_HEIGHT, width=SIM_WIDTH)
         camera = _camera()
-
-        observation = environment.reset(controller.reset(environment.joint_limits()))
-        steps = 0
         announced: set[str] = set()
-        try:
-            while observation["sim_time"] < max_duration_seconds:
-                angles = environment.joint_angles()
-                plan = controller.step(
-                    environment.end_effector(),
-                    jacobian(angles, base_rotation=environment.base_rotation()),
-                    observation["sim_time"],
-                    angles,
-                )
-                observation = environment.step(plan.joint_targets)
-                steps += 1
 
-                if plan.phase not in announced:
-                    announced.add(plan.phase)
-                    recorder.transcript.add("simulator", f"phase {plan.phase}")
-                if steps % FRAME_STRIDE == 0:
-                    renderer.update_scene(environment.data, camera)
-                    recorder.add_sim(_annotate(
-                        Image.fromarray(renderer.render()),
-                        [
-                            ("Atlas v4", "MuJoCo"),
-                            ("phase", plan.phase),
-                            ("target", plan.active_target),
-                            ("error", f"{plan.position_error_m * 1000:6.1f} mm"),
-                            ("completed",
-                             f"{plan.targets_completed}/{len(INSPECTION_TARGETS)}"),
-                            ("pelvis", f"{observation['pelvis_height']:.3f} m"),
-                            ("shelf hits", str(environment.shelf_contacts)),
-                        ],
-                    ))
-                if environment.fall_detected or controller.finished:
-                    break
+        def on_step(control_steps: int, observation: dict, plan) -> None:
+            if plan.phase not in announced:
+                announced.add(plan.phase)
+                recorder.transcript.add("simulator", f"phase {plan.phase}")
+            if control_steps % FRAME_STRIDE:
+                return
+            renderer.update_scene(environment.data, camera)
+            recorder.add_sim(_annotate(
+                Image.fromarray(renderer.render()),
+                [
+                    ("Atlas v4", "MuJoCo"),
+                    ("phase", plan.phase),
+                    ("target", plan.active_target),
+                    ("error", f"{plan.position_error_m * 1000:6.1f} mm"),
+                    ("completed", f"{plan.targets_completed}/{len(INSPECTION_TARGETS)}"),
+                    ("pelvis", f"{observation['pelvis_height']:.3f} m"),
+                    ("shelf hits", str(environment.shelf_contacts)),
+                ],
+            ))
+
+        try:
+            # One environment, one controller, one episode — scored by the same
+            # shared loop every other engine is scored by, and rendered from
+            # inside it. stop_requested reaches this episode, so a safe stop
+            # halts the run being recorded rather than some other one.
+            return run_episode(
+                environment, engine="MuJoCo",
+                max_duration_seconds=max_duration_seconds,
+                stop_requested=stop_requested, on_step=on_step,
+            )
         finally:
             renderer.close()
-
-        # The metrics come from the same shared loop every other engine uses, on
-        # a fresh environment, so the recorded run is scored exactly as the
-        # committed episodes are.
-        return run_episode(
-            AtlasInspectionEnvironment(), engine="MuJoCo",
-            max_duration_seconds=max_duration_seconds, stop_requested=stop_requested,
-        )
     return execute
 
 

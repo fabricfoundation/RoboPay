@@ -165,6 +165,26 @@ func (s *statusStore) subscribe(actionID string) <-chan ActionStatus {
 	return ch
 }
 
+// unsubscribe drops a waiter that will never be answered — registered before a
+// publish that then failed, so nothing is coming. Without this the channel and
+// its entry outlive the request that made them.
+func (s *statusStore) unsubscribe(actionID string, ch <-chan ActionStatus) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	waiting := s.waiters[actionID]
+	kept := waiting[:0]
+	for _, existing := range waiting {
+		if (<-chan ActionStatus)(existing) != ch {
+			kept = append(kept, existing)
+		}
+	}
+	if len(kept) == 0 {
+		delete(s.waiters, actionID)
+	} else {
+		s.waiters[actionID] = kept
+	}
+}
+
 // awaitResult waits for a subscribed answer, or gives up. The boolean
 // distinguishes "the robot said it failed" from "the robot never answered":
 // both refuse settlement, but only one of them is an execution result.
@@ -257,7 +277,8 @@ func executionTimeout(budgetSeconds float64) time.Duration {
 }
 
 var (
-	resultSubOnce sync.Once
+	resultSubMu   sync.Mutex
+	resultSubDone bool
 	// The subscription is declared once for the process, so the results it
 	// records have to outlive any single Handlers value. setupRouter builds a
 	// fresh Handlers on every config-driven restart, and a per-instance store
@@ -273,9 +294,20 @@ var (
 // declares the subscription once per process because setupRouter runs again on
 // every config-driven restart.
 func (h *Handlers) StartResultSubscriber() error {
-	var err error
-	resultSubOnce.Do(func() { err = h.declareResultSubscriber() })
-	return err
+	resultSubMu.Lock()
+	defer resultSubMu.Unlock()
+	if resultSubDone {
+		return nil
+	}
+	// A sync.Once here would burn the single attempt on a failure and leave the
+	// status endpoint answering pending for the life of the process. Retrying
+	// on the next restart is the difference between a transient Zenoh problem
+	// and a permanently deaf tunnel.
+	if err := h.declareResultSubscriber(); err != nil {
+		return err
+	}
+	resultSubDone = true
+	return nil
 }
 
 func (h *Handlers) declareResultSubscriber() error {

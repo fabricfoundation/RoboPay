@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -332,5 +333,33 @@ func TestAnUnconfiguredPayeeIsNotAdvertisedAsAnAddress(t *testing.T) {
 	_ = json.Unmarshal(res.Body.Bytes(), &profile)
 	if profile.PayTo != "" {
 		t.Fatalf("an unconfigured payee was advertised as %q", profile.PayTo)
+	}
+}
+
+// failingPublisher stands in for a transport that is down.
+type failingPublisher struct{ calls int }
+
+func (f *failingPublisher) Publish(string, []byte) error {
+	f.calls++
+	return errors.New("transport down")
+}
+
+// A waiter registered before a publish that then fails would otherwise sit in
+// the store for ever, since nothing is coming to answer it.
+func TestAFailedPublishLeavesNoWaiterBehind(t *testing.T) {
+	h, _ := newTestHandlers()
+	h.Publisher = &failingPublisher{}
+
+	res := post(h, `{"action_id":"act-9","robot_id":"r","skill_id":"s",`+
+		`"idempotency_key":"i","params":{"maxDurationSec":5}}`, nil)
+
+	if res.Code != http.StatusBadGateway {
+		t.Fatalf("a transport failure should answer 502, got %d", res.Code)
+	}
+	h.Statuses.mu.RLock()
+	remaining := len(h.Statuses.waiters)
+	h.Statuses.mu.RUnlock()
+	if remaining != 0 {
+		t.Fatalf("%d waiter(s) left for an action that never reached the robot", remaining)
 	}
 }

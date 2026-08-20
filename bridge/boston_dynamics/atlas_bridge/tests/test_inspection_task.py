@@ -162,7 +162,7 @@ def test_reported_speed_matches_the_hand_actually_moving():
     samples: list[float] = []
     previous: list = [None]
 
-    def record(_step: int, _observation: dict) -> None:
+    def record(_step: int, _observation: dict, _plan) -> None:
         hand = environment.end_effector()
         if previous[0] is not None:
             samples.append(

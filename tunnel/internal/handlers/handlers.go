@@ -187,6 +187,8 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	}
 	if err := pub.Publish(RobotActionTopic, eventBytes); err != nil {
 		h.Logger.Warn("failed to publish action event", zap.Error(err))
+		// Nothing is coming for a waiter whose action never reached the robot.
+		h.Statuses.unsubscribe(actionID, done)
 		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to reach the robot"})
 		return
 	}

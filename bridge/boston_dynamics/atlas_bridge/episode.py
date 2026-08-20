@@ -45,7 +45,7 @@ def run_episode(
     engine: str,
     max_duration_seconds: float = EPISODE_BUDGET_S,
     stop_requested: Callable[[], bool] | None = None,
-    on_step: Callable[[int, dict], None] | None = None,
+    on_step: Callable[[int, dict, object], None] | None = None,
 ) -> dict:
     """Drive one shelf-inspection episode and return its metrics."""
     controller = ShelfInspectionController(budget_seconds=max_duration_seconds)
@@ -86,7 +86,10 @@ def run_episode(
         previous_hand = hand
         control_steps += 1
         if on_step is not None:
-            on_step(control_steps, observation)
+            # The plan goes with it so a caller can render the decision the
+            # controller just made without running its own loop to get at it —
+            # a second loop would be a second episode.
+            on_step(control_steps, observation, plan)
         if environment.fall_detected or controller.finished:
             break
 
