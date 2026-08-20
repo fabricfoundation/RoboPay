@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -79,16 +80,28 @@ type resultEnvelope struct {
 type statusStore struct {
 	mu      sync.RWMutex
 	entries map[string]ActionStatus
+	waiters map[string][]chan ActionStatus
 }
 
 func newStatusStore() *statusStore {
-	return &statusStore{entries: make(map[string]ActionStatus)}
+	return &statusStore{
+		entries: make(map[string]ActionStatus),
+		waiters: make(map[string][]chan ActionStatus),
+	}
 }
 
 func (s *statusStore) put(status ActionStatus) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.entries[status.ActionID] = status
+	waiting := s.waiters[status.ActionID]
+	delete(s.waiters, status.ActionID)
+	s.mu.Unlock()
+	// Buffered by one, so a waiter that has already timed out cannot block the
+	// subscriber callback.
+	for _, ch := range waiting {
+		ch <- status
+		close(ch)
+	}
 }
 
 func (s *statusStore) get(actionID string) (ActionStatus, bool) {
@@ -96,6 +109,71 @@ func (s *statusStore) get(actionID string) (ActionStatus, bool) {
 	defer s.mu.RUnlock()
 	status, ok := s.entries[actionID]
 	return status, ok
+}
+
+// subscribe registers interest in an action's result before it is published,
+// and returns a channel that receives the answer exactly once. Registering
+// after publishing is a race the simulator wins whenever it answers quickly,
+// and losing that race is indistinguishable from a timeout.
+func (s *statusStore) subscribe(actionID string) <-chan ActionStatus {
+	ch := make(chan ActionStatus, 1)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.entries[actionID]; ok {
+		ch <- existing
+		close(ch)
+		return ch
+	}
+	s.waiters[actionID] = append(s.waiters[actionID], ch)
+	return ch
+}
+
+// awaitResult waits for a subscribed answer, or gives up. The boolean
+// distinguishes "the robot said it failed" from "the robot never answered":
+// both refuse settlement, but only one of them is an execution result.
+func awaitResult(done <-chan ActionStatus, timeout time.Duration) (ActionStatus, bool) {
+	select {
+	case status, ok := <-done:
+		return status, ok
+	case <-time.After(timeout):
+		return ActionStatus{}, false
+	}
+}
+
+// actionIdentity reads the correlation id and the episode budget out of the
+// request body. Both spellings are accepted because the relay forwards the
+// caller's body verbatim.
+func actionIdentity(body []byte) (string, float64) {
+	var envelope struct {
+		ActionID  string `json:"action_id"`
+		ActionID2 string `json:"actionId"`
+		Params    struct {
+			MaxDurationSec float64 `json:"maxDurationSec"`
+		} `json:"params"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return "", 0
+	}
+	id := envelope.ActionID
+	if id == "" {
+		id = envelope.ActionID2
+	}
+	return id, envelope.Params.MaxDurationSec
+}
+
+// executionTimeout bounds the wait by what the caller asked the robot to spend,
+// plus room for start-up and the answer coming back. ACTION_TIMEOUT_SECONDS
+// overrides it for a deployment whose robot is slower than this one.
+func executionTimeout(budgetSeconds float64) time.Duration {
+	if raw := os.Getenv("ACTION_TIMEOUT_SECONDS"); raw != "" {
+		if seconds, err := strconv.ParseFloat(raw, 64); err == nil && seconds > 0 {
+			return time.Duration(seconds * float64(time.Second))
+		}
+	}
+	if budgetSeconds <= 0 {
+		budgetSeconds = 60
+	}
+	return time.Duration((budgetSeconds + 45) * float64(time.Second))
 }
 
 var resultSubOnce sync.Once

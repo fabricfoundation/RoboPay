@@ -91,6 +91,11 @@ type Handlers struct {
 	// Execution results recorded from Zenoh, keyed by action_id.
 	Statuses  *statusStore
 	resultSub *zenoh.Subscriber
+
+	// Publisher is the transport used to reach the robot. Left nil in
+	// production, where the process-wide Zenoh session is used; set in tests so
+	// the settlement-gating contract can be exercised without a live session.
+	Publisher zenohPublisher
 }
 
 func NewHandlers(logger *zap.Logger) *Handlers {
@@ -141,17 +146,78 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		h.Logger.Warn("failed to marshal action event", zap.Error(err))
-	} else {
-		pub, err := getZenohPublisher()
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to encode action event",
+		})
+		return
+	}
+
+	actionID, budget := actionIdentity(body)
+
+	// Register interest before publishing. Registering afterwards is a race the
+	// simulator wins whenever it answers quickly, and losing it would look like
+	// a timeout.
+	var (
+		status ActionStatus
+		known  bool
+		done   <-chan ActionStatus
+	)
+	if actionID != "" && h.Statuses != nil {
+		done = h.Statuses.subscribe(actionID)
+	}
+
+	pub := h.Publisher
+	if pub == nil {
+		pub, err = getZenohPublisher()
 		if err != nil {
 			h.Logger.Warn("failed to initialize zenoh publisher", zap.Error(err))
-		} else if err := pub.Publish(RobotActionTopic, eventBytes); err != nil {
-			h.Logger.Warn("failed to publish action event", zap.Error(err))
+			c.JSON(http.StatusBadGateway, gin.H{"error": "robot transport unavailable"})
+			return
 		}
+	}
+	if err := pub.Publish(RobotActionTopic, eventBytes); err != nil {
+		h.Logger.Warn("failed to publish action event", zap.Error(err))
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to reach the robot"})
+		return
+	}
+
+	// The x402 middleware settles after this handler returns, and only when the
+	// response is not an error. Answering "accepted" before the robot has run
+	// would therefore settle a payment for work that may still fail — which is
+	// exactly what a paid action must not do. So this waits for the robot's own
+	// answer and reports a failure as a failure.
+	if done == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "action_id is required to correlate the robot's result",
+		})
+		return
+	}
+	status, known = awaitResult(done, executionTimeout(budget))
+
+	if !known {
+		c.JSON(http.StatusGatewayTimeout, gin.H{
+			"action_id": actionID,
+			"state":     "timeout",
+			"error":     "the robot did not answer before the deadline",
+		})
+		return
+	}
+	if status.State != stateSucceeded {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"action_id": actionID,
+			"state":     status.State,
+			"result":    status.Result,
+			"error":     "the robot did not complete the action",
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":    "accepted",
+		"status":    "succeeded",
+		"action_id": actionID,
+		"robot_id":  status.RobotID,
+		"skill_id":  status.SkillID,
+		"result":    status.Result,
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }

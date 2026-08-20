@@ -30,6 +30,7 @@ one rests on.
 | Idempotency | A payment-validated action actuates the robot once, across restarts | `tests/test_idempotency.py` |
 | Paid action | A live-facilitator-verified payment executed the skill and settled 0.001 USDC, bound to the `action_id` | `real-paid-run.json` |
 | Full relay path | Discovery, priced 402, paid action, execution and settlement through the **hosted Fabric relay** with nothing stood in for | `fabric-relay-e2e.json` |
+| Failure is not charged | A refused action returns an error, settles nothing, and the token contract confirms the authorization was never spent | `fabric-relay-failure.json` |
 | On-chain settlement | The settlement transaction, re-read from a public RPC | `real-paid-run.json`, `onchain-settlement.json` |
 
 ## 2. Model integrity
@@ -221,9 +222,14 @@ payment-validated action request
 | No payment | no (402) | **no** | no | no |
 | Wrong amount | no (400) | **no** | no | no |
 | Malformed `txHash` | no (400) | **no** | no | no |
-| Valid receipt | yes | yes | 3/3 targets | **yes** |
+| Valid receipt † | protocol checks only | yes | 3/3 targets | eligible, **not on chain** |
 | Replayed receipt | no (400) | **no** | no | no |
-| Undeclared parameter | yes | yes | rejected by the bridge | no |
+| Undeclared parameter | protocol checks only | yes | rejected by the bridge | no |
+
+† A synthetic receipt. This walkthrough proves the **transport**, so its accepted
+row is protocol-level and settles nothing — the artifact records
+`payment_verification: protocol_checks_only` and `settlement: eligible_not_on_chain`.
+Sections 8 and 9 are where a real payment is verified and real value moves.
 
 ### Two gates, and which one each result went through
 
@@ -245,11 +251,24 @@ that too — the protocol checks *do* accept the same payload, which is exactly 
 the facilitator layer exists. Verification also **fails closed**: an unreachable
 facilitator is treated as a rejection, never as an approval.
 
-What is **not** claimed: the accepting side of facilitator verification. That
-needs a signature from a funded operator wallet, which deliberately does not
-exist in this repository. The walkthrough's settled request therefore passed the
-protocol layer only, and the evidence file records that explicitly as
-`payment_verification: protocol_checks_only`.
+**Which layer proved what, in one place.** This walkthrough's accepted request
+passed the protocol layer only; it holds no wallet, so it settles nothing. The
+accepting side of facilitator verification is **not** proven here — it is proven
+in section 8.1 (`real-paid-run.json`, `isValid: true` from the live facilitator,
+0.001 USDC settled) and again in section 9 through the hosted relay. No claim in
+this section depends on a funded wallet, and none of it should be read as the
+profile's evidence for a real payment.
+
+The single source of truth for what has been paid for:
+
+| Path | Payment verification | Settlement |
+| --- | --- | --- |
+| `demo-e2e-evidence.json` (in-process) | protocol checks only | eligible, none |
+| `tunnel-e2e-evidence.json` (Zenoh transport) | protocol checks only, plus a **live** facilitator rejection | eligible, none |
+| `go-tunnel-e2e-evidence.json` (real tunnel) | live facilitator, refusals only | none |
+| `real-paid-run.json` (§8.1) | **live facilitator accepted** | **0.001 USDC on chain**, after execution |
+| `fabric-relay-e2e.json` (§9) | **live facilitator accepted, via the hosted relay** | **0.001 USDC on chain**, after execution |
+| `fabric-relay-failure.json` (§9.1) | live facilitator accepted | **none** — execution failed, and the token confirms the authorization was never spent |
 
 ### Idempotency
 
@@ -404,16 +423,18 @@ client
 
 | Step | Result |
 | --- | --- |
+| Action | `atlas-inspect-1787193393` |
 | Robot discovery | `GET /robots/{id}/skills` → 200, robot connected |
 | Skill discovery | `inspect_shelf`, `stop` |
 | Price discovery | 0.001 USDC — read from the response, not assumed |
 | Unpaid action | **402** from the relay, with payment requirements |
 | Quoted amount | `1000` raw, matching the discovered price |
-| Paid action | accepted |
+| Paid action | accepted after the robot finished |
 | Execution | 3/3 targets |
 | Terminal status | `succeeded`, correlated by `action_id` |
-| Settlement | [`0x34d34a9d…d4cc5`](https://sepolia.basescan.org/tx/0x34d34a9d931c92f32ad0e993fc5c72bf730cdadea6826ebf0de821fe41ed4cc5), block 45707426 |
-| Binding | on-chain nonce = `keccak256("atlas-inspect-1787183132")` |
+| Settlement | [`0x2eca1865…68cd63`](https://sepolia.basescan.org/tx/0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63), block 45712565 |
+| Binding | on-chain nonce = `keccak256("atlas-inspect-1787193393")` |
+| Token's own record | `authorizationState(...) = true` — the authorization was spent |
 
 **The price is discovered, not assumed.** The payment is built from the amount
 the relay returns in its 402, and the run asserts that amount equals the price
@@ -424,66 +445,55 @@ tunnel charges would fail this check rather than pass it quietly.
 `skill-catalog.json` — the file the registry publishes — so there is no second
 copy of the price to drift.
 
-**Settlement ordering differs between the two paid paths, and the artifacts say
-which is which.** On the relay path the tunnel's x402 middleware settles as part
-of *accepting* the payment, so settlement precedes execution. In
-`real_paid_run.py` the facilitator is asked to settle only after the episode
-reports every target reached. Both settlements are real and both are bound to
-their `action_id`; they are not the same guarantee, and calling them the same
-would be the more convenient description rather than the true one.
-
 **What the tunnel gained to make this possible.** Three read-only endpoints —
-`GET /robot`, `GET /skills`, `GET /action/:action_id/status`. `POST /action` is
-unchanged. The status endpoint is not synthesised: the tunnel subscribes to the
-same `robot/tunnel/result` topic the simulator publishes on and stores what
-arrives, keyed by `action_id`; an unanswered action reads as `pending` and a
-failed one as `failed`.
+`GET /robot`, `GET /skills`, `GET /action/:action_id/status`. The status
+endpoint is not synthesised: the tunnel subscribes to the same
+`robot/tunnel/result` topic the simulator publishes on and stores what arrives,
+keyed by `action_id`; an unanswered action reads as `pending` and a failed one as
+`failed`.
 
-### 9.1 The unhappy path, and what it costs
+### 9.1 A failed action is not paid for
 
 `fabric-relay-failure.json` sends a paid action whose `maxDurationSec` is below
-the bound the catalogue declares. Two separate things come out of it, and they
-should not be reported as one.
-
-**Failure semantics hold.** The bridge refuses the action with
-`INVALID_DURATION`, and the refusal reaches the caller through the relay's own
-status endpoint as `state: failed`, carrying the real error code rather than a
-generic one, correlated by `action_id`. Nothing was smoothed into a success.
-
-**Payment safety does not hold on this path, and that is worth saying plainly.**
-The action was refused, and it was still paid for:
+the bound the catalogue declares, through the same relay, with the same wallet.
 
 | | |
 | --- | --- |
-| Action | `atlas-inspect-1787183907` |
+| Action | `atlas-inspect-1787193428` |
 | Execution | refused — `INVALID_DURATION` |
-| Status reported | `failed`, at `2026-08-19T23:58:31Z` |
-| Settlement | [`0xdb69d2d4…2a0aec`](https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec), block 45707813 |
-| Transferred | 0.001 USDC |
+| Tunnel's answer | **HTTP 502** |
+| Status endpoint | `failed`, carrying that error code, correlated by `action_id` |
+| Settlement | **none** — no transaction exists |
+| Token's own record | `authorizationState(...) = false` |
 
-Verdict, stated as two results rather than one: **execution failure semantics
-PASS**; **post-execution settlement semantics FAIL on the hosted relay path**,
-recorded here as the profile's one known payment-safety boundary. Nothing in
-this profile claims compliance with post-execution settlement on that path.
+The last row is the one that matters. "We recorded no transaction hash" is an
+absence of evidence; it proves nothing about whether the payer was charged.
+EIP-3009 tokens keep their own map of spent authorization nonces, so the
+question can be put to the contract instead — and because the nonce is
+`keccak256(action_id)`, anyone can recompute it from the action id alone and ask
+USDC directly whether this action was ever paid for. The answer is no.
 
-This is a property of the tunnel's x402 middleware, which settles as part of
-*accepting* a payment, before the robot is reached. It is not a property of this
-robot bridge: `real_paid_run.py` asks the facilitator to settle only after the
-episode reports every target reached, and section 8.1 is that run. The profile
-therefore contains a path with execution-gated settlement and a path without
-one, and the artifacts say which is which rather than presenting the safer
-ordering as though it were universal.
+**How the guarantee is enforced.** The x402 middleware settles after the route
+handler returns, and only when the response is not an error, so the status code
+the tunnel chooses *is* the settlement decision. `POST /action` therefore waits
+for the robot's own answer over Zenoh before replying: `200` when every target
+was reached, `502` when the robot reports a failure, `504` when it never
+answers, and `400` when the request carries no `action_id` — an outcome that
+cannot be correlated cannot be known, so it cannot be paid for either. Six tests
+in `tunnel/internal/handlers/handlers_test.go` hold that contract without
+needing a wallet or a chain.
 
-An operator who needs settlement to follow execution has to defer it past the
-middleware; nothing in this profile can enforce that from behind the tunnel.
+An earlier revision of this profile settled on *acceptance* instead, before the
+robot ran, and a refused action was still charged. That was measured, not
+suspected, and it is what prompted the change.
 
 **On why the failure is a refused parameter rather than a timeout.** The
 catalogue declares `maxDurationSec` minimum 5, and at 5 seconds the episode
-completes all three targets — measured, not assumed. There is therefore no
-in-bounds duration that produces an execution timeout, which is a property of a
-well-chosen bound rather than a gap. Execution-level failures that must not
-settle — falls, shelf contact, safe stop — are covered in section 6 and by
-`tests/test_x402_payment_safety.py`.
+completes all three targets — measured over three runs, not assumed. There is
+therefore no in-bounds duration that produces an execution timeout, which is a
+property of a well-chosen bound rather than a gap. Execution-level failures that
+must not settle — falls, shelf contact, safe stop — are covered in section 6 and
+by `tests/test_x402_payment_safety.py`.
 
 ## 10. Reproducing
 

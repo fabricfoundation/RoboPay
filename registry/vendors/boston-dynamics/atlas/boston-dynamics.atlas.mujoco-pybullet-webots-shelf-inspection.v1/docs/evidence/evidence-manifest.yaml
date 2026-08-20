@@ -71,12 +71,12 @@ artifacts:
     sha256: b5a69f69115f1b9bccedefa230fba9948f177908a0dbfe0ce8ac6ec8113c6e42
   - path: docs/evidence/fabric-relay-e2e.json
     description: "The whole path with nothing stood in for: hosted Fabric relay, robot and skill discovery, priced 402, paid action, Zenoh, Atlas 3/3, relay terminal status, and 0.001 USDC settled bound to the action_id"
-    bytes: 10893
-    sha256: 356d223170ee72d08f3fe91a4979b67e962f807d1eb6469326ecc574a3cb253f
+    bytes: 14601
+    sha256: e210aff7554c31977260b0a80803f3f4a7996e517324718e248208c31f30d13a
   - path: docs/evidence/fabric-relay-failure.json
     description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, reported failed with its real reason and correlated by action_id — and settled anyway, because this path settles on acceptance"
-    bytes: 8951
-    sha256: 7e5fe1ddb8d4cb9b3a198ed7a48bf7bf11521ca7f65c0cf241c4ebcafbda0afb
+    bytes: 7921
+    sha256: db98764c932b1ac3868fa09b0e1cd36b359afb641bbaeb9d809e69a734c222e2
 settlement:
   paid_action:
     note: >-
@@ -105,30 +105,29 @@ settlement:
     note: >-
       The settlement for the action that ran through the hosted Fabric relay.
       Its nonce is keccak256(action_id) too, so it is bound to that action and
-      not to any other. Settled by the tunnel's own middleware as part of
-      accepting the payment, which on this path happens before the episode runs.
-    action_id: "atlas-inspect-1787183132"
-    transaction: "0x34d34a9d931c92f32ad0e993fc5c72bf730cdadea6826ebf0de821fe41ed4cc5"
-    explorer: https://sepolia.basescan.org/tx/0x34d34a9d931c92f32ad0e993fc5c72bf730cdadea6826ebf0de821fe41ed4cc5
-    block: 45707426
+      not to any other. Settled by the tunnel's own middleware after the episode
+      reported every target reached.
+    action_id: "atlas-inspect-1787193393"
+    transaction: "0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63"
+    explorer: https://sepolia.basescan.org/tx/0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63
+    block: 45712565
     transferred: 0.001 USDC
     payer: "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
     payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
-    authorization_nonce: "0xf9b407f71dcb43a228accbb062920bf60425237c5bce55c7acf66a9567e08730"
+    authorization_nonce: "0xcce2635b234375a62d581574a79815e21c1db2753766cf6f777263f692545e82"
     submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
-  refused_action_still_settled:
+  refused_action_not_settled:
     note: >-
-      The settlement for an action the bridge refused. Kept because it is the
-      uncomfortable half: the tunnel's x402 middleware settles when it accepts a
-      payment, before the robot is reached, so a refused action is still paid
-      for. A property of the middleware, not of this bridge — real_paid_run.py
-      settles only after an episode reports every target reached.
-    action_id: "atlas-inspect-1787183907"
+      The failing counterpart of the run above, through the same relay with the
+      same wallet. The bridge refused it, the tunnel answered 502, and nothing
+      settled. The proof is the token's own record rather than the absence of a
+      hash on our side: authorizationState(payer, keccak256(action_id)) is
+      false, so USDC itself says this action was never paid for.
+    action_id: "atlas-inspect-1787193428"
     execution: "refused — INVALID_DURATION"
-    transaction: "0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec"
-    explorer: https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec
-    block: 45707813
-    transferred: 0.001 USDC
+    tunnel_response: 502
+    transaction: null
+    authorization_spent_on_chain: false
   earlier_transfer:
     note: >-
       An earlier 1.0 USDC transfer between two test wallets, kept because the

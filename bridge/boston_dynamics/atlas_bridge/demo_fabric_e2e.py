@@ -76,7 +76,9 @@ USER_AGENT = "robopay-atlas-bridge/1.0"
 EPISODE_SECONDS = 20.0
 TUNNEL_CONNECT_TIMEOUT_S = 90.0
 STATUS_TIMEOUT_S = 300.0
-HTTP_TIMEOUT_S = 60.0
+#: POST /action now blocks until the robot answers, so this has to outlast
+#: the episode budget plus the tunnel's own margin.
+HTTP_TIMEOUT_S = 240.0
 TERMINAL_STATES = {"succeeded", "failed", "timeout", "settlement_failed"}
 
 
@@ -319,6 +321,62 @@ def confirm_on_chain(tx_hash: str, action_id: str) -> dict:
     }
 
 
+def authorization_used_on_chain(payer: str, action_id: str,
+                                settled_in_block: int = 0) -> dict:
+    """Ask the token contract whether this authorization was ever spent.
+
+    Proving that a failed action settled is easy — there is a transaction to
+    point at. Proving it did *not* is harder, because "we recorded no hash" is
+    an absence of evidence rather than evidence of absence. EIP-3009 tokens keep
+    their own map of spent authorization nonces and expose it as
+    ``authorizationState(authorizer, nonce)``, so the question can be put to the
+    contract instead: for a nonce derived from the action id, a false answer is
+    the token itself saying nobody was charged for this action.
+
+    When a settlement exists, the question is pinned to the block that contains
+    it and asked only once the chain head has moved past that block. A public
+    endpoint will serve a receipt before it has applied the block's state, and
+    answering from that window reports a spent authorization as unspent — which
+    is exactly the wrong direction for this check to be wrong in. Pinning to a
+    block keeps the answer deterministic rather than retrying until it agrees.
+    """
+    from eth_utils import keccak
+
+    nonce = keccak(text=action_id)
+    selector = "0x" + keccak(text="authorizationState(address,bytes32)").hex()[:8]
+    data = selector + payer[2:].lower().rjust(64, "0") + nonce.hex()
+
+    tag = "latest"
+    if settled_in_block:
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            try:
+                head = int(_rpc("eth_blockNumber", []), 16)
+            except Exception:  # noqa: BLE001 - keep waiting for a usable answer
+                head = 0
+            if head >= settled_in_block + 2:
+                break
+            time.sleep(3)
+        tag = hex(settled_in_block)
+
+    try:
+        raw = _rpc("eth_call", [{"to": USDC_BASE_SEPOLIA, "data": data}, tag])
+        used = bool(int(raw, 16))
+        answered = True
+    except Exception:  # noqa: BLE001 - an unanswered question is not a proof
+        used, answered = False, False
+    return {
+        "authorizer": payer,
+        "nonce": "0x" + nonce.hex(),
+        "nonce_derivation": "keccak256(action_id)",
+        "contract": USDC_BASE_SEPOLIA,
+        "method": "authorizationState(address,bytes32)",
+        "queried_at_block": tag,
+        "used": used,
+        "queried": answered,
+    }
+
+
 # -- the run ----------------------------------------------------------------
 def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
         max_duration: float = EPISODE_SECONDS,
@@ -413,18 +471,24 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
         # the result in this header — so in *this* path settlement precedes
         # execution, unlike real_paid_run.py where it follows it.
         payment_response = _decode_header(_header(paid_headers, "PAYMENT-RESPONSE"))
-        print(f"  [paid]      HTTP {status}  settled={payment_response.get('success')}"
-              f"  {payment_response.get('errorReason') or ''}")
+        settled = payment_response.get("success") is True
+        print(f"  [paid]      HTTP {status}  settled={settled}"
+              f"  {payment_response.get('errorReason') or paid_body.get('state') or ''}")
         steps.append({
             "step": "paid_action", "http_status": status,
             "accepted": status in (200, 202),
+            "settled": settled,
+            "settlement_tx_hash": payment_response.get("transaction") or None,
             "action_id_echoed": paid_body.get("action_id"),
             "payment_response": payment_response,
-            "settlement_ordering": "settled on acceptance by the tunnel middleware, "
-                                   "before the episode runs",
+            "reported_state": paid_body.get("state"),
+            # The tunnel waits for the robot before answering, and the x402
+            # middleware settles only when that answer is not an error. So the
+            # settlement decision follows the execution outcome.
+            "settlement_ordering": "settled after execution, and only on success",
             "body": paid_body,
         })
-        if status not in (200, 202):
+        if status not in (200, 202) and not expect_failure:
             return _evidence(robot_id, action_id, payee, discovery, steps,
                              None, None, payer=payer)
 
@@ -458,7 +522,7 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
             "read_from": "hosted Fabric relay",
         })
 
-        # 5. The settlement the tunnel performed, verified on chain.
+        # 5. The settlement the tunnel performed — or did not.
         tx_hash = payment_response.get("transaction") or ""
         if tx_hash:
             chain = confirm_on_chain(tx_hash, action_id)
@@ -466,6 +530,17 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
                   f"  {chain['transfer'].get('amount_usdc')} USDC"
                   f"  bound to action_id: {chain['nonce_binds_settlement_to_action']}")
             steps.append({"step": "settlement", "tx_hash": tx_hash, **chain})
+
+        # Asked last, and deliberately so: a settlement that has been submitted
+        # but not yet mined has not spent its authorization, so putting this
+        # question before the receipt is confirmed answers about a transaction
+        # that has not landed. On the failing path there is no receipt to wait
+        # for and the answer is immediate.
+        authorization = authorization_used_on_chain(
+            payer, action_id, (chain or {}).get("block_number", 0)
+        )
+        print(f"  [token]     authorization spent on chain: {authorization['used']}")
+        steps.append({"step": "authorization_state", **authorization})
         return _evidence(robot_id, action_id, payee, discovery, steps,
                          terminal, chain, payer=payer, expect_failure=expect_failure)
     finally:
@@ -506,16 +581,12 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
     failed = (terminal or {}).get("state") == "failed"
     if not dry_run:
         evidence["payment_safety"] = {
-            "settlement_ordering": "the tunnel's x402 middleware settles when it "
-                                   "accepts the payment, before the robot runs",
+            "settlement_ordering": "POST /action waits for the robot, and the x402 "
+                                   "middleware settles only when that answer is not "
+                                   "an error — so settlement follows execution",
             "execution_failed": failed,
             "settled": settled,
-            # Stated plainly because it is the uncomfortable half: on this path a
-            # refused or failed action is still paid for. It is a property of the
-            # relay/tunnel middleware, not of the robot bridge — real_paid_run.py
-            # settles only after an episode reports every target reached.
             "settled_despite_failure": failed and settled,
-            "execution_gated_settlement_shown_in": "real-paid-run.json",
         }
     checks = [
         ("the relay reported the robot connected", discovery.get("robot_discovered") is True),
@@ -533,19 +604,25 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
          bool(step("unpaid_action").get("payment_required_header"))),
     ]
     if not dry_run and expect_failure:
-        # The unhappy path: whatever went wrong must reach the status endpoint
-        # as a failure carrying its real reason, rather than being smoothed
-        # into a success or into a generic error.
+        # The unhappy path, and the property that matters most about it: a paid
+        # action that does not succeed must not be settled.
+        paid = step("paid_action")
         result = (terminal or {}).get("result") or {}
         checks += [
-            ("the paid action was accepted", bool(step("paid_action").get("accepted"))),
+            ("the action was reported as failed, not accepted",
+             paid.get("http_status", 0) >= 400 and not paid.get("accepted")),
+            ("the tunnel did not settle a failed action", paid.get("settled") is False),
+            ("no settlement transaction exists", not paid.get("settlement_tx_hash")),
+            ("nothing was transferred on chain", chain is None),
+            # The token's own record, so the absence is evidence rather than
+            # merely an absent record on our side.
+            ("the token contract has no record of the authorization being spent",
+             step("authorization_state").get("queried") is True
+             and step("authorization_state").get("used") is False),
             ("the status endpoint reported the action failed",
              step("terminal_status").get("state") == "failed"),
             ("the status carries the real reason, not a generic one",
              result.get("success") is False and bool(result.get("error_code"))),
-            ("no successful execution was reported",
-             result.get("success") is not True
-             and not step("terminal_status").get("targets_completed")),
             ("the failed action is still correlated by action_id",
              bool(step("terminal_status").get("correlated"))),
         ]
@@ -566,6 +643,8 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
              bool(chain and chain.get("confirmed"))),
             ("the on-chain nonce is keccak256(action_id)",
              bool(chain and chain.get("nonce_binds_settlement_to_action"))),
+            ("the token contract records the authorization as spent",
+             step("authorization_state").get("used") is True),
         ]
     print("\n" + "=" * 74)
     print("  INVARIANTS")
