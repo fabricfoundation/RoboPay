@@ -1,8 +1,12 @@
 schemaVersion: skill-contract-test.v1
 profileId: boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1
 description: >-
-  Reviewer-facing contract for inspect_shelf. Every expectation below is
-  enforced by an executable test in bridge/boston_dynamics/atlas_bridge/tests.
+  Reviewer-facing contract for inspect_shelf. Every expectation below is tied to
+  something executable — a Python test under bridge/boston_dynamics/atlas_bridge/tests,
+  a Go test under tunnel/internal/handlers, a demo that exits non-zero when its
+  invariants fail, or a verification script that re-reads the chain. The
+  enforcedBy field on each case names which one, so nothing here rests on this
+  document alone.
 cases:
   - name: unpaid_request_is_refused
     given: an inspect_shelf request with no payment header
