@@ -1,0 +1,58 @@
+schema_version: 1
+profile_id: agibot.x2-ultra.mujoco-webots-active-inspection.v1
+status: captured
+
+execution:
+  source_commit: 85fc5106bc40622985b7a62f7d23f82dbe489a08
+  captured_at: "2026-08-19T06:31:45Z"
+  robot_id: agibot-x2-base-sepolia-1787121070
+  action_id: x2-active-inspection-1787121070
+  cold_start: true
+  warmup_action: false
+  unpaid_http_status: 402
+  paid_http_status: 202
+  terminal_state: succeeded
+  settled: true
+  targets_confirmed: [left, center, right]
+
+settlement:
+  network: "eip155:84532"
+  transaction_hash: "0x03032a66d22f4c110b13125882ac008c63f681a885a22a7d9b874469d6d8d8e5"
+  basescan_url: "https://sepolia.basescan.org/tx/0x03032a66d22f4c110b13125882ac008c63f681a885a22a7d9b874469d6d8d8e5"
+
+visual_recording:
+  status: captured
+  filename: agibot-x2-current-head-85fc510.mp4
+  attachment_url: "https://raw.githubusercontent.com/RobotDeveloper1/RoboPay/agibot-x2-tier-1/registry/vendors/agibot/x2/agibot.x2-ultra.mujoco-webots-active-inspection.v1/docs/evidence/agibot-x2-current-head-85fc510.mp4"
+  sha256: "66205eb1596fabec391baa84c49bf7734fb1cf3587a23a73202d54c8c4cfcaf6"
+  size_bytes: 2769952
+  duration_seconds: 43.966667
+  resolution: 1280x720
+  layout: stable simultaneous terminal and native MuJoCo viewer
+  presentation:
+    start_hold_seconds: 4
+    per_target_hold_seconds: 1
+    final_hold_seconds: 2
+  visible_sequence:
+    - exact source commit before discovery
+    - unpaid HTTP 402 before actuation
+    - first paid HTTP 202 with correlated action ID and no warm-up action
+    - distinct left, center, and right live-controller poses
+    - correlated successful result and settled=true only after success
+    - matching BaseScan transaction success page
+
+trusted_json:
+  status: captured
+  path: docs/evidence/base_sepolia_result_1787121105.json
+  source_runtime_sha256: "931f5e8aaf9a3992c6f97087433d1d4e63877f48fa3e89125cfb03f71a14c178"
+  versioned_lf_sha256: "267255d0589c4c1c1ca2031a86950f904371fe114f2a51dc437ef9e89cfea451"
+  normalization_note: >-
+    The Windows runtime artifact uses CRLF line endings; Git versions the
+    documentation copy with LF. Parsed JSON content is identical.
+
+binding_note: >-
+  The recording executes source commit 85fc5106bc40622985b7a62f7d23f82dbe489a08.
+  Later commits only add these immutable evidence artifacts and make official
+  model hash verification invariant to Git LF/CRLF checkout conversion; they
+  do not change the Tunnel, controller, simulator behavior, profile contract,
+  or recorded execution path.
