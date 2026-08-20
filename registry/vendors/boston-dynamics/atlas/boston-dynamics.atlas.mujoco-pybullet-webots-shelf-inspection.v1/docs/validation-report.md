@@ -431,17 +431,17 @@ client
 
 | Step | Result |
 | --- | --- |
-| Action | `atlas-inspect-1787193393` |
+| Action | `atlas-inspect-1787197727` |
 | Robot discovery | `GET /robots/{id}/skills` → 200, robot connected |
 | Skill discovery | `inspect_shelf`, `stop` |
 | Price discovery | 0.001 USDC — read from the response, not assumed |
 | Unpaid action | **402** from the relay, with payment requirements |
 | Quoted amount | `1000` raw, matching the discovered price |
-| Paid action | accepted after the robot finished |
+| Paid action | **202 accepted** immediately, before the robot finished |
 | Execution | 3/3 targets |
 | Terminal status | `succeeded`, correlated by `action_id` |
-| Settlement | [`0x2eca1865…68cd63`](https://sepolia.basescan.org/tx/0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63), block 45712565 |
-| Binding | on-chain nonce = `keccak256("atlas-inspect-1787193393")` |
+| Settlement | [`0xfd9eda75…1e6940`](https://sepolia.basescan.org/tx/0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940), block 45714728 |
+| Binding | on-chain nonce = `keccak256("atlas-inspect-1787197727")` |
 | Token's own record | `authorizationState(...) = true` — the authorization was spent |
 
 **The price is discovered, not assumed.** The payment is built from the amount
@@ -467,9 +467,9 @@ the bound the catalogue declares, through the same relay, with the same wallet.
 
 | | |
 | --- | --- |
-| Action | `atlas-inspect-1787193428` |
+| Action | `atlas-inspect-1787197752` |
 | Execution | refused — `INVALID_DURATION` |
-| Tunnel's answer | **HTTP 502** |
+| Tunnel's answer | **HTTP 202**, immediately — acceptance is about the request, not the outcome |
 | Status endpoint | `failed`, carrying that error code, correlated by `action_id` |
 | Settlement | **none** — no transaction exists |
 | Token's own record | `authorizationState(...) = false` |
@@ -481,15 +481,21 @@ question can be put to the contract instead — and because the nonce is
 `keccak256(action_id)`, anyone can recompute it from the action id alone and ask
 USDC directly whether this action was ever paid for. The answer is no.
 
-**How the guarantee is enforced.** The x402 middleware settles after the route
-handler returns, and only when the response is not an error, so the status code
-the tunnel chooses *is* the settlement decision. `POST /action` therefore waits
-for the robot's own answer over Zenoh before replying: `200` when every target
-was reached, `502` when the robot reports a failure, `504` when it never
-answers, and `400` when the request carries no `action_id` — an outcome that
-cannot be correlated cannot be known, so it cannot be paid for either. Six tests
-in `tunnel/internal/handlers/handlers_test.go` hold that contract without
-needing a wallet or a chain.
+**How the guarantee is enforced.** The tunnel contract answers `202` the moment
+an action is accepted, so the HTTP response cannot carry the outcome and must
+not carry the payment decision either. The stock x402 gin middleware settles as
+soon as a protected route answers anything under 400, which would charge the
+payer on that `202` before the robot had run. The tunnel therefore replaces it
+with a gate that keeps the `402`/verify half exactly as it was — an unpaid
+request still gets `402` with the advertised requirements, and a payment the
+live facilitator rejects still never reaches the robot — but hands a settlement
+callback to the action handler instead of settling. A background watcher invokes
+that callback only when the correlated result reports success; a failure or a
+silent robot leaves the authorization signed and unspent, and both are readable
+from the status endpoint. Eight tests in
+`tunnel/internal/handlers/handlers_test.go` hold that contract without needing a
+wallet or a chain, including that a refused request is never published to Zenoh
+at all.
 
 An earlier revision of this profile settled on *acceptance* instead, before the
 robot ran, and a refused action was still charged. That was measured, not

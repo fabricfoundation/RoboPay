@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -185,37 +186,67 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		return
 	}
 
-	// The x402 middleware settles after this handler returns, and only when the
-	// response is not an error. Answering "accepted" before the robot has run
-	// would therefore settle a payment for work that may still fail — which is
-	// exactly what a paid action must not do. So this waits for the robot's own
-	// answer and reports a failure as a failure.
-	status, known := awaitResult(done, executionTimeout(budget))
+	// Accepted, not finished. The robot runs asynchronously and the terminal
+	// outcome is read back from GET /action/{action_id}/status, correlated by
+	// this id. Settlement is deliberately not part of this response: the watcher
+	// below runs it only if the simulator reports success, so a failed or
+	// timed-out episode leaves the authorization signed and unspent.
+	var settle SettleFunc
+	if value, ok := c.Get("x402_settle"); ok {
+		if fn, ok := value.(SettleFunc); ok {
+			settle = fn
+		}
+	}
+	go h.watchExecution(actionID, done, executionTimeout(budget), settle)
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"status":     "accepted",
+		"action_id":  actionID,
+		"robot_id":   h.RobotID,
+		"status_url": "/action/" + actionID + "/status",
+		"timestamp":  time.Now().Format(time.RFC3339),
+	})
+}
+
+// watchExecution waits for the correlated result and decides, once, whether the
+// payment is settled. It is the whole of the no-settle-on-failure guarantee:
+// nothing else in this tunnel can move money.
+func (h *Handlers) watchExecution(actionID string, done <-chan ActionStatus,
+	timeout time.Duration, settle SettleFunc) {
+	status, known := awaitResult(done, timeout)
 
 	if !known {
-		c.JSON(http.StatusGatewayTimeout, gin.H{
-			"action_id": actionID,
-			"state":     "timeout",
-			"error":     "the robot did not answer before the deadline",
+		h.Statuses.put(ActionStatus{
+			ActionID:  actionID,
+			RobotID:   h.RobotID,
+			State:     stateTimeout,
+			UpdatedAt: time.Now().UTC().Format(time.RFC3339),
 		})
+		h.Logger.Warn("no result before the deadline; not settling",
+			zap.String("action_id", actionID))
 		return
 	}
 	if status.State != stateSucceeded {
-		c.JSON(http.StatusBadGateway, gin.H{
-			"action_id": actionID,
-			"state":     status.State,
-			"result":    status.Result,
-			"error":     "the robot did not complete the action",
-		})
+		h.Logger.Info("execution did not succeed; not settling",
+			zap.String("action_id", actionID), zap.String("state", status.State))
+		return
+	}
+	if settle == nil {
+		h.Logger.Warn("no settlement callback for a successful action",
+			zap.String("action_id", actionID))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":    "succeeded",
-		"action_id": actionID,
-		"robot_id":  status.RobotID,
-		"skill_id":  status.SkillID,
-		"result":    status.Result,
-		"timestamp": time.Now().Format(time.RFC3339),
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), settlementTimeout)
+	defer cancel()
+	record, err := settle(ctx)
+	if err != nil {
+		h.Logger.Warn("settlement failed after a successful action",
+			zap.String("action_id", actionID), zap.Error(err))
+		h.Statuses.settled(actionID, nil, err.Error())
+		return
+	}
+	h.Logger.Info("settled after success",
+		zap.String("action_id", actionID), zap.String("tx", record.Transaction))
+	h.Statuses.settled(actionID, record, "")
 }

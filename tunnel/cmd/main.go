@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -203,14 +205,24 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		},
 	}
 
-	router.Use(ginmw.X402Payment(ginmw.Config{
-		Routes:      routes,
-		Facilitator: facilitatorClient,
-		Schemes: []ginmw.SchemeConfig{
-			{Network: x402.Network(cfg.Network), Server: evm.NewExactEvmScheme()},
-		},
-		Timeout: 30 * time.Second,
-	}))
+	// The stock gin middleware settles as soon as the handler returns anything
+	// under 400. The tunnel contract answers 202 the moment an action is
+	// accepted, long before the robot has finished, so that middleware would
+	// charge the payer for work that may still fail. This gate does the same
+	// 402/verify half synchronously and hands the settlement to the handler,
+	// which runs it only once the correlated result reports success.
+	paymentServer := x402http.Newx402HTTPResourceServer(
+		routes, x402.WithFacilitatorClient(facilitatorClient),
+	)
+	paymentServer.Register(x402.Network(cfg.Network), evm.NewExactEvmScheme())
+	{
+		initCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		if err := paymentServer.Initialize(initCtx); err != nil {
+			logger.Warn("failed to initialise the x402 payment server", zap.Error(err))
+		}
+		cancel()
+	}
+	router.Use(deferredSettlementGate(paymentServer, logger))
 
 	h := handlers.NewHandlers(logger)
 	h.RobotID = cfg.RobotID
@@ -233,6 +245,87 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 	}
 
 	return router
+}
+
+// deferredSettlementGate replaces the stock x402 middleware for one reason: the
+// stock one settles on response, and this tunnel answers 202 before the robot
+// has run. It performs the same work up to and including verification — an
+// unpaid request still gets 402 with the advertised requirements, and a payment
+// the facilitator rejects still never reaches the robot — but instead of
+// settling it puts a handlers.SettleFunc in the request context. The action
+// handler calls that function only after the simulator reports success, so a
+// failed or timed-out episode leaves the authorization signed and unspent.
+func deferredSettlementGate(server *x402http.HTTPServer, logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		reqCtx := x402http.HTTPRequestContext{
+			Adapter: ginmw.NewGinAdapter(c),
+			Path:    c.Request.URL.Path,
+			Method:  c.Request.Method,
+		}
+		if !server.RequiresPayment(reqCtx) {
+			c.Next()
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+		defer cancel()
+		result := server.ProcessHTTPRequest(ctx, reqCtx, nil)
+
+		switch result.Type {
+		case x402http.ResultNoPaymentRequired:
+			c.Next()
+		case x402http.ResultPaymentError:
+			for key, value := range result.Response.Headers {
+				c.Header(key, value)
+			}
+			if result.Response.IsHTML {
+				body, _ := result.Response.Body.(string)
+				c.Data(result.Response.Status, "text/html; charset=utf-8", []byte(body))
+			} else {
+				c.JSON(result.Response.Status, result.Response.Body)
+			}
+			c.Abort()
+		case x402http.ResultPaymentVerified:
+			if result.PaymentPayload == nil || result.PaymentRequirements == nil {
+				logger.Warn("verified payment carried no payload or requirements; refusing")
+				c.AbortWithStatusJSON(http.StatusPaymentRequired, gin.H{
+					"error": "payment verification incomplete",
+				})
+				return
+			}
+			c.Set("x402_payload", *result.PaymentPayload)
+			c.Set("x402_requirements", *result.PaymentRequirements)
+			// Copied by value: the settle callback outlives this request, and
+			// gin recycles the context as soon as the 202 goes out.
+			payload := *result.PaymentPayload
+			requirements := *result.PaymentRequirements
+			declared := result.DeclaredExtensions
+			c.Set("x402_settle", handlers.SettleFunc(
+				func(settleCtx context.Context) (*handlers.SettlementRecord, error) {
+					settlement := server.ProcessSettlement(
+						settleCtx, payload, requirements, nil, nil, declared,
+					)
+					if settlement == nil {
+						return nil, errors.New("settlement returned no result")
+					}
+					if !settlement.Success {
+						reason := settlement.ErrorReason
+						if reason == "" {
+							reason = "settlement failed"
+						}
+						return nil, errors.New(reason)
+					}
+					return &handlers.SettlementRecord{
+						Transaction: settlement.Transaction,
+						Network:     string(settlement.Network),
+						Payer:       settlement.Payer,
+					}, nil
+				}))
+			c.Next()
+		default:
+			c.Next()
+		}
+	}
 }
 
 // RegisterAllRoutes registers all real handlers on the router.

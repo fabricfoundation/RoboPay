@@ -28,9 +28,10 @@ functions:
     url: /action
     body:
       action: string
+      skill_id: string        # required; never inferred from action
       robot_id: string
       params: object          # bounded duration
-      action_id: string
+      action_id: string       # required; the result is correlated on it
       idempotency_key: string
     payment:
       unpaidStatus: 402
@@ -42,26 +43,24 @@ functions:
       PAYMENT-SIGNATURE: string
     body: same as request_robot_action
     returns:
-      "200": the episode completed every target; carries the correlated result
+      "202": >-
+        accepted/pending, carrying action_id and status_url; the terminal
+        outcome is read from GET /action/{action_id}/status
       "400": no action_id to correlate on, or unparseable body; nothing published
       "402": payment required
       "403": skill not allowed or wrong robot
       "409": replay detected
       "429": rate limited
-      "502": the robot reported a failure; carries its error code
       "503": allowlist, idempotency store, or result channel unavailable
-      "504": the robot did not answer before the deadline
     settlement: >-
-      Only on 200. The x402 middleware settles after this route returns and
-      skips settlement when the response is an error, so the status code above
-      is the settlement decision: a failure, a timeout or an uncorrelatable
-      request cannot be paid for.
-    why_this_is_synchronous: >-
-      An asynchronous 202 would be the more usual shape, and an earlier revision
-      returned one. It cannot be used here: the middleware settles as soon as
-      this route answers without an error, so a 202 charges the payer before the
-      robot has run and a subsequently failed episode is still paid for — which
-      was measured, not assumed. Deferring settlement past the middleware is not
-      available to a route behind it, so the route waits for the robot instead.
-      The correlated result is also readable at any time from
-      GET /action/{action_id}/status, which reports pending until it arrives.
+      Deferred until the correlated result carries status success. A failed,
+      timed-out or safely stopped episode never settles.
+    how_settlement_is_deferred: >-
+      The stock x402 gin middleware settles as soon as a protected route answers
+      anything under 400, which would charge the payer on the 202 above, before
+      the robot had run. The tunnel therefore replaces it with a gate that keeps
+      the 402/verify half unchanged but hands a settlement callback to the action
+      handler; a background watcher invokes that callback only after the
+      correlated result reports success. An earlier revision of this profile
+      settled on acceptance and a refused action was charged for — measured, not
+      assumed, which is why the gate exists.

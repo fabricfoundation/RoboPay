@@ -80,6 +80,9 @@ STATUS_TIMEOUT_S = 300.0
 #: the episode budget plus the tunnel's own margin.
 HTTP_TIMEOUT_S = 240.0
 TERMINAL_STATES = {"succeeded", "failed", "timeout", "settlement_failed"}
+#: A settled action needs one more poll than a finished one: the tunnel
+#: settles after the result arrives, so "succeeded" can precede "settled".
+SETTLEMENT_POLL_S = 90.0
 
 
 # -- HTTP -------------------------------------------------------------------
@@ -471,24 +474,22 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
         # the result in this header — so in *this* path settlement precedes
         # execution, unlike real_paid_run.py where it follows it.
         payment_response = _decode_header(_header(paid_headers, "PAYMENT-RESPONSE"))
-        settled = payment_response.get("success") is True
-        print(f"  [paid]      HTTP {status}  settled={settled}"
-              f"  {payment_response.get('errorReason') or paid_body.get('state') or ''}")
+        print(f"  [paid]      HTTP {status}  {paid_body.get('status') or ''}"
+              f"  action_id={paid_body.get('action_id') or ''}")
         steps.append({
             "step": "paid_action", "http_status": status,
-            "accepted": status in (200, 202),
-            "settled": settled,
-            "settlement_tx_hash": payment_response.get("transaction") or None,
+            "accepted": status == 202,
+            "immediate": True,
             "action_id_echoed": paid_body.get("action_id"),
+            "status_url": paid_body.get("status_url"),
             "payment_response": payment_response,
-            "reported_state": paid_body.get("state"),
-            # The tunnel waits for the robot before answering, and the x402
-            # middleware settles only when that answer is not an error. So the
-            # settlement decision follows the execution outcome.
-            "settlement_ordering": "settled after execution, and only on success",
+            # The tunnel answers as soon as the action is accepted and settles
+            # from a background watcher, so acceptance says nothing about the
+            # outcome and nothing about payment.
+            "settlement_ordering": "settled by the tunnel after the result, only on success",
             "body": paid_body,
         })
-        if status not in (200, 202) and not expect_failure:
+        if status != 202 and not expect_failure:
             return _evidence(robot_id, action_id, payee, discovery, steps,
                              None, None, payer=payer)
 
@@ -499,6 +500,18 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
             code, candidate, _ = _request("GET", status_url)
             if code == 200 and candidate.get("state") in TERMINAL_STATES:
                 terminal = candidate
+                # A successful episode settles a moment later, from the tunnel's
+                # watcher, so keep reading until the settlement half lands too.
+                if candidate.get("state") != "succeeded":
+                    break
+                settle_deadline = time.monotonic() + SETTLEMENT_POLL_S
+                while time.monotonic() < settle_deadline:
+                    code, candidate, _ = _request("GET", status_url)
+                    if code == 200 and (candidate.get("settled")
+                                        or candidate.get("settlement_error")):
+                        terminal = candidate
+                        break
+                    time.sleep(3)
                 break
             time.sleep(3)
         if terminal is None:
@@ -510,20 +523,23 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
         print(f"  [relay]     state={terminal.get('state')}"
               f"  settled={terminal.get('settled')}"
               f"  targets={result.get('targets_completed')}/{result.get('targets_total')}")
+        settlement = terminal.get("settlement") or {}
         steps.append({
             "step": "terminal_status", "state": terminal.get("state"),
-            "settled": terminal.get("settled"),
             "action_id": terminal.get("action_id"),
             "correlated": terminal.get("action_id") == action_id,
             "params_hash": terminal.get("params_hash"),
             "idempotency_key": terminal.get("idempotency_key"),
             "targets_completed": result.get("targets_completed"),
             "targets_total": result.get("targets_total"),
+            "settled": bool(terminal.get("settled")),
+            "settlement": settlement or None,
+            "settlement_error": terminal.get("settlement_error") or None,
             "read_from": "hosted Fabric relay",
         })
 
         # 5. The settlement the tunnel performed — or did not.
-        tx_hash = payment_response.get("transaction") or ""
+        tx_hash = settlement.get("transaction") or ""
         if tx_hash:
             chain = confirm_on_chain(tx_hash, action_id)
             print(f"  [chain]     block {chain['block_number']}"
@@ -576,14 +592,14 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
         "terminal_status": terminal,
         "on_chain": chain,
     }
-    settled = bool(((next((s for s in steps if s.get("step") == "paid_action"), {})
-                     .get("payment_response")) or {}).get("success"))
+    settled = bool(next((s for s in steps if s.get("step") == "terminal_status"), {})
+                   .get("settled"))
     failed = (terminal or {}).get("state") == "failed"
     if not dry_run:
         evidence["payment_safety"] = {
-            "settlement_ordering": "POST /action waits for the robot, and the x402 "
-                                   "middleware settles only when that answer is not "
-                                   "an error — so settlement follows execution",
+            "settlement_ordering": "POST /action answers 202 immediately; the tunnel "
+                                   "settles from a background watcher and only when "
+                                   "the correlated result reports success",
             "execution_failed": failed,
             "settled": settled,
             "settled_despite_failure": failed and settled,
@@ -609,10 +625,12 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
         paid = step("paid_action")
         result = (terminal or {}).get("result") or {}
         checks += [
-            ("the action was reported as failed, not accepted",
-             paid.get("http_status", 0) >= 400 and not paid.get("accepted")),
-            ("the tunnel did not settle a failed action", paid.get("settled") is False),
-            ("no settlement transaction exists", not paid.get("settlement_tx_hash")),
+            ("the action was accepted immediately, as the contract says",
+             paid.get("http_status") == 202),
+            ("the tunnel did not settle a failed action",
+             step("terminal_status").get("settled") is False),
+            ("no settlement transaction exists",
+             not (step("terminal_status").get("settlement") or {}).get("transaction")),
             ("nothing was transferred on chain", chain is None),
             # The token's own record, so the absence is evidence rather than
             # merely an absent record on our side.
@@ -637,8 +655,10 @@ def _evidence(robot_id, action_id, payee, discovery, steps, terminal, chain,
              and bool(step("terminal_status").get("targets_total"))),
             ("the terminal status is correlated by action_id",
              bool(step("terminal_status").get("correlated"))),
-            ("the tunnel settled the payment",
-             bool((step("paid_action").get("payment_response") or {}).get("success"))),
+            ("the relay answered 202 immediately, before the robot finished",
+             step("paid_action").get("http_status") == 202),
+            ("the tunnel settled only after the result",
+             bool(step("terminal_status").get("settled"))),
             ("the settlement is confirmed on Base Sepolia",
              bool(chain and chain.get("confirmed"))),
             ("the on-chain nonce is keccak256(action_id)",

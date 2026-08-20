@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,14 +31,57 @@ func newTestHandlers() (*Handlers, *fakePublisher) {
 	return h, pub
 }
 
-func post(h *Handlers, body string) *httptest.ResponseRecorder {
+// settleSpy stands in for the payment gate's settlement callback so a test can
+// see whether money would have moved.
+type settleSpy struct {
+	mu       sync.Mutex
+	calls    int
+	failWith error
+}
+
+func (s *settleSpy) fn() SettleFunc {
+	return func(context.Context) (*SettlementRecord, error) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.calls++
+		if s.failWith != nil {
+			return nil, s.failWith
+		}
+		return &SettlementRecord{Transaction: "0xtest", Network: "eip155:84532"}, nil
+	}
+}
+
+func (s *settleSpy) count() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls
+}
+
+func post(h *Handlers, body string, spy *settleSpy) *httptest.ResponseRecorder {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/action", h.PostAction)
+	router.POST("/action", func(c *gin.Context) {
+		if spy != nil {
+			c.Set("x402_settle", spy.fn())
+		}
+		h.PostAction(c)
+	})
 	req := httptest.NewRequest(http.MethodPost, "/action", bytes.NewBufferString(body))
 	res := httptest.NewRecorder()
 	router.ServeHTTP(res, req)
 	return res
+}
+
+// settlementCalls waits briefly for the background watcher to reach its
+// decision, then reports how many times it settled.
+func settlementCalls(spy *settleSpy) int {
+	for i := 0; i < 100; i++ {
+		if spy.count() > 0 {
+			return spy.count()
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return spy.count()
 }
 
 // answer delivers a simulator result once the action has been published, the
@@ -54,47 +99,83 @@ func answer(h *Handlers, actionID, state string) {
 // response is not an error, so the status code the handler chooses *is* the
 // settlement decision. These four tests are that decision.
 
-func TestPostActionSucceedsOnlyWhenTheRobotSucceeded(t *testing.T) {
+func TestPostActionAnswersImmediatelyWithAccepted(t *testing.T) {
 	h, pub := newTestHandlers()
+	spy := &settleSpy{}
 	answer(h, "act-1", stateSucceeded)
 
-	res := post(h, `{"action_id":"act-1","params":{"maxDurationSec":5}}`)
+	res := post(h, `{"action_id":"act-1","params":{"maxDurationSec":5}}`, spy)
 
-	if res.Code != http.StatusOK {
-		t.Fatalf("a completed action should answer 200, got %d", res.Code)
+	if res.Code != http.StatusAccepted {
+		t.Fatalf("the tunnel contract answers 202 the moment an action is "+
+			"accepted; got %d", res.Code)
+	}
+	if !bytes.Contains(res.Body.Bytes(), []byte("act-1")) {
+		t.Fatalf("the 202 must carry the action_id to correlate on, got %s",
+			res.Body.String())
 	}
 	if len(pub.published) != 1 {
 		t.Fatalf("expected the action to reach the robot once, got %d", len(pub.published))
 	}
 }
 
-func TestPostActionReportsFailureSoThePaymentIsNotSettled(t *testing.T) {
+func TestSettlementFollowsSuccess(t *testing.T) {
 	h, _ := newTestHandlers()
-	answer(h, "act-2", stateFailed)
+	spy := &settleSpy{}
+	answer(h, "act-2", stateSucceeded)
 
-	res := post(h, `{"action_id":"act-2","params":{"maxDurationSec":5}}`)
+	post(h, `{"action_id":"act-2","params":{"maxDurationSec":5}}`, spy)
 
-	if res.Code < 400 {
-		t.Fatalf("a failed action answered %d; anything under 400 settles the payment", res.Code)
+	if got := settlementCalls(spy); got != 1 {
+		t.Fatalf("a completed episode should settle exactly once, settled %d times", got)
 	}
 }
 
-func TestPostActionReportsATimeoutRatherThanAssumingSuccess(t *testing.T) {
+// The guarantee the bounty turns on: work that did not succeed is not paid for.
+func TestAFailedEpisodeIsNeverSettled(t *testing.T) {
+	h, _ := newTestHandlers()
+	spy := &settleSpy{}
+	answer(h, "act-3", stateFailed)
+
+	res := post(h, `{"action_id":"act-3","params":{"maxDurationSec":5}}`, spy)
+
+	if res.Code != http.StatusAccepted {
+		t.Fatalf("acceptance is about the request, not the outcome; got %d", res.Code)
+	}
+	if got := settlementCalls(spy); got != 0 {
+		t.Fatalf("a failed episode was settled %d time(s)", got)
+	}
+	status, ok := h.Statuses.get("act-3")
+	if !ok || status.State != stateFailed {
+		t.Fatalf("the failure must be readable from the status endpoint, got %+v", status)
+	}
+	if status.Settled {
+		t.Fatalf("a failed action is reported as settled")
+	}
+}
+
+func TestASilentRobotIsNeverSettled(t *testing.T) {
 	t.Setenv("ACTION_TIMEOUT_SECONDS", "0.2")
 	h, _ := newTestHandlers()
+	spy := &settleSpy{}
 	// No answer is ever delivered.
 
-	res := post(h, `{"action_id":"act-3","params":{"maxDurationSec":5}}`)
+	post(h, `{"action_id":"act-4","params":{"maxDurationSec":5}}`, spy)
+	time.Sleep(400 * time.Millisecond)
 
-	if res.Code != http.StatusGatewayTimeout {
-		t.Fatalf("a silent robot should answer 504, got %d", res.Code)
+	if got := spy.count(); got != 0 {
+		t.Fatalf("a timed-out episode was settled %d time(s)", got)
+	}
+	if status, ok := h.Statuses.get("act-4"); !ok || status.State != stateTimeout {
+		t.Fatalf("a timeout must be readable as a timeout, got %+v", status)
 	}
 }
 
 func TestPostActionRefusesAnActionItCannotCorrelate(t *testing.T) {
 	h, pub := newTestHandlers()
+	spy := &settleSpy{}
 
-	res := post(h, `{"command":"start"}`)
+	res := post(h, `{"command":"start"}`, spy)
 
 	if res.Code != http.StatusBadRequest {
 		t.Fatalf("an action with no action_id cannot be correlated, so its outcome "+
@@ -107,12 +188,15 @@ func TestPostActionRefusesAnActionItCannotCorrelate(t *testing.T) {
 		t.Fatalf("a refused action reached the robot: %d message(s) published",
 			len(pub.published))
 	}
+	if spy.count() != 0 {
+		t.Fatalf("a refused action was settled")
+	}
 }
 
 func TestPostActionRejectsInvalidJSON(t *testing.T) {
 	h, pub := newTestHandlers()
 
-	res := post(h, `{"command":`)
+	res := post(h, `{"command":`, nil)
 
 	if res.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", res.Code)
@@ -133,7 +217,7 @@ func TestNothingReachesTheRobotUntilTheRequestIsAccepted(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			h, pub := newTestHandlers()
-			res := post(h, body)
+			res := post(h, body, nil)
 			if res.Code < 400 {
 				t.Fatalf("expected a refusal, got %d", res.Code)
 			}

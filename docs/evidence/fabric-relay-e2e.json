@@ -4,10 +4,10 @@
   "relay": "https://api.fabric.foundation/api/core",
   "relay_transport": "wss://api.fabric.foundation/api/core/ws/robot",
   "stood_in_for": "nothing \u2014 the relay, the tunnel, Zenoh, the simulator and the facilitator are all the real components",
-  "robot_id": "atlas-sim-1787193393",
+  "robot_id": "atlas-sim-1787197727",
   "skill_id": "inspect_shelf",
-  "action_id": "atlas-inspect-1787193393",
-  "idempotency_key": "atlas-inspect-1787193393",
+  "action_id": "atlas-inspect-1787197727",
+  "idempotency_key": "atlas-inspect-1787197727",
   "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
   "payee": "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8",
   "network": "eip155:84532",
@@ -15,7 +15,7 @@
   "dry_run": false,
   "discovery": {
     "http_status": 200,
-    "robot_id": "atlas-sim-1787193393",
+    "robot_id": "atlas-sim-1787197727",
     "robot_discovered": true,
     "skills": [
       {
@@ -51,7 +51,7 @@
     {
       "step": "discovery",
       "http_status": 200,
-      "robot_id": "atlas-sim-1787193393",
+      "robot_id": "atlas-sim-1787197727",
       "robot_discovered": true,
       "skills": [
         {
@@ -107,117 +107,46 @@
     },
     {
       "step": "paid_action",
-      "http_status": 200,
+      "http_status": 202,
       "accepted": true,
-      "settled": true,
-      "settlement_tx_hash": "0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63",
-      "action_id_echoed": "atlas-inspect-1787193393",
-      "payment_response": {
-        "success": true,
-        "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
-        "transaction": "0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63",
-        "network": "eip155:84532"
-      },
-      "reported_state": null,
-      "settlement_ordering": "settled after execution, and only on success",
+      "immediate": true,
+      "action_id_echoed": "atlas-inspect-1787197727",
+      "status_url": "/action/atlas-inspect-1787197727/status",
+      "payment_response": {},
+      "settlement_ordering": "settled by the tunnel after the result, only on success",
       "body": {
-        "action_id": "atlas-inspect-1787193393",
-        "result": {
-          "simulator_engine": "MuJoCo",
-          "robot_model": "Boston Dynamics Atlas v4",
-          "model_source": "openai/roboschool @ d32bcb2 \u2014 atlas_v4_with_multisense.urdf (MIT)",
-          "base": "free-standing (no weld, no external support)",
-          "task": "inspect_shelf",
-          "policy_id": "atlas-shelf-inspection-dls-v1",
-          "status": "success",
-          "success": true,
-          "completion_reason": "sequence_complete",
-          "safe_stop_applied": false,
-          "sim_duration_seconds": 4.606,
-          "wall_time_seconds": 9.259,
-          "control_steps": 2303,
-          "targets_total": 3,
-          "targets_completed": 3,
-          "mean_position_error_m": 0.00954,
-          "max_position_error_m": 0.01349,
-          "final_pelvis_height_m": 0.9084,
-          "min_pelvis_height_m": 0.9084,
-          "fall_threshold_m": 0.7,
-          "fall_detected": false,
-          "shelf_contacts": 0,
-          "max_end_effector_speed_mps": 1.1339,
-          "max_end_effector_speed_inspecting_mps": 0.3355,
-          "final_torso_roll_rad": 0.0343,
-          "final_torso_pitch_rad": 0.0971,
-          "final_phase": "DONE",
-          "policy_state": {
-            "policy_id": "atlas-shelf-inspection-dls-v1",
-            "controller": "state_machine + damped_least_squares_resolved_rate",
-            "phase": "DONE",
-            "chain": [
-              "r_arm_shz",
-              "r_arm_shx",
-              "r_arm_ely",
-              "r_arm_elx"
-            ],
-            "targets_total": 3,
-            "targets_completed": 3,
-            "per_target": [
-              {
-                "name": "shelf-top",
-                "reached": true,
-                "final_error_m": 0.0051,
-                "best_error_m": 0.0051,
-                "control_steps": 250
-              },
-              {
-                "name": "shelf-middle",
-                "reached": true,
-                "final_error_m": 0.01004,
-                "best_error_m": 0.01004,
-                "control_steps": 250
-              },
-              {
-                "name": "shelf-lower",
-                "reached": true,
-                "final_error_m": 0.01349,
-                "best_error_m": 0.01347,
-                "control_steps": 250
-              }
-            ],
-            "parameters": {
-              "dls_damping": 0.12,
-              "step_gain": 0.006,
-              "max_joint_step_rad": 0.01,
-              "reach_timeout_steps": 1500
-            }
-          }
-        },
-        "robot_id": "atlas-sim-1787193393",
-        "skill_id": "inspect_shelf",
-        "status": "succeeded",
-        "timestamp": "2026-08-20T05:36:54+03:00"
+        "action_id": "atlas-inspect-1787197727",
+        "robot_id": "atlas-sim-1787197727",
+        "status": "accepted",
+        "status_url": "/action/atlas-inspect-1787197727/status",
+        "timestamp": "2026-08-20T06:48:52+03:00"
       }
     },
     {
       "step": "terminal_status",
       "state": "succeeded",
-      "settled": null,
-      "action_id": "atlas-inspect-1787193393",
+      "action_id": "atlas-inspect-1787197727",
       "correlated": true,
       "params_hash": "sha256:61f3d32028d32e07bf1b50cde4732d0b6cc851e53ebee527f7a1408b1428e17c",
-      "idempotency_key": "atlas-inspect-1787193393",
+      "idempotency_key": "atlas-inspect-1787197727",
       "targets_completed": 3,
       "targets_total": 3,
+      "settled": true,
+      "settlement": {
+        "transaction": "0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940",
+        "network": "eip155:84532",
+        "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
+      },
+      "settlement_error": null,
       "read_from": "hosted Fabric relay"
     },
     {
       "step": "settlement",
-      "tx_hash": "0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63",
+      "tx_hash": "0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940",
       "confirmed": true,
-      "block_number": 45712565,
+      "block_number": 45714728,
       "submitted_by": "0xd407e409e34e0b9afb99ecceb609bdbcd5e7f1bf",
-      "explorer": "https://sepolia.basescan.org/tx/0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63",
+      "explorer": "https://sepolia.basescan.org/tx/0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940",
       "transfer": {
         "token_contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
         "from": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
@@ -225,30 +154,30 @@
         "raw_amount": 1000,
         "amount_usdc": 0.001
       },
-      "authorization_nonce": "0xcce2635b234375a62d581574a79815e21c1db2753766cf6f777263f692545e82",
-      "expected_nonce_from_action_id": "0xcce2635b234375a62d581574a79815e21c1db2753766cf6f777263f692545e82",
+      "authorization_nonce": "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d",
+      "expected_nonce_from_action_id": "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d",
       "nonce_binds_settlement_to_action": true,
       "asset_is_declared_usdc": true
     },
     {
       "step": "authorization_state",
       "authorizer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
-      "nonce": "0xcce2635b234375a62d581574a79815e21c1db2753766cf6f777263f692545e82",
+      "nonce": "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d",
       "nonce_derivation": "keccak256(action_id)",
       "contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       "method": "authorizationState(address,bytes32)",
-      "queried_at_block": "0x2b984b5",
+      "queried_at_block": "0x2b98d28",
       "used": true,
       "queried": true
     }
   ],
   "terminal_status": {
-    "action_id": "atlas-inspect-1787193393",
-    "robot_id": "atlas-sim-1787193393",
+    "action_id": "atlas-inspect-1787197727",
+    "robot_id": "atlas-sim-1787197727",
     "skill_id": "inspect_shelf",
     "state": "succeeded",
     "params_hash": "sha256:61f3d32028d32e07bf1b50cde4732d0b6cc851e53ebee527f7a1408b1428e17c",
-    "idempotency_key": "atlas-inspect-1787193393",
+    "idempotency_key": "atlas-inspect-1787197727",
     "profile_id": "boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1",
     "result": {
       "simulator_engine": "MuJoCo",
@@ -262,7 +191,7 @@
       "completion_reason": "sequence_complete",
       "safe_stop_applied": false,
       "sim_duration_seconds": 4.606,
-      "wall_time_seconds": 9.259,
+      "wall_time_seconds": 8.361,
       "control_steps": 2303,
       "targets_total": 3,
       "targets_completed": 3,
@@ -321,13 +250,19 @@
         }
       }
     },
-    "updated_at": "2026-08-20T02:36:54Z"
+    "settled": true,
+    "settlement": {
+      "transaction": "0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940",
+      "network": "eip155:84532",
+      "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc"
+    },
+    "updated_at": "2026-08-20T03:49:01Z"
   },
   "on_chain": {
     "confirmed": true,
-    "block_number": 45712565,
+    "block_number": 45714728,
     "submitted_by": "0xd407e409e34e0b9afb99ecceb609bdbcd5e7f1bf",
-    "explorer": "https://sepolia.basescan.org/tx/0x2eca1865602dc880224ab762be20f93ba0b0c81e4bd26654445bca9d3868cd63",
+    "explorer": "https://sepolia.basescan.org/tx/0xfd9eda75ddc6c6f979eb2571e6e85ef3a6f50d670f3f8ad252107723e21e6940",
     "transfer": {
       "token_contract": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
       "from": "0xa0597a74f3c3f33797007495bc3dc676f10fc2dc",
@@ -335,13 +270,13 @@
       "raw_amount": 1000,
       "amount_usdc": 0.001
     },
-    "authorization_nonce": "0xcce2635b234375a62d581574a79815e21c1db2753766cf6f777263f692545e82",
-    "expected_nonce_from_action_id": "0xcce2635b234375a62d581574a79815e21c1db2753766cf6f777263f692545e82",
+    "authorization_nonce": "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d",
+    "expected_nonce_from_action_id": "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d",
     "nonce_binds_settlement_to_action": true,
     "asset_is_declared_usdc": true
   },
   "payment_safety": {
-    "settlement_ordering": "POST /action waits for the robot, and the x402 middleware settles only when that answer is not an error \u2014 so settlement follows execution",
+    "settlement_ordering": "POST /action answers 202 immediately; the tunnel settles from a background watcher and only when the correlated result reports success",
     "execution_failed": false,
     "settled": true,
     "settled_despite_failure": false
@@ -357,7 +292,8 @@
     "the relay reported the action succeeded": true,
     "every inspection target was reached": true,
     "the terminal status is correlated by action_id": true,
-    "the tunnel settled the payment": true,
+    "the relay answered 202 immediately, before the robot finished": true,
+    "the tunnel settled only after the result": true,
     "the settlement is confirmed on Base Sepolia": true,
     "the on-chain nonce is keccak256(action_id)": true,
     "the token contract records the authorization as spent": true

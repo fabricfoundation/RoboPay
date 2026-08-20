@@ -88,16 +88,22 @@ cases:
     enforcedBy: tests/test_inspection_task.py::test_targets_stay_inside_the_validated_reach_core
 
   - name: settlement_is_real_on_chain
-    given: the settlement transaction recorded for this profile
+    given: the settlement recorded by the profile's paid run
     expect:
       network: Base Sepolia (eip155:84532)
       status: success
       event: Transfer(address,address,uint256) on the USDC contract
-      amount: 1.0 USDC
+      amount: 0.001 USDC
+      amountRaw: "1000"
+      matchesPublishedPrice: skills.yaml priceUsdc
+      authorizationNonce: keccak256(action_id)
     enforcedBy: bridge/boston_dynamics/atlas_bridge/settlement_evidence.py
     note: >-
-      Re-read from a public RPC rather than transcribed; the command exits
-      non-zero if the transaction is missing, reverted, or carries no transfer.
+      The transaction is read out of real-paid-run.json rather than pinned, then
+      re-read from a public RPC. The command exits non-zero if it is missing,
+      reverted, carries no transfer, or its AuthorizationUsed nonce is not
+      keccak256 of the action id it claims to have paid for — a transfer of the
+      right size that is bound to no action proves only that the asset moved.
 
   - name: bridge_executes_the_registered_skill
     given: the profile's own inspect_shelf action envelope
@@ -119,12 +125,13 @@ cases:
       idempotency_key and profile_id
     enforcedBy: tests/test_bridge_contract.py::test_result_echoes_every_correlation_field
 
-  - name: paid_action_reaches_the_robot_over_zenoh
-    given: a verified x402 receipt published on robot/tunnel/action
+  - name: protocol_valid_action_reaches_the_robot_over_zenoh
+    given: a protocol-valid x402 receipt published on robot/tunnel/action
     expect:
       transport: Zenoh
       executed: true
-      settled: true
+      settled: false
+      settlement: eligible_not_on_chain
       targetsCompleted: 3
     enforcedBy: bridge/boston_dynamics/atlas_bridge/demo_tunnel.py
     note: >-

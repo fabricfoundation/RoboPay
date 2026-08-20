@@ -4,10 +4,10 @@
   "relay": "https://api.fabric.foundation/api/core",
   "relay_transport": "wss://api.fabric.foundation/api/core/ws/robot",
   "stood_in_for": "nothing \u2014 the relay, the tunnel, Zenoh, the simulator and the facilitator are all the real components",
-  "robot_id": "atlas-sim-1787193428",
+  "robot_id": "atlas-sim-1787197752",
   "skill_id": "inspect_shelf",
-  "action_id": "atlas-inspect-1787193428",
-  "idempotency_key": "atlas-inspect-1787193428",
+  "action_id": "atlas-inspect-1787197752",
+  "idempotency_key": "atlas-inspect-1787197752",
   "payer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
   "payee": "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8",
   "network": "eip155:84532",
@@ -15,7 +15,7 @@
   "dry_run": false,
   "discovery": {
     "http_status": 200,
-    "robot_id": "atlas-sim-1787193428",
+    "robot_id": "atlas-sim-1787197752",
     "robot_discovered": true,
     "skills": [
       {
@@ -51,7 +51,7 @@
     {
       "step": "discovery",
       "http_status": 200,
-      "robot_id": "atlas-sim-1787193428",
+      "robot_id": "atlas-sim-1787197752",
       "robot_discovered": true,
       "skills": [
         {
@@ -107,41 +107,39 @@
     },
     {
       "step": "paid_action",
-      "http_status": 502,
-      "accepted": false,
-      "settled": false,
-      "settlement_tx_hash": null,
-      "action_id_echoed": "atlas-inspect-1787193428",
+      "http_status": 202,
+      "accepted": true,
+      "immediate": true,
+      "action_id_echoed": "atlas-inspect-1787197752",
+      "status_url": "/action/atlas-inspect-1787197752/status",
       "payment_response": {},
-      "reported_state": "failed",
-      "settlement_ordering": "settled after execution, and only on success",
+      "settlement_ordering": "settled by the tunnel after the result, only on success",
       "body": {
-        "action_id": "atlas-inspect-1787193428",
-        "error": "the robot did not complete the action",
-        "result": {
-          "error_code": "INVALID_DURATION",
-          "message": "maxDurationSec must be between 5 and 60.",
-          "success": false
-        },
-        "state": "failed"
+        "action_id": "atlas-inspect-1787197752",
+        "robot_id": "atlas-sim-1787197752",
+        "status": "accepted",
+        "status_url": "/action/atlas-inspect-1787197752/status",
+        "timestamp": "2026-08-20T06:49:15+03:00"
       }
     },
     {
       "step": "terminal_status",
       "state": "failed",
-      "settled": null,
-      "action_id": "atlas-inspect-1787193428",
+      "action_id": "atlas-inspect-1787197752",
       "correlated": true,
       "params_hash": "sha256:908150ab67973c3926a2d6c2b09d58fc48e90a709297bb91dae3c1769ea70825",
-      "idempotency_key": "atlas-inspect-1787193428",
+      "idempotency_key": "atlas-inspect-1787197752",
       "targets_completed": null,
       "targets_total": null,
+      "settled": false,
+      "settlement": null,
+      "settlement_error": null,
       "read_from": "hosted Fabric relay"
     },
     {
       "step": "authorization_state",
       "authorizer": "0xa0597a74f3C3F33797007495bc3Dc676F10Fc2Dc",
-      "nonce": "0x5b1f3559d8b97067abc4e85ad636ba94468bbf2df40cd4a1834bc108facf4d35",
+      "nonce": "0x83d9161bb7f5a4c5a8d5e88a5bc403c1cf3f1c962513354f852b5b9719121860",
       "nonce_derivation": "keccak256(action_id)",
       "contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       "method": "authorizationState(address,bytes32)",
@@ -151,23 +149,24 @@
     }
   ],
   "terminal_status": {
-    "action_id": "atlas-inspect-1787193428",
-    "robot_id": "atlas-sim-1787193428",
+    "action_id": "atlas-inspect-1787197752",
+    "robot_id": "atlas-sim-1787197752",
     "skill_id": "inspect_shelf",
     "state": "failed",
     "params_hash": "sha256:908150ab67973c3926a2d6c2b09d58fc48e90a709297bb91dae3c1769ea70825",
-    "idempotency_key": "atlas-inspect-1787193428",
+    "idempotency_key": "atlas-inspect-1787197752",
     "profile_id": "boston-dynamics.atlas.mujoco-pybullet-webots-shelf-inspection.v1",
     "result": {
       "error_code": "INVALID_DURATION",
       "message": "maxDurationSec must be between 5 and 60.",
       "success": false
     },
-    "updated_at": "2026-08-20T02:37:11Z"
+    "settled": false,
+    "updated_at": "2026-08-20T03:49:15Z"
   },
   "on_chain": null,
   "payment_safety": {
-    "settlement_ordering": "POST /action waits for the robot, and the x402 middleware settles only when that answer is not an error \u2014 so settlement follows execution",
+    "settlement_ordering": "POST /action answers 202 immediately; the tunnel settles from a background watcher and only when the correlated result reports success",
     "execution_failed": true,
     "settled": false,
     "settled_despite_failure": false
@@ -179,7 +178,7 @@
     "the relay quoted the discovered price": true,
     "the relay refused an unpaid action with 402": true,
     "the relay advertised payment requirements": true,
-    "the action was reported as failed, not accepted": true,
+    "the action was accepted immediately, as the contract says": true,
     "the tunnel did not settle a failed action": true,
     "no settlement transaction exists": true,
     "nothing was transferred on chain": true,

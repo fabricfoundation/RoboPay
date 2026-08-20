@@ -20,6 +20,7 @@ package handlers
 // else would make the endpoint a decoration rather than a status.
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -39,7 +40,24 @@ const (
 	statePending   = "pending"
 	stateSucceeded = "succeeded"
 	stateFailed    = "failed"
+	stateTimeout   = "timeout"
 )
+
+// : How long a settlement call may take before it is abandoned. A settlement
+// : that never returns must not hold a goroutine open for ever.
+const settlementTimeout = 90 * time.Second
+
+// SettleFunc settles an already-verified payment. The payment gate injects it
+// into the request context; the action handler calls it only after the
+// simulator reports success, which is what keeps a failed action unpaid.
+type SettleFunc func(ctx context.Context) (*SettlementRecord, error)
+
+// SettlementRecord is what a completed settlement leaves behind.
+type SettlementRecord struct {
+	Transaction string `json:"transaction"`
+	Network     string `json:"network"`
+	Payer       string `json:"payer"`
+}
 
 // Skill is one entry of the robot's published catalogue. The catalogue is the
 // profile's own skill-catalog.json — the same file the registry publishes — so
@@ -54,15 +72,18 @@ type Skill struct {
 
 // ActionStatus is what a caller gets back for one submitted action.
 type ActionStatus struct {
-	ActionID       string          `json:"action_id"`
-	RobotID        string          `json:"robot_id,omitempty"`
-	SkillID        string          `json:"skill_id,omitempty"`
-	State          string          `json:"state"`
-	ParamsHash     string          `json:"params_hash,omitempty"`
-	IdempotencyKey string          `json:"idempotency_key,omitempty"`
-	ProfileID      string          `json:"profile_id,omitempty"`
-	Result         json.RawMessage `json:"result,omitempty"`
-	UpdatedAt      string          `json:"updated_at"`
+	ActionID        string            `json:"action_id"`
+	RobotID         string            `json:"robot_id,omitempty"`
+	SkillID         string            `json:"skill_id,omitempty"`
+	State           string            `json:"state"`
+	ParamsHash      string            `json:"params_hash,omitempty"`
+	IdempotencyKey  string            `json:"idempotency_key,omitempty"`
+	ProfileID       string            `json:"profile_id,omitempty"`
+	Result          json.RawMessage   `json:"result,omitempty"`
+	Settled         bool              `json:"settled"`
+	Settlement      *SettlementRecord `json:"settlement,omitempty"`
+	SettlementError string            `json:"settlement_error,omitempty"`
+	UpdatedAt       string            `json:"updated_at"`
 }
 
 // resultEnvelope is the shape the simulator bridge publishes.
@@ -102,6 +123,22 @@ func (s *statusStore) put(status ActionStatus) {
 		ch <- status
 		close(ch)
 	}
+}
+
+// settled records the outcome of the settlement attempt against an action that
+// already has a result, so the status endpoint can report both halves.
+func (s *statusStore) settled(actionID string, record *SettlementRecord, failure string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	status, ok := s.entries[actionID]
+	if !ok {
+		status = ActionStatus{ActionID: actionID}
+	}
+	status.Settled = record != nil
+	status.Settlement = record
+	status.SettlementError = failure
+	status.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	s.entries[actionID] = status
 }
 
 func (s *statusStore) get(actionID string) (ActionStatus, bool) {
