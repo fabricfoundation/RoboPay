@@ -10,10 +10,15 @@ import (
 	"github.com/eclipse-zenoh/zenoh-go/zenoh"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+
+	"github.com/fabricfoundation/tunnel/internal/mppay"
 )
 
 const (
 	RobotActionTopic = "robot/tunnel/action"
+
+	ProtocolX402 = "x402"
+	ProtocolMPP  = "mpp"
 )
 
 type zenohPublisher interface {
@@ -102,13 +107,21 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		paymentRequirements = value
 	}
 
+	transactionDetails := gin.H{
+		"protocol":             ProtocolX402,
+		"payment_payload":      paymentPayload,
+		"payment_requirements": paymentRequirements,
+	}
+	if credential := mppay.Credential(c); credential != nil {
+		transactionDetails["protocol"] = ProtocolMPP
+		transactionDetails["mpp_credential"] = credential
+		transactionDetails["mpp_receipt"] = mppay.Receipt(c)
+	}
+
 	event := gin.H{
-		"payload": payload,
-		"transaction_details": gin.H{
-			"payment_payload":      paymentPayload,
-			"payment_requirements": paymentRequirements,
-		},
-		"timestamp": time.Now().Format(time.RFC3339),
+		"payload":             payload,
+		"transaction_details": transactionDetails,
+		"timestamp":           time.Now().Format(time.RFC3339),
 	}
 
 	eventBytes, err := json.Marshal(event)

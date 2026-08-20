@@ -8,7 +8,7 @@ Fabric introduces a payment layer for machines. RoboPay is the execution compone
 
 A core design principle is that **payment, routing, and execution are separated**. The Fabric backend/proxy receives a paid action request and routes it to the correct robot tunnel by `robotId`. It does not directly verify x402 payment in the production tunnel flow.
 
-The robot-side `tunnel` receives the action request, runs x402 middleware, verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
+The robot-side `tunnel` receives the action request, runs its payment middleware — [x402](#3-start-the-tunnel) or [MPP](#mpp-machine-payments-protocol), whichever the payer used — verifies or rejects the payment, and only publishes a verified action to the robot execution layer after successful verification. The robot controller still owns final safety — **a verified payment is not permission to move unconditionally**.
 
 ![RoboPay action flow](docs/images/flow.png)
 
@@ -114,6 +114,122 @@ token as that network's default asset at startup. See
 
 The facilitator has to support the chosen method too — it is the one that submits the settlement
 transaction.
+
+### MPP (Machine Payments Protocol)
+
+The tunnel also speaks [MPP](https://mpp.dev), the machine-payments standard
+co-authored by Stripe and Tempo. MPP is a 402 flow like x402, but it rides the
+standard HTTP authentication framework: the tunnel answers an unpaid request
+with `WWW-Authenticate: Payment …`, the payer retries with
+`Authorization: Payment …`, and a verified action comes back with a
+`Payment-Receipt`.
+
+Those headers are disjoint from x402's `PAYMENT-REQUIRED` / `PAYMENT-SIGNATURE`,
+so **both protocols are offered on the same `POST /action` route** and the payer
+picks one. An unpaid request gets a single 402 carrying both challenges; a
+request with an MPP credential is settled over MPP and never touches x402.
+Either way the accepted action lands on the same Zenoh topic, tagged with
+`transaction_details.protocol` (`"mpp"` or `"x402"`) so the robot side can tell
+them apart.
+
+#### Payment credentials
+
+MPP's specification is payment-method agnostic and registers methods for cards
+and Stripe, EVM chains, Solana, Stellar, Hedera, Lightning, NEAR intents, and
+Tempo. **The Go SDK ([`mpp-go`](https://github.com/tempoxyz/mpp-go)) implements
+exactly one of them** — the Tempo `charge` method, which settles in a stablecoin
+(USDC on Tempo mainnet, AlphaUSD on the Moderato testnet). Card, Stripe, and the
+other chain methods currently exist only in the TypeScript and Python SDKs, so
+the tunnel is **stablecoin-only** for now.
+
+Adding a method later is additive rather than a rewrite: `mpp-go`'s
+`server.Method` / `server.Intent` are exported interfaces and
+`server.ComposeMiddleware` advertises several methods in one 402. See
+[`tunnel/internal/mppay/mppay.go`](tunnel/internal/mppay/mppay.go).
+
+#### Configuration
+
+MPP is off by default. Turn it on in `tunnel/config.json` and set the challenge
+signing secret in the environment:
+
+```json
+{
+  "robot_id": "my-robot",
+  "evm_payee_address": "0xYourAddress",
+  "price": "0.002",
+  "network": "eip155:84532",
+  "mpp_enabled": true,
+  "mpp_network": "eip155:42431"
+}
+```
+
+```bash
+export MPP_SECRET_KEY="$(openssl rand -base64 32)"
+```
+
+| Field               | Required | Default              | Description                                                        |
+|---------------------|----------|----------------------|--------------------------------------------------------------------|
+| `mpp_enabled`       | No       | `false`              | Offer MPP alongside x402 (also settable via `MPP_ENABLED`)         |
+| `mpp_network`       | No       | `eip155:4217`        | Tempo chain, CAIP-2: `eip155:4217` mainnet, `eip155:42431` Moderato |
+| `mpp_payee_address` | No       | `evm_payee_address`  | Tempo address to receive MPP payments                              |
+| `mpp_currency`      | No       | chain default        | Token contract charged in (USDC on mainnet, AlphaUSD on Moderato)  |
+| `mpp_decimals`      | No       | `6`                  | Token decimals, used to convert `price` to atomic units            |
+| `mpp_realm`         | No       | `robot_id`           | Authentication realm advertised in the challenge                   |
+
+MPP reuses `price`, so a robot charges the same amount over either protocol.
+Like the x402 fields, all of these can be hot-reloaded over the
+`robot/config/<robot_id>` Zenoh topic.
+
+| Variable            | Required | Description                                                                    |
+|---------------------|----------|--------------------------------------------------------------------------------|
+| `MPP_SECRET_KEY`    | **Yes**  | ≥32 bytes; HMAC-binds issued challenge IDs, so a short one makes them forgeable |
+| `MPP_RPC_URL`       | No       | Tempo JSON-RPC endpoint; only needed for a chain other than mainnet/Moderato    |
+| `MPP_ENABLED`       | No       | Overrides `mpp_enabled`                                                        |
+| `MPP_NETWORK`       | No       | Overrides `mpp_network`                                                        |
+| `MPP_PAYEE_ADDRESS` | No       | Overrides `mpp_payee_address`                                                  |
+| `MPP_CURRENCY`      | No       | Overrides `mpp_currency`                                                       |
+| `MPP_DECIMALS`      | No       | Overrides `mpp_decimals`                                                       |
+| `MPP_REALM`         | No       | Overrides `mpp_realm`                                                          |
+
+Every MPP field has an environment override, so a deployment can carry its whole
+payment setup in `.env` — see [`tunnel/.env.example`](tunnel/.env.example).
+
+#### SDK versions
+
+MPP is young and its SDKs move at different speeds, so the server and the payer
+have to agree on the Tempo transaction wire format. This combination is verified
+working end to end on Moderato:
+
+| Side   | Package                   | Version  |
+|--------|---------------------------|----------|
+| Server | `github.com/tempoxyz/mpp-go` | `v0.2.0` |
+| Server | `github.com/tempoxyz/tempo-go` | `v0.5.0` — **explicitly bumped** |
+| Client | `pympp[tempo]` (PyPI)     | `0.10.1` |
+
+#### Testing against Moderato
+
+Pin `mpp_currency` explicitly on testnet. Left blank, the Go SDK advertises
+**AlphaUSD** (`0x20c0…0001`) while the Python and TypeScript SDKs default to
+**pathUSD** (`0x20c0…0000`) — the payer must hold whichever token the tunnel
+advertises. The [Moderato faucet](https://docs.tempo.xyz/quickstart/faucet) mints
+both, along with BetaUSD and ThetaUSD:
+
+```bash
+cast rpc tempo_fundAddress <PAYER_ADDRESS> --rpc-url https://rpc.moderato.tempo.xyz
+```
+
+To see what a robot accepts without spending anything, send one unpaid request
+and read the challenges off the 402:
+
+```bash
+curl -i -X POST http://api.fabric.foundation/api/core/robots/test-robot/action \
+     -H 'Content-Type: application/json' -d '{"command":"ping"}'
+```
+
+A robot offering both protocols answers with `WWW-Authenticate: Payment …` (MPP)
+and `PAYMENT-REQUIRED` (x402) on the same response. Both survive the proxy and
+the WebSocket tunnel in each direction, as does the payer's `Authorization:
+Payment …` on the retry.
 
 Build and run from the repo root (the `Makefile` operates inside `tunnel/`):
 
