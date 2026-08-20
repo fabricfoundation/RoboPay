@@ -455,10 +455,16 @@ The action was refused, and it was still paid for:
 
 | | |
 | --- | --- |
+| Action | `atlas-inspect-1787183907` |
 | Execution | refused — `INVALID_DURATION` |
-| Status reported | `failed`, at 23:58:30Z |
+| Status reported | `failed`, at `2026-08-19T23:58:31Z` |
 | Settlement | [`0xdb69d2d4…2a0aec`](https://sepolia.basescan.org/tx/0xdb69d2d408682202fffd37a11e836cbf71c64e3869e5f9814f33498f082a0aec), block 45707813 |
 | Transferred | 0.001 USDC |
+
+Verdict, stated as two results rather than one: **execution failure semantics
+PASS**; **post-execution settlement semantics FAIL on the hosted relay path**,
+recorded here as the profile's one known payment-safety boundary. Nothing in
+this profile claims compliance with post-execution settlement on that path.
 
 This is a property of the tunnel's x402 middleware, which settles as part of
 *accepting* a payment, before the robot is reached. It is not a property of this
