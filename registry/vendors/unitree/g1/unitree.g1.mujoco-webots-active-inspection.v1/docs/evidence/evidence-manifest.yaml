@@ -1,0 +1,44 @@
+schema_version: 1
+profile_id: unitree.g1.mujoco-webots-active-inspection.v1
+status: pending-operator-recording
+
+execution:
+  source_commit: pending
+  captured_at: pending
+  robot_id: pending
+  action_id: pending
+  cold_start: true
+  warmup_action: false
+  unpaid_http_status: 402
+  paid_http_status: pending
+  terminal_state: pending
+  settled: pending
+  targets_confirmed: pending
+
+settlement:
+  network: "eip155:84532"
+  transaction_hash: pending
+  basescan_url: pending
+
+visual_recording:
+  status: pending-operator-recording
+  filename: pending
+  attachment_url: pending
+  sha256: pending
+  layout: stable simultaneous terminal and native MuJoCo viewer
+  required_visible_sequence:
+    - exact source commit before discovery
+    - unpaid HTTP 402 before actuation
+    - first paid HTTP 202 with correlated action ID and no warm-up action
+    - distinct left, center, and right live-controller poses
+    - correlated successful result and settled=true only after success
+    - matching BaseScan transaction success page
+
+trusted_json:
+  status: pending
+  path: pending
+  sha256: pending
+
+binding_note: >-
+  Populate only after a successful current-head recording. Failed or stale
+  executions remain runtime artifacts and must never be presented as evidence.

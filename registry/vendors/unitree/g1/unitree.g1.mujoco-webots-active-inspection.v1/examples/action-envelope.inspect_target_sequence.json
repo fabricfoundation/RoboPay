@@ -1,0 +1,7 @@
+{
+  "action": "inspect_target_sequence",
+  "robot_id": "unitree-g1-sim-01",
+  "action_id": "g1-inspection-example-001",
+  "idempotency_key": "g1-inspection-example-001",
+  "params": {"maxDurationSec": 18, "targets": ["left", "center", "right"], "speedScale": 1.0}
+}

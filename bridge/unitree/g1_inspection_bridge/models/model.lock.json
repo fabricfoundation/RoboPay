@@ -1,0 +1,13 @@
+{
+  "mujocoSource": "https://github.com/unitreerobotics/unitree_mujoco",
+  "mujocoCommit": "ae6a8403e272733e9996ef59990880330496177f",
+  "mujocoDirectory": "unitree_robots/g1",
+  "mjcf": "g1_29dof.xml",
+  "mjcfSha256": "423e28bd718b19f7a65cda539b6f794ddbb268b4b9bdbd85f4bd982b30729617",
+  "webotsSource": "https://github.com/unitreerobotics/unitree_ros",
+  "webotsCommit": "daadf41ee9afce8f90fdc09a98506012691fa122",
+  "webotsDirectory": "robots/g1_description",
+  "webotsUrdf": "g1_29dof.urdf",
+  "webotsUrdfSha256": "aaa1e33640109dadaaae8bd89707f31f3d2f4efed6f148283e30ff7e1ee22131",
+  "license": "BSD-3-Clause"
+}

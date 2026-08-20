@@ -1,0 +1,25 @@
+schemaVersion: payment-policy.v1
+provider: x402
+network: eip155:84532
+asset:
+  symbol: USDC
+  address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  decimals: 6
+policies:
+  - skillId: inspect_target_sequence
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+payTo: "<evm_payee_address>"
+settlement:
+  facilitator: https://x402.org/facilitator
+  scheme: exact
+  settleOnStatus: success
+  rule: >-
+    A verified payment is not settled until the exact action_id, robot_id,
+    skill_id, idempotency_key, and params_hash return status success. Invalid,
+    failed, timed-out, replayed, or safely interrupted actions never settle.
