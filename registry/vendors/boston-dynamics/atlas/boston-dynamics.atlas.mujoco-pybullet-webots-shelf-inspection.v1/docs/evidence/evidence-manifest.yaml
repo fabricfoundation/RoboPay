@@ -77,6 +77,10 @@ artifacts:
     description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, answered 202 immediately, reported failed with its real reason and correlated by action_id — and never charged, confirmed by the token contract's own record of spent authorizations"
     bytes: 7946
     sha256: 2e01b79d8b8e495c5d7ac08e39423b634e334e38ac6c0b4c795247022befe451
+  - path: docs/evidence/atlas-paid-action.gif
+    description: "One continuous recording of one paid action: the terminal trace from discovery through the 402, the signed authorization, the 202, the correlated result and the settlement, beside the simulator rendering the episode that payment bought"
+    bytes: 4199164
+    sha256: 9ea3329d31b65d9364b8d9f063099e42e915969c4a419e7a76617fa239ec9565
 settlement:
   paid_action:
     note: >-
@@ -117,6 +121,18 @@ settlement:
     payee: "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
     authorization_nonce: "0x38f39e2c3e8e663fb9ce14bbbd4ae1825a17d68972ee17fc5f802df06a61169d"
     submitted_by: "0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf"
+  recorded_action:
+    note: >-
+      The settlement shown in atlas-paid-action.gif. It was located on chain by
+      its nonce rather than by its hash — keccak256(action_id) is enough to find
+      the AuthorizationUsed event, which is the binding working in the direction
+      a reviewer would use it.
+    action_id: "atlas-inspect-1787200740"
+    transaction: "0xea4353bf089b08c1758bba6a27e4faa45503c0536a2a8b921d9e7de94486abb8"
+    explorer: https://sepolia.basescan.org/tx/0xea4353bf089b08c1758bba6a27e4faa45503c0536a2a8b921d9e7de94486abb8
+    block: 45716247
+    transferred: 0.001 USDC
+    authorization_nonce: "0x24bfe0a79140d5b24e4b8df20a648e3c1bba3ad5db42e30b5ae6b2de50a44ae5"
   refused_action_not_settled:
     note: >-
       The failing counterpart of the run above, through the same relay with the

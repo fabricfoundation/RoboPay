@@ -97,10 +97,13 @@ def _render_log(transcript: Transcript, title: str):
     draw.text((16, 14), title, font=header, fill=TEXT)
     draw.line([(16, 36), (LOG_WIDTH - 16, 36)], fill=(38, 44, 56), width=1)
 
+    # 18px leaves room for the whole trace, relay line included. At 20px the
+    # first line scrolled off by the time the settlement arrived, which is the
+    # one moment a reviewer is most likely to pause on.
     lines = transcript.snapshot()
-    capacity = (FRAME_HEIGHT - 60) // 20
+    capacity = (FRAME_HEIGHT - 56) // 18
     for index, (tag, text, colour) in enumerate(lines[-capacity:]):
-        y = 48 + index * 20
+        y = 46 + index * 18
         draw.text((16, y), tag, font=body, fill=DIM)
         draw.text((16 + 92, y), text, font=body, fill=colour)
     return panel
