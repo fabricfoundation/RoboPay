@@ -1,0 +1,7 @@
+{
+  "actionId": "act_x30_inspection_lane_001",
+  "robotId": "x30-pro-sim-01",
+  "skillId": "perform_inspection_gait",
+  "params": {},
+  "idempotencyKey": "x30-inspection-lane-001"
+}

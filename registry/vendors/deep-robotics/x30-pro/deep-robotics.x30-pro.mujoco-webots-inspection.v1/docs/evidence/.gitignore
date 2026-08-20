@@ -1,0 +1,4 @@
+# Live recordings and receipts are generated evidence. Add only a recording
+# captured from this X30 branch with an explicit git add -f after review.
+*.mp4
+*.json

@@ -1,0 +1,56 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "generated/DeepRoboticsX30.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+
+WorldInfo {
+  basicTimeStep 16
+}
+Viewpoint {
+  orientation -0.322 0.109 0.940 2.22
+  position 1.45 -2.1 1.25
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DirectionalLight {
+  direction -0.4 -0.5 -1
+  intensity 2.4
+}
+Solid {
+  translation 0 0 -0.05
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.12 0.14 0.16
+        roughness 0.84
+      }
+      geometry Box {
+        size 10 10 0.1
+      }
+    }
+  ]
+  boundingObject Box {
+    size 10 10 0.1
+  }
+}
+# The canonical physical course is rendered from course.py immediately before
+# every Webots run. The measured-state task controller must clear it before
+# entering goal_hold; Webots owns contact and terminal-state authority.
+# BEGIN PROFILE_COURSE_BLOCKERS (rendered from x30_pro_mujoco_bridge.course)
+# Generated content replaces this line.
+# END PROFILE_COURSE_BLOCKERS
+# BEGIN PROFILE_FINISH_MARKER (rendered from x30_pro_mujoco_bridge.course)
+# END PROFILE_FINISH_MARKER
+DEF LYNX_X30_PRO DeepRoboticsX30 {
+  # Matches the profile's initial standing clearance. The controller uses only
+  # vendor-URDF motors; it never writes this transform after Webots starts.
+  # The generated URDF faces +X. Rotate it once before physics starts so its
+  # nose faces the profile's global -X course direction.
+  translation 0 0 0.58
+  rotation 0 0 1 3.14159265
+  controller "x30_inspection_course_controller"
+  supervisor TRUE
+}

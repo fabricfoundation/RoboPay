@@ -15,6 +15,7 @@ go.work
 go.work.sum
 
 .env
+robopay_idempotency.json
 
 .idea/
 .vscode/
@@ -35,3 +36,7 @@ log/
 .colcon_settings.yaml
 
 PROJECT_MEMORY.md
+
+# Local X30 controller-calibration diagnostics.
+x30_*.log
+x30_*.json

@@ -1,0 +1,30 @@
+schemaVersion: execution-mapping.v1
+profileId: deep-robotics.x30-pro.mujoco-webots-inspection.v1
+model:
+  source: https://github.com/DeepRoboticsLab/deep_robotics_model
+  commit: 9f8b97ca57e79f2e82771cf934c4fc975ee2887c
+  mjcf: X30/mjcf/X30.xml
+  urdf: X30/urdf/X30.urdf
+skills:
+  perform_inspection_gait:
+    task: bounded_inspection_lane_traversal
+    output: >-
+      MuJoCo X30 episode plus a Webots R2025a run of the converted vendor URDF,
+      each with a profile-owned visual inspection lane and measured terminal
+      base state.
+    policy: >-
+      x30-pro-two-obstacle-slow-slalom-v5; a measured-state task controller
+      advances through settle, first evasion/pass, second evasion/pass and
+      goal-hold phases while bounded joint gaits use the vendor model's existing
+      leg joints. MuJoCo and Webots each measure base pose, orientation, contacts
+      and joint state every tick; those measurements gate phase transitions and
+      completion. The route has no caller-controlled motion parameters.
+    inputs: []
+    metrics: [body_forward_progress_m, measured_lateral_drift_m, min_base_height_m, max_tilt_rad, finish_line_crossed, course, finite_state, measured_hip_sweep_rad]
+    success: >-
+      body_forward_progress_m >= 0.85, finish-line crossing, physical-course
+      approach, zero blocker contact, and safe finite measured state
+  stop:
+    task: safe_stop
+    output: standing joint targets and correlated terminal result
+    success: stop request completes only after safe-stop confirmation

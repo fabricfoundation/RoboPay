@@ -1,0 +1,7 @@
+{
+  "actionId": "act_x30_safe_stop_001",
+  "robotId": "x30-pro-sim-01",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "x30-safe-stop-001"
+}
