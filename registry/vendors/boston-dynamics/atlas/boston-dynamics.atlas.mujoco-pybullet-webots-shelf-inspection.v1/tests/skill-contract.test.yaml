@@ -270,12 +270,23 @@ cases:
       sequential test and still lets simultaneous retries through.
 
   - name: identity_fields_are_mandatory
-    given: an envelope missing action_id, skill_id or idempotency_key
+    given: an envelope missing action_id, robot_id, skill_id or idempotency_key
     expect:
       executed: false
       errorCode: MISSING_IDENTITY
     enforcedBy: tests/test_bridge_contract.py::test_missing_identity_is_refused
     note: A result nobody can correlate is worse than no result.
+
+  - name: an_incomplete_identity_never_reaches_zenoh
+    given: a paid request missing any one of the four identity fields
+    expect:
+      httpStatus: 400
+      published: 0
+      executed: false
+    enforcedBy: tunnel/internal/handlers/handlers_test.go::TestNothingReachesTheRobotUntilTheRequestIsAccepted
+    note: >-
+      Refused at the tunnel, before the transport. Checking after publishing
+      would put a message on the wire that the bridge is going to reject anyway.
 
   - name: skill_id_is_never_inferred
     given: an envelope that omits skill_id

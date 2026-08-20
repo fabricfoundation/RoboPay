@@ -76,8 +76,8 @@ USER_AGENT = "robopay-atlas-bridge/1.0"
 EPISODE_SECONDS = 20.0
 TUNNEL_CONNECT_TIMEOUT_S = 90.0
 STATUS_TIMEOUT_S = 300.0
-#: POST /action now blocks until the robot answers, so this has to outlast
-#: the episode budget plus the tunnel's own margin.
+#: POST /action answers 202 straight away, but the status polling that follows
+#: has to outlast the episode budget plus the tunnel's own margin.
 HTTP_TIMEOUT_S = 240.0
 TERMINAL_STATES = {"succeeded", "failed", "timeout", "settlement_failed"}
 #: A settled action needs one more poll than a finished one: the tunnel

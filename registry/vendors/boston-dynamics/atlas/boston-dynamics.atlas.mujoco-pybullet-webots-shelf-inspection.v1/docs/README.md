@@ -35,11 +35,19 @@ measured end-effector pose. There is no recorded trajectory in the bridge.
 
 | Case | HTTP | Executed | Settled |
 | --- | --- | --- | --- |
-| No payment | 402 | no | no |
-| Wrong amount / asset / network | 400 | no | no |
-| Valid payment, 3/3 targets | 200 | yes | **yes** |
-| Valid payment, failed or stopped | 200 | yes | no |
-| Replayed receipt | 409 | no | no |
+| No payment | 402 | no | none |
+| Wrong amount / asset / network | 402 | no | none |
+| Missing any identity field | 400 | no | none — nothing published to Zenoh |
+| Valid payment | **202** accepted | asynchronously | **after** the result, only on success |
+| … and the episode reached 3/3 | — | yes | **0.001 USDC settled** |
+| … and the episode failed, timed out or was stopped | — | reported `failed` | none |
+| Replayed receipt or a reused idempotency key | 202 | no second actuation | none |
+
+Acceptance is about the request, not the outcome: `202` says the action was taken
+in, and the terminal result is read from `GET /action/{action_id}/status`.
+Settlement follows that result and never precedes it. A replay is refused by the
+bridge and surfaces in the correlated result rather than as an HTTP code, because
+the tunnel has already answered by then.
 
 Reviewer-facing expectations, each mapped to the test that enforces it, are in
 [`../tests/skill-contract.test.yaml`](../tests/skill-contract.test.yaml).

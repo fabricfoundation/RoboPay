@@ -46,12 +46,22 @@ functions:
       "202": >-
         accepted/pending, carrying action_id and status_url; the terminal
         outcome is read from GET /action/{action_id}/status
-      "400": no action_id to correlate on, or unparseable body; nothing published
-      "402": payment required
-      "403": skill not allowed or wrong robot
-      "409": replay detected
-      "429": rate limited
-      "503": allowlist, idempotency store, or result channel unavailable
+      "400": >-
+        unreadable or non-JSON body, or any of action_id, robot_id, skill_id and
+        idempotency_key missing; nothing is published to Zenoh
+      "402": >-
+        payment required or refused — advertised by the payment gate with the
+        requirements, including when the live facilitator rejects the
+        authorization
+      "500": the action event could not be encoded; nothing is published
+      "502": the robot transport is unavailable, or publishing to Zenoh failed
+    returns_note: >-
+      These are the codes this route produces, and no others. Outcomes the robot
+      decides — a refused skill, a replayed idempotency key, a failed or
+      timed-out episode — cannot appear here, because the route has already
+      answered 202 by the time they are known. They arrive as the state and
+      error_code of GET /action/{action_id}/status, which is where a caller must
+      look for them.
     settlement: >-
       Deferred until the correlated result carries status success. A failed,
       timed-out or safely stopped episode never settles.
