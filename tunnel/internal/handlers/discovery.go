@@ -177,25 +177,68 @@ func awaitResult(done <-chan ActionStatus, timeout time.Duration) (ActionStatus,
 	}
 }
 
-// actionIdentity reads the correlation id and the episode budget out of the
+// actionIdentity reads the identity fields and the episode budget out of the
 // request body. Both spellings are accepted because the relay forwards the
 // caller's body verbatim.
-func actionIdentity(body []byte) (string, float64) {
+type actionIdentityFields struct {
+	ActionID       string
+	RobotID        string
+	SkillID        string
+	IdempotencyKey string
+	BudgetSeconds  float64
+}
+
+// missing names the first identity field the request left out. The simulator
+// bridge refuses an envelope without all four, so publishing one only puts a
+// message on the wire that is going to be rejected at the other end — and an
+// invalid request is supposed to reach neither Zenoh nor the robot.
+func (f actionIdentityFields) missing() string {
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"action_id", f.ActionID},
+		{"robot_id", f.RobotID},
+		{"skill_id", f.SkillID},
+		{"idempotency_key", f.IdempotencyKey},
+	} {
+		if field.value == "" {
+			return field.name
+		}
+	}
+	return ""
+}
+
+func actionIdentity(body []byte) actionIdentityFields {
 	var envelope struct {
-		ActionID  string `json:"action_id"`
-		ActionID2 string `json:"actionId"`
-		Params    struct {
+		ActionID         string `json:"action_id"`
+		ActionIDCamel    string `json:"actionId"`
+		RobotID          string `json:"robot_id"`
+		RobotIDCamel     string `json:"robotId"`
+		SkillID          string `json:"skill_id"`
+		SkillIDCamel     string `json:"skillId"`
+		IdempotencyKey   string `json:"idempotency_key"`
+		IdempotencyCamel string `json:"idempotencyKey"`
+		Params           struct {
 			MaxDurationSec float64 `json:"maxDurationSec"`
 		} `json:"params"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		return "", 0
+		return actionIdentityFields{}
 	}
-	id := envelope.ActionID
-	if id == "" {
-		id = envelope.ActionID2
+	pick := func(a, b string) string {
+		if a != "" {
+			return a
+		}
+		return b
 	}
-	return id, envelope.Params.MaxDurationSec
+	return actionIdentityFields{
+		ActionID:       pick(envelope.ActionID, envelope.ActionIDCamel),
+		RobotID:        pick(envelope.RobotID, envelope.RobotIDCamel),
+		SkillID:        pick(envelope.SkillID, envelope.SkillIDCamel),
+		IdempotencyKey: pick(envelope.IdempotencyKey, envelope.IdempotencyCamel),
+		BudgetSeconds:  envelope.Params.MaxDurationSec,
+	}
 }
 
 // executionTimeout bounds the wait by what the caller asked the robot to spend,

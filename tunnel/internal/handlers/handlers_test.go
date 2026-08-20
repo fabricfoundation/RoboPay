@@ -3,8 +3,10 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -104,7 +106,7 @@ func TestPostActionAnswersImmediatelyWithAccepted(t *testing.T) {
 	spy := &settleSpy{}
 	answer(h, "act-1", stateSucceeded)
 
-	res := post(h, `{"action_id":"act-1","params":{"maxDurationSec":5}}`, spy)
+	res := post(h, `{"action_id":"act-1","robot_id":"atlas-sim-01","skill_id":"inspect_shelf","idempotency_key":"idem-1","params":{"maxDurationSec":5}}`, spy)
 
 	if res.Code != http.StatusAccepted {
 		t.Fatalf("the tunnel contract answers 202 the moment an action is "+
@@ -124,7 +126,7 @@ func TestSettlementFollowsSuccess(t *testing.T) {
 	spy := &settleSpy{}
 	answer(h, "act-2", stateSucceeded)
 
-	post(h, `{"action_id":"act-2","params":{"maxDurationSec":5}}`, spy)
+	post(h, `{"action_id":"act-2","robot_id":"atlas-sim-01","skill_id":"inspect_shelf","idempotency_key":"idem-2","params":{"maxDurationSec":5}}`, spy)
 
 	if got := settlementCalls(spy); got != 1 {
 		t.Fatalf("a completed episode should settle exactly once, settled %d times", got)
@@ -137,7 +139,7 @@ func TestAFailedEpisodeIsNeverSettled(t *testing.T) {
 	spy := &settleSpy{}
 	answer(h, "act-3", stateFailed)
 
-	res := post(h, `{"action_id":"act-3","params":{"maxDurationSec":5}}`, spy)
+	res := post(h, `{"action_id":"act-3","robot_id":"atlas-sim-01","skill_id":"inspect_shelf","idempotency_key":"idem-3","params":{"maxDurationSec":5}}`, spy)
 
 	if res.Code != http.StatusAccepted {
 		t.Fatalf("acceptance is about the request, not the outcome; got %d", res.Code)
@@ -160,7 +162,7 @@ func TestASilentRobotIsNeverSettled(t *testing.T) {
 	spy := &settleSpy{}
 	// No answer is ever delivered.
 
-	post(h, `{"action_id":"act-4","params":{"maxDurationSec":5}}`, spy)
+	post(h, `{"action_id":"act-4","robot_id":"atlas-sim-01","skill_id":"inspect_shelf","idempotency_key":"idem-4","params":{"maxDurationSec":5}}`, spy)
 	time.Sleep(400 * time.Millisecond)
 
 	if got := spy.count(); got != 0 {
@@ -210,10 +212,27 @@ func TestPostActionRejectsInvalidJSON(t *testing.T) {
 func TestNothingReachesTheRobotUntilTheRequestIsAccepted(t *testing.T) {
 	// One table for the refusals, so a new refusal path cannot be added without
 	// someone deciding what it does to the robot.
+	// The bridge refuses an envelope missing any of the four identity fields, so
+	// publishing one only puts a message on the wire that is going to be
+	// rejected at the other end.
+	full := `"action_id":"a","robot_id":"r","skill_id":"s","idempotency_key":"i"`
+	without := func(field string) string {
+		parts := strings.Split(full, ",")
+		kept := parts[:0]
+		for _, part := range parts {
+			if !strings.HasPrefix(part, `"`+field+`"`) {
+				kept = append(kept, part)
+			}
+		}
+		return "{" + strings.Join(kept, ",") + `,"params":{"maxDurationSec":5}}`
+	}
 	for name, body := range map[string]string{
-		"no action_id":    `{"params":{"maxDurationSec":5}}`,
-		"empty action_id": `{"action_id":"","params":{"maxDurationSec":5}}`,
-		"malformed json":  `{"action_id":`,
+		"no action_id":       without("action_id"),
+		"no robot_id":        without("robot_id"),
+		"no skill_id":        without("skill_id"),
+		"no idempotency_key": without("idempotency_key"),
+		"empty action_id":    `{"action_id":"","robot_id":"r","skill_id":"s","idempotency_key":"i"}`,
+		"malformed json":     `{"action_id":`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			h, pub := newTestHandlers()
@@ -246,5 +265,72 @@ func TestActionStatusIsPendingUntilTheRobotAnswers(t *testing.T) {
 	}
 	if !bytes.Contains(res.Body.Bytes(), []byte(statePending)) {
 		t.Fatalf("an unanswered action should read as pending, got %s", res.Body.String())
+	}
+}
+
+// -- identity and payee ------------------------------------------------------
+
+// The wiki asks that a robot's identity bind to the payee wallet. The
+// authenticating handshake between a robot and the relay belongs to the shared
+// tunnel and gateway, but the half this tunnel owns is checkable: the identity
+// it answers for and the address it is paid to come from one configuration and
+// are advertised together, so a caller can see which wallet the robot it is
+// talking to gets paid at before paying anything.
+func TestTheAdvertisedPayeeIsTheConfiguredOne(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h, _ := newTestHandlers()
+	h.RobotID = "atlas-sim-01"
+	h.PayTo = "0x7b9163254A21b249a0D3E34300fC81BB0A43C3e8"
+	h.Network = "eip155:84532"
+
+	router := gin.New()
+	router.GET("/robot", h.GetRobotProfile)
+	req := httptest.NewRequest(http.MethodGet, "/robot", nil)
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", res.Code)
+	}
+	var profile struct {
+		RobotID string `json:"robot_id"`
+		PayTo   string `json:"pay_to"`
+		Network string `json:"network"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &profile); err != nil {
+		t.Fatalf("unreadable robot profile: %v", err)
+	}
+	if profile.RobotID != h.RobotID {
+		t.Fatalf("advertised robot_id %q, configured %q", profile.RobotID, h.RobotID)
+	}
+	if profile.PayTo != h.PayTo {
+		t.Fatalf("advertised pay_to %q, configured %q — a caller paying this robot "+
+			"would be told the wrong wallet", profile.PayTo, h.PayTo)
+	}
+	if profile.Network != h.Network {
+		t.Fatalf("advertised network %q, configured %q", profile.Network, h.Network)
+	}
+}
+
+// A robot that has not been told who it is paid to must not advertise an empty
+// payee as though it were an address.
+func TestAnUnconfiguredPayeeIsNotAdvertisedAsAnAddress(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h, _ := newTestHandlers()
+	h.RobotID = "atlas-sim-01"
+	h.PayTo = ""
+
+	router := gin.New()
+	router.GET("/robot", h.GetRobotProfile)
+	req := httptest.NewRequest(http.MethodGet, "/robot", nil)
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, req)
+
+	var profile struct {
+		PayTo string `json:"pay_to"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &profile)
+	if profile.PayTo != "" {
+		t.Fatalf("an unconfigured payee was advertised as %q", profile.PayTo)
 	}
 }

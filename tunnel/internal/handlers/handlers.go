@@ -153,15 +153,20 @@ func (h *Handlers) PostAction(c *gin.Context) {
 		return
 	}
 
-	actionID, budget := actionIdentity(body)
+	identity := actionIdentity(body)
+	actionID, budget := identity.ActionID, identity.BudgetSeconds
 
-	// Refused before anything is published. An action with no correlation id has
-	// an outcome nobody can observe, so it could never be settled safely — and a
-	// request that will be refused must not reach the robot at all. Checking
-	// after publishing would put it on the wire and only then say no.
-	if actionID == "" || h.Statuses == nil {
+	// Refused before anything is published. An action missing any of the four
+	// identity fields is one the simulator bridge will reject anyway, and one
+	// with no correlation id has an outcome nobody can observe — so it could
+	// never be settled safely. Checking after publishing would put it on the
+	// wire and only then say no.
+	if absent := identity.missing(); absent != "" || h.Statuses == nil {
+		if absent == "" {
+			absent = "result channel"
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "action_id is required to correlate the robot's result",
+			"error": absent + " is required; nothing was published",
 		})
 		return
 	}

@@ -174,7 +174,7 @@ declares. Testnet only, and no key material lives in this repository.
 | MuJoCo | 3.11+ (installed by `requirements.txt`) |
 | PyBullet | installed by `requirements.txt` |
 | Webots | R2025a, installed separately — only needed for the Webots run |
-| Zenoh | `eclipse-zenoh` plus a reachable router, only needed for the tunnel |
+| Zenoh | `eclipse-zenoh`, only needed for the tunnel. Peer mode works locally with no router; set `ZENOH_ENDPOINT` for a router or client deployment |
 
 ### Configuration
 
@@ -194,10 +194,52 @@ Every setting has a working default; none is required for the simulator runs.
 | `WEB3_PROVIDER_URL` | — | RPC endpoint, only for executing a settlement |
 | `SETTLEMENT_PRIVATE_KEY` | — | **Never commit this.** Only for executing a settlement |
 
-**Security.** `SETTLEMENT_PRIVATE_KEY` is read from the environment and is never
-written to disk, logged, or included in any evidence artefact. Use a dedicated
-testnet wallet and treat it as disposable. This repository contains no key
-material, and CI fails the build if any appears in the diff.
+| `SETTLEMENT_MNEMONIC` | — | **Never commit this.** Recovery phrase, as an alternative to the key |
+| `SETTLEMENT_ACCOUNT_INDEX` | `0` | Which account of that phrase to derive, `m/44'/60'/0'/0/<index>` |
+
+### Wallet setup
+
+Only the two paid demos need a wallet; every simulator run, the whole test suite
+and the payment-safety checks work without one.
+
+1. **Create a wallet you are willing to throw away.** Base Sepolia USDC has no
+   monetary value, and a key used for a demo should never be one that guards
+   anything.
+2. **Fund it with test USDC** from the Coinbase Developer Platform faucet. You
+   need `0.001` per paid action. **No ETH is required** — under EIP-3009 the
+   payer only signs, and the facilitator submits the transaction and pays the
+   gas.
+3. **Put the key in your own shell, not in a file.** Either form works:
+
+   ```bash
+   export SETTLEMENT_PRIVATE_KEY=0x...     # or
+   export SETTLEMENT_MNEMONIC="word word ..."
+   ```
+
+4. **Set the payee** the robot is paid to, in the tunnel's `config.json`
+   (`evm_payee_address`). It is what the tunnel advertises in its `402` and where
+   the settlement lands; the two are the same value by construction, and
+   `TestTheAdvertisedPayeeIsTheConfiguredOne` holds that.
+5. **Unset it when you are done**: `unset SETTLEMENT_PRIVATE_KEY`.
+
+### Testnet configuration
+
+| | |
+| --- | --- |
+| Network | Base Sepolia, `eip155:84532`, chain id 84532 |
+| Asset | USDC `0x036CbD53842c5426634e7929541eC2318f3dCF7e`, 6 decimals |
+| Price | `0.001` USDC — `1000` raw, as published in `skills.yaml` |
+| Facilitator | `https://x402.org/facilitator` |
+| RPC | `https://sepolia.base.org` |
+| Explorer | `https://sepolia.basescan.org` |
+
+**Security.** The key is read from the environment and is never written to disk,
+logged, echoed, or included in any evidence artefact — the artifacts record the
+payer's *address*, which is public, and the signature, which the facilitator
+needs anyway. Use a dedicated testnet wallet and treat it as disposable: a key
+that has been pasted anywhere should be considered public for ever. This
+repository contains no key material, and CI fails the build if any appears in
+the diff.
 
 ### Start the tunnel bridge
 
@@ -260,7 +302,7 @@ zenoh put robot/tunnel/action --value "$(cat registry/vendors/boston-dynamics/at
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `Install eclipse-zenoh to run the Atlas bridge` | Transport extra missing | `pip install eclipse-zenoh` |
-| Bridge starts but nothing arrives | Router unreachable, or peer mode | Set `ZENOH_ENDPOINT` to the router |
+| Bridge starts but nothing arrives | Publisher and bridge are not on the same Zenoh network | Both in peer mode on one host needs no router; otherwise point both at the same `ZENOH_ENDPOINT` |
 | No reply at all to an action | `robot_id` mismatch or malformed envelope | Check `ROBOT_ID`; both cases are logged |
 | `Atlas download did not produce …` | Fetch blocked | Re-run `download_atlas_model`, check network |
 | `Webots was not found` | Not installed or not on `PATH` | Install R2025a or set `WEBOTS_EXE` |

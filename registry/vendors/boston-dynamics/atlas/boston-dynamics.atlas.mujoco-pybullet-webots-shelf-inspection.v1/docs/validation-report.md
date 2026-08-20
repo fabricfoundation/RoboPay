@@ -504,14 +504,27 @@ by `tests/test_x402_payment_safety.py`.
 
 ### 9.2 What this profile does not prove
 
-**Robot identity and payee binding.** The payee is configured
-(`evm_payee_address` in the tunnel's config, `payTo` in the advertised payment
-requirements) and the settlements above did go to it — but that is
-configuration matching, not a cryptographic binding between the robot's
-identity and the wallet. The authenticating handshake between a robot and its
-payee lives in the shared upstream tunnel and gateway; this profile consumes the
-authenticated identity it is given and does not reimplement or re-verify it. No
-artifact here should be read as proving that binding.
+**Robot identity and payee binding — half proven, half upstream.** The success
+criteria ask that the bridge sign the robot authentication handshake and that
+the robot's identity bind to the payee wallet. Those are two things, and this
+profile can only speak for one of them.
+
+*Proven here.* The identity the tunnel answers for and the address it is paid to
+come from one configuration and are advertised together, so a caller can see
+which wallet the robot it is talking to gets paid at before paying anything:
+`GET /robot` returns `robot_id` and `pay_to` from that same config, the `402`
+quotes the same `payTo`, and the x402 middleware refuses a payment whose `payTo`
+does not match what was advertised — it matches on scheme, network, amount,
+asset **and** payee. The settlements in 8.1 and 9 landed at exactly that
+address. `TestTheAdvertisedPayeeIsTheConfiguredOne` and
+`TestAnUnconfiguredPayeeIsNotAdvertisedAsAnAddress` hold the advertising half.
+
+*Not proven here.* The authenticating handshake between a robot and the relay —
+the part that would make the identity unforgeable rather than merely declared —
+belongs to the shared tunnel and gateway. The tunnel dials out with its
+`robot_id` and consumes the identity it is given; this profile does not
+reimplement or re-verify that exchange, and no artifact here should be read as
+proving it. A robot profile is not the layer that can.
 
 What *is* bound cryptographically is the settlement to the action: the
 authorization nonce is `keccak256(action_id)` and the token records it on chain.
