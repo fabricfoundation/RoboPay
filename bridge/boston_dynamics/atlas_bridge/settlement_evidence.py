@@ -30,10 +30,31 @@ EXPLORER = "https://sepolia.basescan.org"
 #: keccak256("Transfer(address,address,uint256)")
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
-#: The settlement this profile's evidence refers to.
-SETTLEMENT_TX = "0x5b04259e0d9cfe319a6ffec3d7f6b9118b70e09ae4a832625bed5ecd48326b6e"
-#: The faucet request that funded the payer wallet beforehand.
+#: keccak256("AuthorizationUsed(address,bytes32)")
+AUTHORIZATION_USED_TOPIC = (
+    "0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5"
+)
+
+#: The paid run whose settlement this verifies. Read from the artifact rather
+#: than pinned here, so the check follows the evidence instead of drifting from
+#: it — an earlier revision verified a 1.0 USDC transfer that had nothing to do
+#: with any action while the profile's real settlement was 0.001 USDC.
+PAID_RUN_ARTIFACT = Path("docs/evidence/real-paid-run.json")
+#: The faucet request that funded the first test wallet.
 FUNDING_TX = "0xb37252fda0bc30de9ce98bd1b306c131eda11a4b3fabd9ae11d487d8773fdbbb"
+
+
+def settlement_under_test() -> tuple[str, str]:
+    """The transaction and action id to verify, taken from the paid-run artifact."""
+    if not PAID_RUN_ARTIFACT.is_file():
+        raise SystemExit(f"{PAID_RUN_ARTIFACT} is missing; nothing to verify against")
+    artifact = json.loads(PAID_RUN_ARTIFACT.read_text(encoding="utf-8"))
+    on_chain = artifact.get("on_chain") or {}
+    tx_hash = (on_chain.get("explorer") or "").rsplit("/", 1)[-1]
+    action_id = artifact.get("action_id", "")
+    if not tx_hash or not action_id:
+        raise SystemExit(f"{PAID_RUN_ARTIFACT} records no settlement to verify")
+    return tx_hash, action_id
 
 
 def _rpc(method: str, params: list) -> dict | None:
@@ -55,8 +76,16 @@ def _address(topic: str) -> str:
     return "0x" + topic[-40:]
 
 
-def verify_settlement(tx_hash: str = SETTLEMENT_TX) -> dict:
-    """Read the settlement transaction back from chain and decode its transfer."""
+def verify_settlement(tx_hash: str = "", action_id: str = "") -> dict:
+    """Read the settlement transaction back from chain and decode its transfer.
+
+    When an ``action_id`` is given the authorization nonce is checked too: the
+    profile derives it as ``keccak256(action_id)``, so a matching nonce in the
+    token's ``AuthorizationUsed`` event is what makes this transfer the one that
+    paid for that action rather than merely a transfer of the right size.
+    """
+    if not tx_hash:
+        tx_hash, action_id = settlement_under_test()
     receipt = _rpc("eth_getTransactionReceipt", [tx_hash])
     if receipt is None:
         raise RuntimeError(f"Transaction {tx_hash} not found on Base Sepolia")
@@ -72,9 +101,26 @@ def verify_settlement(tx_hash: str = SETTLEMENT_TX) -> dict:
     transfer = transfers[0]
     raw = int(transfer["data"], 16)
 
+    nonce = ""
+    for log in receipt["logs"]:
+        topics = log.get("topics") or []
+        if topics and topics[0].lower() == AUTHORIZATION_USED_TOPIC and len(topics) >= 3:
+            nonce = topics[2]
+
+    expected_nonce = ""
+    if action_id:
+        from eth_utils import keccak
+
+        expected_nonce = "0x" + keccak(text=action_id).hex()
+
     return {
         "hash": tx_hash,
+        "action_id": action_id,
         "succeeded": receipt["status"] == "0x1",
+        "authorization_nonce": nonce,
+        "expected_nonce_from_action_id": expected_nonce,
+        "nonce_binds_settlement_to_action": bool(nonce)
+        and nonce.lower() == expected_nonce.lower(),
         "block_number": int(receipt["blockNumber"], 16),
         "gas_used": int(receipt["gasUsed"], 16),
         "contract": receipt["to"],
@@ -94,7 +140,7 @@ def verify_settlement(tx_hash: str = SETTLEMENT_TX) -> dict:
 
 def collect() -> dict:
     """Build the settlement evidence entirely from what the chain returns."""
-    settlement = verify_settlement(SETTLEMENT_TX)
+    settlement = verify_settlement()
     funding_receipt = _rpc("eth_getTransactionReceipt", [FUNDING_TX])
 
     return {
@@ -157,13 +203,21 @@ def main() -> None:
     args.json_output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
 
     print(f"settlement tx : {settlement['hash']}")
+    print(f"  for action  : {settlement['action_id']}")
     print(f"  succeeded   : {settlement['succeeded']}")
+    print(f"  bound to it : {settlement['nonce_binds_settlement_to_action']}"
+          f"  (nonce = keccak256(action_id))")
     print(f"  block       : {settlement['block_number']}")
     print(f"  transfer    : {transfer['amount']} {transfer['token']}")
     print(f"  from        : {transfer['from']}")
     print(f"  to          : {transfer['to']}")
     print(f"  explorer    : {settlement['explorer']}")
-    raise SystemExit(0 if settlement["succeeded"] else 1)
+    # A settlement that is not bound to the action it paid for proves the
+    # asset moved, not that this action was the reason.
+    raise SystemExit(
+        0 if settlement["succeeded"]
+        and settlement["nonce_binds_settlement_to_action"] else 1
+    )
 
 
 if __name__ == "__main__":

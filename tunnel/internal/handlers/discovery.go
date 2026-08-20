@@ -176,7 +176,16 @@ func executionTimeout(budgetSeconds float64) time.Duration {
 	return time.Duration((budgetSeconds + 45) * float64(time.Second))
 }
 
-var resultSubOnce sync.Once
+var (
+	resultSubOnce sync.Once
+	// The subscription is declared once for the process, so the results it
+	// records have to outlive any single Handlers value. setupRouter builds a
+	// fresh Handlers on every config-driven restart, and a per-instance store
+	// would leave the new one deaf: the subscriber would keep writing to the
+	// old store while the status endpoint read an empty new one, reporting
+	// every action as pending for ever. Tests override Statuses for isolation.
+	sharedStatuses = newStatusStore()
+)
 
 // StartResultSubscriber begins recording simulator results so that
 // GET /action/:action_id/status can answer from real execution rather than
@@ -212,7 +221,7 @@ func (h *Handlers) declareResultSubscriber() error {
 			if envelope.Status == "success" {
 				state = stateSucceeded
 			}
-			h.Statuses.put(ActionStatus{
+			sharedStatuses.put(ActionStatus{
 				ActionID:       envelope.ActionID,
 				RobotID:        envelope.RobotID,
 				SkillID:        envelope.SkillID,

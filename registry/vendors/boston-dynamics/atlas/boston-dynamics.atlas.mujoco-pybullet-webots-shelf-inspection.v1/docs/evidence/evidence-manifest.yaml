@@ -55,8 +55,8 @@ artifacts:
     sha256: 8ca56c67b3d02e9d13772aa0bfe46a5040ff3811a33d724b10aab88d1c2915ae
   - path: docs/evidence/onchain-settlement.json
     description: "Base Sepolia settlement transaction, re-read from a public RPC"
-    bytes: 2387
-    sha256: 9a9208b45eed6d019144b0a3efb8ef8c0f45e6a691fe9f339ef9f3cade94df28
+    bytes: 2682
+    sha256: c0dc7c12e35905555e9e6bccb9b38f673487b805a9d83ea56ccf680569cb4c4d
   - path: docs/evidence/demo-e2e-evidence.json
     description: "x402 gate: unpaid, invalid, paid-and-settled, replayed"
     bytes: 3187

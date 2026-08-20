@@ -17,3 +17,9 @@ urdf2webots>=2.0
 # test-suite pass without a router; demo_tunnel.py needs it to exercise the real
 # Zenoh path.
 eclipse-zenoh>=1.0
+
+# EIP-712 signing for the real paid path. real_paid_run.py and demo_fabric_e2e.py
+# sign an EIP-3009 authorization locally; without these a clean checkout can run
+# every simulator and payment-safety test but not the two paid demos.
+eth-account>=0.13
+eth-utils>=5.0

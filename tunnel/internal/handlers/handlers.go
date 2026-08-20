@@ -101,7 +101,7 @@ type Handlers struct {
 func NewHandlers(logger *zap.Logger) *Handlers {
 	return &Handlers{
 		Logger:   logger,
-		Statuses: newStatusStore(),
+		Statuses: sharedStatuses,
 	}
 }
 
@@ -154,17 +154,21 @@ func (h *Handlers) PostAction(c *gin.Context) {
 
 	actionID, budget := actionIdentity(body)
 
+	// Refused before anything is published. An action with no correlation id has
+	// an outcome nobody can observe, so it could never be settled safely — and a
+	// request that will be refused must not reach the robot at all. Checking
+	// after publishing would put it on the wire and only then say no.
+	if actionID == "" || h.Statuses == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "action_id is required to correlate the robot's result",
+		})
+		return
+	}
+
 	// Register interest before publishing. Registering afterwards is a race the
 	// simulator wins whenever it answers quickly, and losing it would look like
 	// a timeout.
-	var (
-		status ActionStatus
-		known  bool
-		done   <-chan ActionStatus
-	)
-	if actionID != "" && h.Statuses != nil {
-		done = h.Statuses.subscribe(actionID)
-	}
+	done := h.Statuses.subscribe(actionID)
 
 	pub := h.Publisher
 	if pub == nil {
@@ -186,13 +190,7 @@ func (h *Handlers) PostAction(c *gin.Context) {
 	// would therefore settle a payment for work that may still fail — which is
 	// exactly what a paid action must not do. So this waits for the robot's own
 	// answer and reports a failure as a failure.
-	if done == nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "action_id is required to correlate the robot's result",
-		})
-		return
-	}
-	status, known = awaitResult(done, executionTimeout(budget))
+	status, known := awaitResult(done, executionTimeout(budget))
 
 	if !known {
 		c.JSON(http.StatusGatewayTimeout, gin.H{

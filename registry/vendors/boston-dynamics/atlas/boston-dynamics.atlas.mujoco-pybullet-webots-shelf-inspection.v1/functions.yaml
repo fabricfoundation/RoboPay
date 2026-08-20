@@ -5,12 +5,24 @@ functions:
     method: GET
     url: /robot
     returns:
-      "200": robot_id and skills_url
+      "200": robot_id, profile_id, network, pay_to, and the skill IDs on offer
   - name: list_robot_skills
     method: GET
     url: /skills
     returns:
-      "200": registered skill IDs, enabled state, and USDC price
+      "200": >-
+        robot_id and the profile's own skill catalogue — skill_id, description,
+        payment_required, price_usdc and the parameter schema, read from
+        skill-catalog.json so a quoted price cannot drift from the published one
+  - name: get_action_status
+    method: GET
+    url: /action/{action_id}/status
+    returns:
+      "200": >-
+        action_id, robot_id, skill_id, params_hash, idempotency_key, profile_id
+        and state — pending until the simulator answers, then succeeded or
+        failed with the result it reported
+      "400": action_id missing from the path
   - name: request_robot_action
     method: POST
     url: /action
@@ -30,13 +42,26 @@ functions:
       PAYMENT-SIGNATURE: string
     body: same as request_robot_action
     returns:
-      "202": accepted/pending; terminal simulator result is correlated by action_id
-      "400": invalid action parameters; no simulator actuation
+      "200": the episode completed every target; carries the correlated result
+      "400": no action_id to correlate on, or unparseable body; nothing published
       "402": payment required
       "403": skill not allowed or wrong robot
       "409": replay detected
       "429": rate limited
+      "502": the robot reported a failure; carries its error code
       "503": allowlist, idempotency store, or result channel unavailable
+      "504": the robot did not answer before the deadline
     settlement: >-
-      Deferred until the correlated result carries status success. A failed,
-      timed-out or safely stopped episode never settles.
+      Only on 200. The x402 middleware settles after this route returns and
+      skips settlement when the response is an error, so the status code above
+      is the settlement decision: a failure, a timeout or an uncorrelatable
+      request cannot be paid for.
+    why_this_is_synchronous: >-
+      An asynchronous 202 would be the more usual shape, and an earlier revision
+      returned one. It cannot be used here: the middleware settles as soon as
+      this route answers without an error, so a 202 charges the payer before the
+      robot has run and a subsequently failed episode is still paid for — which
+      was measured, not assumed. Deferring settlement past the middleware is not
+      available to a route behind it, so the route waits for the robot instead.
+      The correlated result is also readable at any time from
+      GET /action/{action_id}/status, which reports pending until it arrives.

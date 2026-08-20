@@ -108,9 +108,11 @@ jobs:
         # non-zero unless every payment invariant holds.
         run: |
           python -m bridge.boston_dynamics.atlas_bridge.demo_tunnel \n            --json-output artifacts/tunnel-e2e-evidence.json | tee artifacts/demo-tunnel.txt
-      - name: Re-verify the on-chain settlement
-        # Reads the settlement transaction back from a public Base Sepolia RPC.
-        # Exits non-zero if it is missing, reverted, or carries no USDC transfer.
+      - name: Re-verify the on-chain settlement for the paid action
+        # Reads the settlement named by real-paid-run.json back from a public
+        # Base Sepolia RPC. Exits non-zero if it is missing, reverted, carries no
+        # USDC transfer, or its AuthorizationUsed nonce is not keccak256 of the
+        # action id it claims to have paid for.
         run: |
           python -m bridge.boston_dynamics.atlas_bridge.settlement_evidence \
             --json-output artifacts/onchain-settlement.json

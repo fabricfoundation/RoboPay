@@ -24,6 +24,8 @@ func newTestHandlers() (*Handlers, *fakePublisher) {
 	h := NewHandlers(zap.NewNop())
 	pub := &fakePublisher{}
 	h.Publisher = pub
+	// A store per test, so one test's results cannot answer another's action.
+	h.Statuses = newStatusStore()
 	return h, pub
 }
 
@@ -90,23 +92,56 @@ func TestPostActionReportsATimeoutRatherThanAssumingSuccess(t *testing.T) {
 }
 
 func TestPostActionRefusesAnActionItCannotCorrelate(t *testing.T) {
-	h, _ := newTestHandlers()
+	h, pub := newTestHandlers()
 
 	res := post(h, `{"command":"start"}`)
 
-	if res.Code < 400 {
+	if res.Code != http.StatusBadRequest {
 		t.Fatalf("an action with no action_id cannot be correlated, so its outcome "+
 			"is unknowable and it must not settle; got %d", res.Code)
+	}
+	// The status code alone would pass even if the action had already been put
+	// on the wire, which is the failure this test exists to catch: a request
+	// that will be refused must never reach the robot.
+	if len(pub.published) != 0 {
+		t.Fatalf("a refused action reached the robot: %d message(s) published",
+			len(pub.published))
 	}
 }
 
 func TestPostActionRejectsInvalidJSON(t *testing.T) {
-	h, _ := newTestHandlers()
+	h, pub := newTestHandlers()
 
 	res := post(h, `{"command":`)
 
 	if res.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", res.Code)
+	}
+	if len(pub.published) != 0 {
+		t.Fatalf("an unparseable action reached the robot: %d message(s) published",
+			len(pub.published))
+	}
+}
+
+func TestNothingReachesTheRobotUntilTheRequestIsAccepted(t *testing.T) {
+	// One table for the refusals, so a new refusal path cannot be added without
+	// someone deciding what it does to the robot.
+	for name, body := range map[string]string{
+		"no action_id":    `{"params":{"maxDurationSec":5}}`,
+		"empty action_id": `{"action_id":"","params":{"maxDurationSec":5}}`,
+		"malformed json":  `{"action_id":`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			h, pub := newTestHandlers()
+			res := post(h, body)
+			if res.Code < 400 {
+				t.Fatalf("expected a refusal, got %d", res.Code)
+			}
+			if len(pub.published) != 0 {
+				t.Fatalf("refused (%d) but still published %d message(s)",
+					res.Code, len(pub.published))
+			}
+		})
 	}
 }
 
