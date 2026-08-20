@@ -208,12 +208,32 @@ def sign_for(action_id: str, accepted: dict) -> tuple[dict, str, str]:
         )
 
     nonce = keccak(text=action_id)
-    # x402 v2 calls it "amount"; v1 called it "maxAmountRequired".
-    value = int(accepted.get("amount") or accepted.get("maxAmountRequired")
-                or SKILL_PRICE_RAW)
-    payee = accepted.get("payTo") or DEFAULT_PAYEE
-    asset = accepted.get("asset") or USDC_BASE_SEPOLIA
-    extra = accepted.get("extra") or {"name": "USDC", "version": "2"}
+    # Every field comes from the 402, and a missing one is fatal rather than
+    # filled in. The claim this run exists to support is that the payment is
+    # built from what the relay quoted; defaulting to a compiled-in price or
+    # payee would let it pass on a number the relay never sent, which is the
+    # one way this evidence could be quietly wrong.
+    # x402 v2 calls the price "amount"; v1 called it "maxAmountRequired".
+    quoted = accepted.get("amount") or accepted.get("maxAmountRequired")
+    missing = [
+        name for name, present in (
+            ("amount", quoted),
+            ("payTo", accepted.get("payTo")),
+            ("asset", accepted.get("asset")),
+            ("network", accepted.get("network")),
+            ("extra", accepted.get("extra")),
+        ) if not present
+    ]
+    if missing:
+        raise SystemExit(
+            "the relay's 402 did not quote " + ", ".join(missing)
+            + "; refusing to sign a payment this profile made up rather than "
+              "one the robot asked for"
+        )
+    value = int(quoted)
+    payee = accepted["payTo"]
+    asset = accepted["asset"]
+    extra = accepted["extra"]
     valid_before = int(time.time()) + max(
         int(accepted.get("maxTimeoutSeconds") or 0), 1800
     )
@@ -470,9 +490,10 @@ def run(binary: Path, robot_id: str, payee: str, dry_run: bool,
         status, paid_body, paid_headers = _request(
             "POST", action_url, action_body, {"PAYMENT-SIGNATURE": header}
         )
-        # The middleware settles as part of accepting the payment and reports
-        # the result in this header — so in *this* path settlement precedes
-        # execution, unlike real_paid_run.py where it follows it.
+        # Kept for the rejecting cases: when the gate refuses a payment it
+        # reports why in this header. On the accepting path it carries nothing
+        # useful, because settlement has not happened yet — the tunnel answers
+        # 202 first and settles from its watcher once the result arrives.
         payment_response = _decode_header(_header(paid_headers, "PAYMENT-RESPONSE"))
         print(f"  [paid]      HTTP {status}  {paid_body.get('status') or ''}"
               f"  action_id={paid_body.get('action_id') or ''}")

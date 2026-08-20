@@ -14,6 +14,9 @@ functions:
         robot_id and the profile's own skill catalogue — skill_id, description,
         payment_required, price_usdc and the parameter schema, read from
         skill-catalog.json so a quoted price cannot drift from the published one
+      "503": >-
+        the catalogue is unreadable, so the tunnel says it cannot list skills
+        rather than serving an empty or invented one
   - name: get_action_status
     method: GET
     url: /action/{action_id}/status

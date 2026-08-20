@@ -24,13 +24,29 @@ cases:
       settled: false
     enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_valid_payment_failure_no_settlement
 
-  - name: replayed_receipt_is_refused
+  - name: replayed_receipt_is_refused_in_process
     given: a receipt whose transaction hash was already settled
+    path: in-process relay — answers synchronously, so it can refuse with a code
     expect:
       httpStatus: 409
       executed: false
       settled: false
     enforcedBy: tests/test_x402_payment_safety.py::TestRelayPaymentGating::test_replay_rejected
+
+  - name: replay_on_the_hosted_path_surfaces_in_the_result
+    given: a paid action reusing an idempotency key already actuated
+    path: hosted relay -> Go tunnel -> Zenoh -> bridge
+    expect:
+      httpStatus: 202
+      executed: false
+      settled: false
+      errorCode: DUPLICATE_ACTION
+    enforcedBy: tests/test_idempotency.py::test_same_key_actuates_the_robot_once
+    note: >-
+      The tunnel has already answered 202 by the time the bridge recognises the
+      duplicate, so the refusal cannot be an HTTP code on POST /action. It
+      arrives as the state and error_code of GET /action/{action_id}/status, and
+      the robot is not actuated a second time.
 
   - name: in_process_valid_request_executes_and_becomes_eligible
     given: a protocol-valid receipt and an episode that reaches every target
