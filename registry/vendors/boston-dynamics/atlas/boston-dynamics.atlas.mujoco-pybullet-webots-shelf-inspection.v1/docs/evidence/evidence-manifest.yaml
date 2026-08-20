@@ -74,7 +74,7 @@ artifacts:
     bytes: 14601
     sha256: e210aff7554c31977260b0a80803f3f4a7996e517324718e248208c31f30d13a
   - path: docs/evidence/fabric-relay-failure.json
-    description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, reported failed with its real reason and correlated by action_id — and settled anyway, because this path settles on acceptance"
+    description: "The unhappy path through the same relay: a paid action refused by the declared parameter bounds, answered 502, reported failed with its real reason and correlated by action_id — and never charged, confirmed by the token contract's own record of spent authorizations"
     bytes: 7921
     sha256: db98764c932b1ac3868fa09b0e1cd36b359afb641bbaeb9d809e69a734c222e2
 settlement:
