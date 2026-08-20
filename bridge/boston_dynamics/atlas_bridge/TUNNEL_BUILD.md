@@ -93,7 +93,9 @@ Tunnel configuration is read from `config.json` beside the binary:
   middleware consults the live facilitator;
 * neither request ever reaches Zenoh or the simulator.
 
-**Does not prove** — the accepting side. A payment the facilitator will accept
-needs an EIP-3009 authorization signed by a funded wallet. No key material
-belongs in this repository, so that path is exercised at deployment time with
-the operator's own wallet and is not claimed here.
+**Does not prove** — the accepting side, because this demo has no wallet and
+stands in for the hosted relay with a local proxy. That half is proven elsewhere
+and does move real USDC: `demo_fabric_e2e.py` runs the same tunnel against the
+**hosted** Fabric relay with an operator-held wallet, and `real_paid_run.py`
+takes the facilitator route directly. Both settle 0.001 USDC only after the
+episode reports every target reached.
