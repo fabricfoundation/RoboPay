@@ -50,12 +50,15 @@ functions:
         accepted/pending, carrying action_id and status_url; the terminal
         outcome is read from GET /action/{action_id}/status
       "400": >-
-        unreadable or non-JSON body, or any of action_id, robot_id, skill_id and
-        idempotency_key missing; nothing is published to Zenoh
+        a payment header the gate cannot parse ("Invalid payment"), or a body
+        that is unreadable, not JSON, or missing any of action_id, robot_id,
+        skill_id and idempotency_key; nothing is published to Zenoh
       "402": >-
-        payment required or refused — advertised by the payment gate with the
-        requirements, including when the live facilitator rejects the
-        authorization
+        payment required, no advertised requirement matches the payment, or the
+        live facilitator refused the authorization — all answered with the
+        requirements in the PAYMENT-REQUIRED header. The split from 400 is
+        whether the gate could read the payment at all: an unparseable header is
+        400, a readable one it will not accept is 402
       "500": the action event could not be encoded; nothing is published
       "502": the robot transport is unavailable, or publishing to Zenoh failed
     returns_note: >-
