@@ -1,0 +1,8 @@
+models/booster_k1/
+artifacts/
+scenes/K1.proto
+scenes/K1_textures/
+scenes/webots_inspection_result.json
+scenes/*.wbproj
+__pycache__/
+*.pyc

@@ -1,0 +1,20 @@
+profileId: booster.k1.mujoco-webots-active-inspection.v1
+cases:
+  - {name: inspection_accepts_three_targets, action: inspect_target_sequence, params: {maxDurationSec: 18, targets: [left, center, right]}, expect: {accepted: true}}
+  - {name: inspection_rejects_excess_duration, action: inspect_target_sequence, params: {maxDurationSec: 31}, expect: {accepted: false, error: INVALID_DURATION}}
+  - {name: inspection_rejects_duplicate_targets, action: inspect_target_sequence, params: {targets: [left, left]}, expect: {accepted: false, error: INVALID_TARGETS}}
+  - {name: inspection_rejects_unknown_target, action: inspect_target_sequence, params: {targets: [rear]}, expect: {accepted: false, error: INVALID_TARGETS}}
+  - {name: unknown_action_is_fail_closed, action: walk_forward, params: {}, expect: {accepted: false, error: UNREGISTERED_ACTION}}
+  - name: invalid_payment_cannot_cross_action_boundary
+    runner: bridge/booster/k1_inspection_bridge/tests/test_payment_gate.py
+    expect: {status: 402, actionEvents: 0, simulatorStateChanges: 0, settlementCalls: 0}
+  - name: failure_timeout_and_replay_never_settle
+    runner: bridge/booster/k1_inspection_bridge/tests/test_x402_no_settlement.py
+    expect: {settled: false, settlementCalls: 0, durableReplayStatus: 409}
+  - name: sim_to_sim_shared_policy
+    runner: bridge/booster/k1_inspection_bridge/run_sim2sim_validation.py
+    expect: {engines: [MuJoCo, Webots], sharedPolicyMatch: true, simToSimScore: 1.0}
+settlementInvariant: >-
+  The real Tunnel verifies x402 before publishing ActionEvent and settles only
+  after a correlated successful K1 result. All rejection and failure paths are
+  required CI gates.

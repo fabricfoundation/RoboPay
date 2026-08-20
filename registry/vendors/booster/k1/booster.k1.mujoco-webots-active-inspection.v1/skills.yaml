@@ -1,0 +1,44 @@
+schemaVersion: robot-skills.v1
+profileId: booster.k1.mujoco-webots-active-inspection.v1
+skills:
+  - skillId: inspect_target_sequence
+    description: >-
+      Use K1 head and arm joints to find and confirm one to three inspection
+      targets in a disclosed fixed-base safety stand with both feet on the
+      floor. Progression is driven by measured joint error and dwell time, not
+      by a prerecorded animation.
+    params:
+      maxDurationSec:
+        type: number
+        min: 5
+        max: 30
+        default: 18
+      targets:
+        type: array
+        minItems: 1
+        maxItems: 3
+        uniqueItems: true
+        items:
+          enum: [left, center, right]
+        default: [left, center, right]
+      speedScale:
+        type: number
+        min: 0.5
+        max: 1.0
+        default: 1.0
+    paymentRequired: true
+    priceUSDC: "0.001"
+    movementLimits:
+      maxDurationSec: 30
+      maxTargets: 3
+      headYawRad: [-1.0, 1.0]
+      headPitchRad: [-0.349, 0.855]
+      targetErrorToleranceRad: 0.09
+      webotsMaxMotorVelocityRadSec: 3.0
+  - skillId: stop
+    description: >-
+      Interrupt inspection, command the neutral 22-motor pose, and zero joint
+      velocity. The interrupted inspection reports failure and cannot settle.
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.001"

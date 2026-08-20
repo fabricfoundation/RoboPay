@@ -1,0 +1,7 @@
+{
+  "action": "inspect_target_sequence",
+  "robot_id": "booster-k1-sim-01",
+  "action_id": "k1-inspection-example-001",
+  "idempotency_key": "k1-inspection-example-001",
+  "params": {"maxDurationSec": 18, "targets": ["left", "center", "right"], "speedScale": 1.0}
+}

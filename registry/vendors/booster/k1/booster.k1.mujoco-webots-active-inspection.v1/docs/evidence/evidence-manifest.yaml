@@ -1,0 +1,54 @@
+schema_version: 1
+profile_id: booster.k1.mujoco-webots-active-inspection.v1
+status: captured
+
+execution:
+  source_commit: 34b3106409efb273358fa79ae3cce9be1e15e1f8
+  captured_at: "2026-08-15T11:32:50Z"
+  robot_id: booster-k1-base-sepolia-1786793529
+  action_id: k1-active-inspection-1786793529
+  cold_start: true
+  warmup_action: false
+  unpaid_http_status: 402
+  paid_http_status: 202
+  terminal_state: succeeded
+  settled: true
+  targets_confirmed: [left, center, right]
+
+settlement:
+  network: "eip155:84532"
+  transaction_hash: "0xf0ffd8d950f316892d330d8e0c909f7bed0ccc66775be109b89b670704bad95a"
+  basescan_url: "https://sepolia.basescan.org/tx/0xf0ffd8d950f316892d330d8e0c909f7bed0ccc66775be109b89b670704bad95a"
+
+visual_recording:
+  status: captured
+  filename: "2026-08-15 08-32-06.mp4"
+  attachment_url: "https://github.com/user-attachments/assets/c567d3ec-b68e-476b-acbe-dcd4a6adfd19"
+  sha256: "92c1ae57ae4811f48359265077c19a2e64c547a01f68f6f9c295f1ab6dd791f0"
+  size_bytes: 1859851
+  duration_seconds: 60.23
+  resolution: 1280x720
+  layout: stable simultaneous terminal and native MuJoCo viewer
+  presentation:
+    start_hold_seconds: 8
+    per_target_hold_seconds: 2
+    final_hold_seconds: 3
+  visible_sequence:
+    - exact source commit before discovery
+    - unpaid HTTP 402 before actuation
+    - first paid HTTP 202 with correlated action ID
+    - distinct left, center, and right live-controller poses
+    - correlated successful result and settled=true
+    - matching BaseScan transaction success page
+  note: >-
+    The binding BaseScan page is the transaction opened after settled=true.
+    Any transaction tab visible before execution is unrelated background and
+    is not claimed as evidence for this action.
+
+trusted_json:
+  path: docs/evidence/base_sepolia_result_1786793570.json
+  source_runtime_sha256: "d2b820233d9ff5ee324b06f584094b9af8e9264fc87527aabfdf2bcc4d75fa45"
+  versioned_lf_sha256: "b819de630df6a6dd3bf8e573cabeaa2ea6681c08d41b38ea3cbfeac6d3b7c559"
+  normalization_note: >-
+    The runtime file was written with Windows CRLF line endings; the committed
+    copy is Git-normalized to LF. Parsed JSON content is identical.

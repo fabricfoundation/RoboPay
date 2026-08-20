@@ -1,0 +1,10 @@
+{
+  "source": "https://github.com/BoosterRobotics/booster_assets",
+  "commit": "508cbee6ca9ae6fbc8c0b38dd58785a6f3fc61a2",
+  "directory": "robots/K1",
+  "mjcf": "K1_22dof.xml",
+  "mjcfSha256": "51954b1317d1afd386da28a5b28ebe7a536d79b94ded8ab61358daa3ab50bf83",
+  "urdf": "K1_22dof.urdf",
+  "urdfSha256": "03e82242fed026d586828667381260d32fd75a38f5f9f133d96fb2b002fe2174",
+  "license": "BSD-3-Clause"
+}

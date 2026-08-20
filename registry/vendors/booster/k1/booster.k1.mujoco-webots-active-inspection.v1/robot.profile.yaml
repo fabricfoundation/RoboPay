@@ -1,0 +1,26 @@
+schemaVersion: robot-profile.v1
+vendor: booster
+robotModel: k1
+robotType: humanoid
+profileId: booster.k1.mujoco-webots-active-inspection.v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/booster_k1/metrics
+  bridge: bridge/booster/k1_inspection_bridge
+simulation:
+  scope: simulator-only
+  primaryEngine: MuJoCo
+  validationEngine: Webots R2025a
+  supportFixture: fixed-base safety stand
+  supportPose: feet-on-floor
+  model:
+    source: https://github.com/BoosterRobotics/booster_assets
+    commit: 508cbee6ca9ae6fbc8c0b38dd58785a6f3fc61a2
+    directory: robots/K1
+    license: BSD-3-Clause
+maintainers:
+  - github: RobotDeveloper1
+status: experimental
