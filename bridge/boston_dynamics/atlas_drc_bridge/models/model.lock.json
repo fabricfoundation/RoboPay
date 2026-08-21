@@ -1,0 +1,18 @@
+{
+  "robot": "Boston Dynamics Atlas DRC v4 (legacy)",
+  "source": "https://github.com/openai/roboschool.git",
+  "commit": "d32bcb2b35b94168b5ce27233ca62f3c8678886f",
+  "directory": "roboschool/models_robot/atlas_description",
+  "urdf": "urdf/atlas_v4_with_multisense.urdf",
+  "urdf_sha256": "75b7d6b9cb74cbb823895930a581e1745c754d78986554c78f4708a6305349d3",
+  "extra_directories": [
+    {
+      "source": "roboschool/models_robot/multisense_sl_description",
+      "destination": "multisense_sl_description",
+      "verify_path": "meshes/head.dae",
+      "sha256": "2a14b5cdc9e1bba1f072010c412884da795a9769bcd5ce8b836e51d0e78796d4"
+    }
+  ],
+  "license": "MIT (OpenAI Roboschool repository; preserve upstream model notices)",
+  "limitations": "This is the legacy hydraulic/DARPA Atlas v4 model, not Boston Dynamics' current electric Atlas product. MuJoCo imports its collision geometry but does not load its DAE visual meshes."
+}

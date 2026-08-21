@@ -1,0 +1,11 @@
+{
+  "action": "wave_right_arm",
+  "robot_id": "atlas-drc-mujoco-webots-sim-01",
+  "action_id": "atlas-wave-example-001",
+  "idempotency_key": "atlas-wave-example-001",
+  "params": {
+    "cycles": 2,
+    "amplitudeRad": 0.3,
+    "maxDurationSec": 8
+  }
+}

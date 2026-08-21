@@ -1,0 +1,33 @@
+schemaVersion: robot-profile.v1
+vendor: boston-dynamics
+robotModel: atlas-drc-v4-legacy
+robotType: humanoid
+profileId: boston-dynamics.atlas-drc.mujoco-webots-wave.v1
+profileVersion: 1.0.0
+scope: simulator-only
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/boston_dynamics_atlas_drc/metrics
+  readyTopic: robot/boston_dynamics_atlas_drc/ready
+  bridge: bridge/boston_dynamics/atlas_drc_bridge
+simulation:
+  scope: simulator-only
+  primaryEngine: MuJoCo 3.3.0
+  validationEngine: Webots R2025a
+  model:
+    label: Boston Dynamics Atlas DRC v4 legacy
+    source: https://github.com/openai/roboschool
+    commit: d32bcb2b35b94168b5ce27233ca62f3c8678886f
+    directory: roboschool/models_robot/atlas_description
+    license: MIT
+    limitation: >-
+      This profile does not represent the current electric Atlas product. It
+      uses public legacy/DARPA Atlas DRC assets in both simulators. The public
+      DRC/v4 URDF has 30 movable one-DoF joints, while Boston Dynamics reports
+      56 DoF and continuous joint range for electric Atlas; no joint-level
+      compatibility is claimed.
+maintainers:
+  - github: RobotDeveloper1
+status: experimental

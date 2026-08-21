@@ -1,0 +1,5 @@
+models/atlas_v4/
+artifacts/
+scenes/*_result.json
+__pycache__/
+*.pyc

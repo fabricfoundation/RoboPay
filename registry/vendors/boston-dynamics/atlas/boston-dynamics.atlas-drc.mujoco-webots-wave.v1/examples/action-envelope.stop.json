@@ -1,0 +1,7 @@
+{
+  "action": "stop",
+  "robot_id": "atlas-drc-mujoco-webots-sim-01",
+  "action_id": "atlas-stop-example-001",
+  "idempotency_key": "atlas-stop-example-001",
+  "params": {}
+}

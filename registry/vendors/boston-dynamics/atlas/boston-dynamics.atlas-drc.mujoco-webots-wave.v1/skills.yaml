@@ -1,0 +1,37 @@
+schemaVersion: robot-skills.v1
+profileId: boston-dynamics.atlas-drc.mujoco-webots-wave.v1
+skills:
+  - skillId: wave_right_arm
+    description: >-
+      Execute a bounded, measured-state right-arm wave using a target-switching
+      PD torque controller in MuJoCo and the corresponding Webots motor policy.
+    params:
+      cycles:
+        type: integer
+        min: 1
+        max: 3
+        default: 2
+      amplitudeRad:
+        type: number
+        min: 0.15
+        max: 0.40
+        default: 0.30
+      maxDurationSec:
+        type: number
+        min: 5
+        max: 15
+        default: 8
+    paymentRequired: true
+    priceUSDC: "0.001"
+    movementLimits:
+      maxCycles: 3
+      maxShoulderStrokeRad: 0.80
+      maxCommandedTorqueNm: 75
+      maxDurationSec: 15
+  - skillId: stop
+    description: >-
+      Safely interrupt an active Atlas episode, clear commanded torque and
+      zero simulated joint velocities before issuing a correlated result.
+    params: {}
+    paymentRequired: true
+    priceUSDC: "0.001"

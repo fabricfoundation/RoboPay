@@ -1,0 +1,12 @@
+# Atlas DRC legacy bridge dependencies.  The third-party Atlas model is fetched
+# by download_atlas_model.py at a pinned revision; it is intentionally not
+# vendored in this repository.
+mujoco==3.3.0
+numpy==2.2.6
+pycollada==0.9.2
+trimesh==4.12.2
+eclipse-zenoh==1.9.0
+requests==2.33.0
+PyYAML==6.0.2
+x402[requests,evm]==2.16.0
+eth-account==0.13.7

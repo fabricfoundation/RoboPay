@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-08-21T03:49:05Z",
+  "source_commit": "184c06aa6dd1ffff502563694e9b3cbaafc67263",
+  "network": "eip155:84532",
+  "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "payee": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "robot_id": "atlas-drc-base-sepolia-1787284097",
+  "request_id": "atlas-wave-1787284097",
+  "unpaid_http_status": 402,
+  "paid_http_status": 202,
+  "discovery": {
+    "robot_id": "atlas-drc-base-sepolia-1787284097",
+    "skills": [
+      {
+        "aliases": null,
+        "description": "Safely stop the active Atlas DRC simulation.",
+        "enabled": true,
+        "params": {},
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "stop"
+      },
+      {
+        "aliases": null,
+        "description": "Run a bounded closed-loop right-arm wave in the Atlas DRC legacy simulator.",
+        "enabled": true,
+        "params": {
+          "amplitudeRad": {
+            "type": "number",
+            "minimum": 0.15,
+            "maximum": 0.4
+          },
+          "cycles": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "maxDurationSec": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 15
+          }
+        },
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "wave_right_arm"
+      }
+    ]
+  },
+  "terminal_status": {
+    "action_id": "atlas-wave-1787284097",
+    "idempotency_key": "atlas-wave-1787284097",
+    "params_hash": "sha256:478634bf802e465eb16705200670ecc712f3ce681dd4539a4034c2094dde4a06",
+    "result": {
+      "completed_half_waves": 4,
+      "completion_reason": "wave_complete",
+      "control_steps": 1782,
+      "controller": "state_feedback_turning_point_pd_torque",
+      "final_wave_joint_rad": -0.02711,
+      "final_wave_joint_velocity_rad_s": 0.26414,
+      "finite_state": true,
+      "initial_wave_joint_rad": 0,
+      "max_wave_joint_rad": 0.27421,
+      "measured_wave_stroke_rad": 0.65003,
+      "min_wave_joint_rad": -0.37581,
+      "peak_commanded_torque_nm": 75,
+      "policy_id": "atlas-drc-right-arm-wave-v1",
+      "requested_amplitude_rad": 0.3,
+      "requested_cycles": 2,
+      "robot_model": "Boston Dynamics Atlas DRC v4 (legacy URDF)",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 3.564,
+      "simulator_engine": "MuJoCo",
+      "status": "success",
+      "success": true,
+      "task": "wave_right_arm",
+      "viewer_enabled": true
+    },
+    "robot_id": "atlas-drc-base-sepolia-1787284097",
+    "settled": true,
+    "settlement": {
+      "network": "eip155:84532",
+      "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+      "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHgyNDM1MTI1YjYxYzVlMDAzNjcxMzE2MTExYTM0YWEwNjNjZjVlMmM0Njk0YzEzNWY1NWI5NjdlMDhlMjc3NzdjIiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+      "transaction": "0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c"
+    },
+    "skill_id": "wave_right_arm",
+    "state": "succeeded",
+    "updated_at": "2026-08-21T00:49:08-03:00"
+  },
+  "settlement": {
+    "network": "eip155:84532",
+    "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+    "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHgyNDM1MTI1YjYxYzVlMDAzNjcxMzE2MTExYTM0YWEwNjNjZjVlMmM0Njk0YzEzNWY1NWI5NjdlMDhlMjc3NzdjIiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+    "transaction": "0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c"
+  },
+  "transaction_hash": "0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c",
+  "basescan_url": "https://sepolia.basescan.org/tx/0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c"
+}

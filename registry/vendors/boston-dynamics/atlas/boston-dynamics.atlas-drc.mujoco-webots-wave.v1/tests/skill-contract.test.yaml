@@ -1,0 +1,18 @@
+profileId: boston-dynamics.atlas-drc.mujoco-webots-wave.v1
+cases:
+  - name: bounded-wave
+    action: wave_right_arm
+    params: {cycles: 2, amplitudeRad: 0.30, maxDurationSec: 8}
+    expected: accepted
+  - name: reject-unregistered-action
+    action: object_tracking
+    params: {}
+    expected: rejected
+  - name: reject-oversized-amplitude
+    action: wave_right_arm
+    params: {cycles: 2, amplitudeRad: 0.41, maxDurationSec: 8}
+    expected: rejected
+  - name: safe-stop
+    action: stop
+    params: {}
+    expected: accepted
