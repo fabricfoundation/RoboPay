@@ -15,8 +15,8 @@ Price is 0.001 USDC on Base Sepolia (`eip155:84532`). The deployment payee is
 supplied by `ROBO_PAYEE_ADDRESS`; no identity or payment private key is stored
 in this profile.
 
-The eventual source-bound recording, trusted JSON receipt, action ID, Base
+The captured source-bound recording, trusted JSON receipt, action ID, Base
 Sepolia transaction, and content hashes are tracked in
-[`evidence/evidence-manifest.yaml`](evidence/evidence-manifest.yaml). Until a
-successful current-head run is captured, the manifest deliberately remains
-`pending-operator-recording` and makes no live-settlement claim.
+[`evidence/evidence-manifest.yaml`](evidence/evidence-manifest.yaml). The
+manifest binds the successful cold-start run to the exact recorded source
+commit and distinguishes the later evidence-only documentation commit.

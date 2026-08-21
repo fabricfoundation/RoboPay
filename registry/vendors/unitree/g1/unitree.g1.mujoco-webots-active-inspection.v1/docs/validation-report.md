@@ -52,14 +52,14 @@ The `unitree-g1-tier1.yml` workflow requires:
 - [x] Fabric Gateway dry run: subscriber readiness, no warm-up action, robot
   and skill discovery, unpaid HTTP 402, and 300-second authorization window;
   no payment was signed or submitted.
-- [ ] Trusted Base Sepolia current-head receipt captured.
-- [ ] Paid-action simulator recording paired continuously with terminal and
+- [x] Trusted Base Sepolia current-head receipt captured.
+- [x] Paid-action simulator recording paired continuously with terminal and
   matching BaseScan evidence.
 
 Machine-readable outputs are written under
 `bridge/unitree/g1_inspection_bridge/artifacts/`. Generated models, PROTOs,
 unreviewed runtime receipts, logs, and secrets remain ignored. Only reviewed
-evidence should be copied into `docs/evidence/` and bound in the manifest.
+evidence is copied into `docs/evidence/` and bound in the manifest.
 
 ## Safety and limitations
 

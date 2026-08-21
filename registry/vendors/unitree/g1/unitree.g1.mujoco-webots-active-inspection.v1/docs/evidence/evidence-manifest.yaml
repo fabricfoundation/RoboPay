@@ -1,32 +1,39 @@
 schema_version: 1
 profile_id: unitree.g1.mujoco-webots-active-inspection.v1
-status: pending-operator-recording
+status: captured
 
 execution:
-  source_commit: pending
-  captured_at: pending
-  robot_id: pending
-  action_id: pending
+  source_commit: f6df47debcb410ac1b9fa4608d3e31535d6cec1d
+  captured_at: "2026-08-21T00:25:54Z"
+  robot_id: unitree-g1-base-sepolia-1787271922
+  action_id: g1-active-inspection-1787271922
   cold_start: true
   warmup_action: false
   unpaid_http_status: 402
-  paid_http_status: pending
-  terminal_state: pending
-  settled: pending
-  targets_confirmed: pending
+  paid_http_status: 202
+  terminal_state: succeeded
+  settled: true
+  targets_confirmed: [left, center, right]
 
 settlement:
   network: "eip155:84532"
-  transaction_hash: pending
-  basescan_url: pending
+  transaction_hash: "0x6934660615a8e190b2c118b93bf183d85a05ccd31c73429781bb35dccefd1409"
+  basescan_url: "https://sepolia.basescan.org/tx/0x6934660615a8e190b2c118b93bf183d85a05ccd31c73429781bb35dccefd1409"
 
 visual_recording:
-  status: pending-operator-recording
-  filename: pending
-  attachment_url: pending
-  sha256: pending
+  status: captured
+  filename: unitree-g1-current-head-f6df47d.mp4
+  attachment_url: "https://raw.githubusercontent.com/RobotDeveloper1/RoboPay/unitree-g1-tier-1/registry/vendors/unitree/g1/unitree.g1.mujoco-webots-active-inspection.v1/docs/evidence/unitree-g1-current-head-f6df47d.mp4"
+  sha256: "07d2fbca1f0361e7af2e8c8696b8114fb0a66dcdb74fa6951087943abe64130b"
+  size_bytes: 2071687
+  duration_seconds: 46
+  resolution: 1280x720
   layout: stable simultaneous terminal and native MuJoCo viewer
-  required_visible_sequence:
+  presentation:
+    start_hold_seconds: 4
+    per_target_hold_seconds: 1
+    final_hold_seconds: 2
+  visible_sequence:
     - exact source commit before discovery
     - unpaid HTTP 402 before actuation
     - first paid HTTP 202 with correlated action ID and no warm-up action
@@ -35,10 +42,16 @@ visual_recording:
     - matching BaseScan transaction success page
 
 trusted_json:
-  status: pending
-  path: pending
-  sha256: pending
+  status: captured
+  path: docs/evidence/base_sepolia_result_1787271954.json
+  source_runtime_sha256: "188f9c1d9fb65113b03cbd5f07c9df90ece1d93e19093cd35357cecbf9581439"
+  versioned_lf_sha256: "022f996c85c8adc758882a7d24a2588defaaaf012fda36953d6995bbd26ee861"
+  normalization_note: >-
+    The Windows runtime artifact uses CRLF line endings; Git versions the
+    documentation copy with LF. Parsed JSON content is identical.
 
 binding_note: >-
-  Populate only after a successful current-head recording. Failed or stale
-  executions remain runtime artifacts and must never be presented as evidence.
+  The recording executes source commit f6df47debcb410ac1b9fa4608d3e31535d6cec1d.
+  The following commit only adds these immutable evidence artifacts and updates
+  their documentation; it does not change the Tunnel, controller, simulator
+  behavior, profile contract, or recorded execution path.

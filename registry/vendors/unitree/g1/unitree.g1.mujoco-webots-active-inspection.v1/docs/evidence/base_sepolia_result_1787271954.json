@@ -1,0 +1,185 @@
+{
+  "timestamp": "2026-08-21T00:25:54Z",
+  "network": "eip155:84532",
+  "source_commit": "f6df47debcb410ac1b9fa4608d3e31535d6cec1d",
+  "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "payee": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+  "robot_id": "unitree-g1-base-sepolia-1787271922",
+  "action_id": "g1-active-inspection-1787271922",
+  "unpaid_http_status": 402,
+  "paid_http_status": 202,
+  "cold_start": true,
+  "warmup_action": false,
+  "visual_target_hold_seconds": 1.0,
+  "visual_final_hold_seconds": 2.0,
+  "visual_start_hold_seconds": 4.0,
+  "robot_discovery": {
+    "robot_id": "unitree-g1-base-sepolia-1787271922",
+    "model": "Unitree G1 29-DoF",
+    "scope": "simulator-only",
+    "source": "Fabric skill-discovery response"
+  },
+  "discovery": {
+    "robot_id": "unitree-g1-base-sepolia-1787271922",
+    "skills": [
+      {
+        "aliases": null,
+        "description": "Inspect a bounded target sequence with the official supported Unitree G1 model and measured joint feedback.",
+        "enabled": true,
+        "params": {
+          "maxDurationSec": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 30
+          },
+          "speedScale": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 1
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "values": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "min_items": 1,
+            "max_items": 3,
+            "unique_items": true
+          }
+        },
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "inspect_target_sequence"
+      },
+      {
+        "aliases": null,
+        "description": "Safely interrupt the active G1 inspection and command neutral controls.",
+        "enabled": true,
+        "params": {},
+        "payment_required": true,
+        "price_usdc": "0.001",
+        "skill_id": "stop"
+      }
+    ]
+  },
+  "terminal_status": {
+    "action_id": "g1-active-inspection-1787271922",
+    "idempotency_key": "g1-active-inspection-1787271922",
+    "params_hash": "sha256:5d1c41bf6196f4771c079e91ae9c28731b089792a33b9fee3a780573663b48b4",
+    "result": {
+      "completion_reason": "targets_confirmed",
+      "control_steps": 1820,
+      "controller": "shared_closed_loop_target_sequencer_with_pd_torque_adapter",
+      "left_hand_motion_m": 0.1098,
+      "left_hand_peak_motion_m": 0.4687,
+      "max_joint_speed_rad_s": 11.623,
+      "model_source_commit": "ae6a8403e272733e9996ef59990880330496177f",
+      "policy_id": "unitree-g1-29dof-active-inspection-v1-shared",
+      "policy_state": {
+        "active_target": "right",
+        "active_target_index": 3,
+        "completed_targets": [
+          "left",
+          "center",
+          "right"
+        ],
+        "max_joint_error_rad": 0.0244304089121094,
+        "parameters": {
+          "dwell_seconds": 0.55,
+          "error_tolerance_rad": 0.075,
+          "speed_scale": 1,
+          "support_fixture": "pelvis safety fixture with feet on floor",
+          "targets": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "phase": "COMPLETE",
+        "policy_id": "unitree-g1-29dof-active-inspection-v1-shared",
+        "target_confirmations": [
+          {
+            "confirmed_at_sec": 1.192,
+            "max_joint_error_rad": 0.041567,
+            "target": "left"
+          },
+          {
+            "confirmed_at_sec": 2.418,
+            "max_joint_error_rad": 0.032391,
+            "target": "center"
+          },
+          {
+            "confirmed_at_sec": 3.638,
+            "max_joint_error_rad": 0.02443,
+            "target": "right"
+          }
+        ],
+        "target_count": 3
+      },
+      "right_hand_motion_m": 0.367,
+      "right_hand_peak_motion_m": 0.4278,
+      "robot_model": "Unitree G1 29-DoF (official unitree_mujoco MJCF)",
+      "safe_stop_applied": false,
+      "sim_duration_seconds": 3.64,
+      "simulator_engine": "MuJoCo",
+      "simulator_version": "3.3.0",
+      "status": "success",
+      "success": true,
+      "support_fixture": "pelvis safety fixture with feet on floor",
+      "target_confirmations": [
+        {
+          "confirmed_at_sec": 1.192,
+          "max_joint_error_rad": 0.041567,
+          "target": "left"
+        },
+        {
+          "confirmed_at_sec": 2.418,
+          "max_joint_error_rad": 0.032391,
+          "target": "center"
+        },
+        {
+          "confirmed_at_sec": 3.638,
+          "max_joint_error_rad": 0.02443,
+          "target": "right"
+        }
+      ],
+      "targets_confirmed": [
+        "left",
+        "center",
+        "right"
+      ],
+      "targets_requested": [
+        "left",
+        "center",
+        "right"
+      ],
+      "task": "inspect_target_sequence",
+      "waist_final_pitch_rad": 0.0445,
+      "waist_final_yaw_rad": -0.4063
+    },
+    "robot_id": "unitree-g1-base-sepolia-1787271922",
+    "settled": true,
+    "settlement": {
+      "network": "eip155:84532",
+      "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+      "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg2OTM0NjYwNjE1YThlMTkwYjJjMTE4YjkzYmYxODNkODVhMDVjY2QzMWM3MzQyOTc4MWJiMzVkY2NlZmQxNDA5IiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+      "transaction": "0x6934660615a8e190b2c118b93bf183d85a05ccd31c73429781bb35dccefd1409"
+    },
+    "skill_id": "inspect_target_sequence",
+    "state": "succeeded",
+    "updated_at": "2026-08-20T21:25:57-03:00"
+  },
+  "settlement": {
+    "network": "eip155:84532",
+    "payer": "0x39a315667d557B1425bb1e5D371DD66d300c98c1",
+    "payment_response": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjB4MzlhMzE1NjY3ZDU1N0IxNDI1YmIxZTVEMzcxREQ2NmQzMDBjOThjMSIsInRyYW5zYWN0aW9uIjoiMHg2OTM0NjYwNjE1YThlMTkwYjJjMTE4YjkzYmYxODNkODVhMDVjY2QzMWM3MzQyOTc4MWJiMzVkY2NlZmQxNDA5IiwibmV0d29yayI6ImVpcDE1NTo4NDUzMiJ9",
+    "transaction": "0x6934660615a8e190b2c118b93bf183d85a05ccd31c73429781bb35dccefd1409"
+  },
+  "transaction_hash": "0x6934660615a8e190b2c118b93bf183d85a05ccd31c73429781bb35dccefd1409",
+  "basescan_url": "https://sepolia.basescan.org/tx/0x6934660615a8e190b2c118b93bf183d85a05ccd31c73429781bb35dccefd1409"
+}
