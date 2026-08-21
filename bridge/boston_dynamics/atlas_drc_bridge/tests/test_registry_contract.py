@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import unittest
@@ -106,19 +107,28 @@ class AtlasRegistryContractTests(unittest.TestCase):
             },
         )
 
-    def test_evidence_manifest_does_not_overclaim_uncaptured_proof(self) -> None:
+    def test_evidence_manifest_binds_captured_current_head_proof(self) -> None:
         evidence = _yaml("docs/evidence/evidence-manifest.yaml")
         self.assertEqual(evidence["profileId"], PROFILE.name)
         self.assertIn("electric Atlas", evidence["claimBoundary"]["notClaimed"])
         self.assertIn("joint-level compatibility", evidence["claimBoundary"]["notClaimed"])
         by_id = {item["evidenceId"]: item for item in evidence["evidence"]}
+        live = by_id["ATLAS-DRC-LIVE-X402-CURRENT-HEAD"]
+        visual = by_id["ATLAS-DRC-CONTINUOUS-VISUAL-CURRENT-HEAD"]
+        self.assertEqual(live["status"], "captured-and-verified")
+        self.assertEqual(visual["status"], "captured-and-verified")
+        self.assertEqual(live["sourceCommit"], visual["sourceCommit"])
+        self.assertEqual(live["actionId"], visual["actionId"])
+        self.assertEqual(live["transactionHash"], visual["transactionHash"])
+        self.assertEqual(live["artifactSha256"], visual["jsonArtifactSha256"])
+        artifact_path = PROFILE / live["artifact"]
+        self.assertTrue(artifact_path.is_file())
         self.assertEqual(
-            by_id["ATLAS-DRC-LIVE-X402-CURRENT-HEAD"]["status"],
-            "pending-operator-capture",
+            hashlib.sha256(artifact_path.read_bytes()).hexdigest(),
+            live["artifactSha256"],
         )
-        self.assertEqual(
-            by_id["ATLAS-DRC-CONTINUOUS-VISUAL-CURRENT-HEAD"]["status"],
-            "pending-operator-capture",
+        self.assertTrue(
+            visual["artifact"].startswith("https://github.com/user-attachments/")
         )
 
 

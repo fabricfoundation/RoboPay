@@ -33,8 +33,14 @@ evidence:
     status: generated-by-required-ci
 
   - evidenceId: ATLAS-DRC-LIVE-X402-CURRENT-HEAD
-    artifact: docs/evidence/base_sepolia_result_<timestamp>.json
+    artifact: docs/evidence/base_sepolia_result_1787284145.json
     generatedBy: bridge/boston_dynamics/atlas_drc_bridge/run_live_base_sepolia_visual.ps1
+    sourceCommit: 184c06aa6dd1ffff502563694e9b3cbaafc67263
+    actionId: atlas-wave-1787284097
+    transactionHash: 0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c
+    basescanUrl: https://sepolia.basescan.org/tx/0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c
+    artifactSha256: 459756fbc6d3fe7a2eab16af0782545db6915de5ffaf0c4ed3b3d0489aa7b249
+    runnerArtifactSha256: 807e24bdf8d8171c2382ab5c7e2646a08e7bb372f86fdf46facaa2131e77176d
     requiredFields:
       - source_commit
       - unpaid_http_status
@@ -48,11 +54,22 @@ evidence:
     proves: >-
       One current-source run observes unpaid 402, first paid 202, correlated
       Atlas simulator success, and the resulting Base Sepolia settlement.
-    status: pending-operator-capture
+    status: captured-and-verified
 
   - evidenceId: ATLAS-DRC-CONTINUOUS-VISUAL-CURRENT-HEAD
-    artifact: PR attachment URL pending
+    artifact: https://github.com/user-attachments/assets/9a0b622f-e521-44f2-8101-071cde2fae28
     generatedBy: bridge/boston_dynamics/atlas_drc_bridge/run_live_base_sepolia_visual.ps1
+    sourceCommit: 184c06aa6dd1ffff502563694e9b3cbaafc67263
+    actionId: atlas-wave-1787284097
+    transactionHash: 0x2435125b61c5e003671316111a34aa063cf5e2c4694c135f55b967e08e27777c
+    recordingSha256: 6f004724c9c48df34be62785c0ac7ed148464d9c379d09dd3097fea8f6b58f01
+    jsonArtifact: docs/evidence/base_sepolia_result_1787284145.json
+    jsonArtifactSha256: 459756fbc6d3fe7a2eab16af0782545db6915de5ffaf0c4ed3b3d0489aa7b249
+    runnerJsonArtifactSha256: 807e24bdf8d8171c2382ab5c7e2646a08e7bb372f86fdf46facaa2131e77176d
+    recording:
+      filename: 2026-08-21 00-48-13.mp4
+      durationSeconds: 62.33
+      resolution: 1280x720
     requiredVisibleSequence:
       - exact source commit
       - unpaid HTTP 402 with no actuation
@@ -66,4 +83,4 @@ evidence:
       - transaction_hash
       - recording_sha256
       - json_artifact_sha256
-    status: pending-operator-capture
+    status: captured-and-verified
