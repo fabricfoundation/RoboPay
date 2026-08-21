@@ -1,0 +1,69 @@
+schemaVersion: evidence-manifest.v1
+profileId: boston-dynamics.atlas-drc.mujoco-webots-wave.v1
+
+claimBoundary:
+  scope: simulator-only Tier 1
+  claimed: >-
+    The shared Tunnel validates x402 evidence before publishing an ActionEvent;
+    the Atlas DRC/v4 MuJoCo bridge executes a measured-state wave and publishes
+    a correlated terminal result; settlement is deferred until that exact
+    result is successful.
+  notClaimed: >-
+    This profile does not represent the current electric Atlas and does not
+    claim physical Atlas execution. It uses public DARPA-era hydraulic Atlas
+    DRC/v4 assets in two independent simulators. It does not claim joint-level
+    compatibility or policy transfer to the 56-DoF electric Atlas.
+
+evidence:
+  - evidenceId: ATLAS-DRC-SIM2SIM-CI
+    artifact: bridge/boston_dynamics/atlas_drc_bridge/artifacts/sim2sim_result.json
+    generatedBy: bridge/boston_dynamics/atlas_drc_bridge/run_sim2sim_validation.py
+    requiredFields:
+      - shared_policy.policy_id
+      - mujoco.completed_half_waves
+      - mujoco.measured_wave_stroke_rad
+      - webots.completed_half_waves
+      - webots.measured_wave_stroke_rad
+      - webots.stable_base
+      - sim_to_sim_score
+    proves: >-
+      MuJoCo and Webots independently execute the same measured-state policy,
+      complete all four half-waves, exceed the stroke threshold, and keep the
+      Webots Atlas upright.
+    status: generated-by-required-ci
+
+  - evidenceId: ATLAS-DRC-LIVE-X402-CURRENT-HEAD
+    artifact: docs/evidence/base_sepolia_result_<timestamp>.json
+    generatedBy: bridge/boston_dynamics/atlas_drc_bridge/run_live_base_sepolia_visual.ps1
+    requiredFields:
+      - source_commit
+      - unpaid_http_status
+      - request_id
+      - paid_http_status
+      - terminal_status.action_id
+      - terminal_status.state
+      - terminal_status.settled
+      - transaction_hash
+      - basescan_url
+    proves: >-
+      One current-source run observes unpaid 402, first paid 202, correlated
+      Atlas simulator success, and the resulting Base Sepolia settlement.
+    status: pending-operator-capture
+
+  - evidenceId: ATLAS-DRC-CONTINUOUS-VISUAL-CURRENT-HEAD
+    artifact: PR attachment URL pending
+    generatedBy: bridge/boston_dynamics/atlas_drc_bridge/run_live_base_sepolia_visual.ps1
+    requiredVisibleSequence:
+      - exact source commit
+      - unpaid HTTP 402 with no actuation
+      - first paid HTTP 202 and action ID
+      - complete Atlas DRC wave in an unobstructed MuJoCo viewer
+      - correlated terminal result with the same action ID
+      - settlement and matching BaseScan transaction
+    requiredBindings:
+      - source_commit
+      - action_id
+      - transaction_hash
+      - recording_sha256
+      - json_artifact_sha256
+    status: pending-operator-capture

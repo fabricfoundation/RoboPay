@@ -1,0 +1,26 @@
+schemaVersion: payment-policy.v1
+provider: x402
+network: eip155:84532
+asset:
+  symbol: USDC
+  address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+  decimals: 6
+policies:
+  - skillId: wave_right_arm
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+  - skillId: stop
+    required: true
+    priceUSDC: "0.001"
+    paymentHeader: PAYMENT-SIGNATURE
+payTo: "<evm_payee_address>"
+settlement:
+  facilitator: https://x402.org/facilitator
+  scheme: exact
+  settleOnStatus: success
+  rule: >-
+    Settlement is deferred until a matching robot/tunnel/result reports a
+    correlated success. Rejection, simulator failure, timeout, an interrupted
+    wave, or replay never settles. A separately paid stop request may settle
+    only after its own correlated safe-stop success result.

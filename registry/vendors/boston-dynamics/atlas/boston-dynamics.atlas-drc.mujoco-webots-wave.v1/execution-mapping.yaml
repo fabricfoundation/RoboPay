@@ -1,0 +1,34 @@
+schemaVersion: execution-mapping.v1
+profileId: boston-dynamics.atlas-drc.mujoco-webots-wave.v1
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/boston_dynamics_atlas_drc/metrics
+paramsHashFormat: "sha256:<hex>"
+mappings:
+  wave_right_arm:
+    task: humanoid_right_arm_wave
+    input: [measured_right_shoulder_position, measured_right_shoulder_velocity]
+    policy: atlas-drc-right-arm-wave-v1
+    controller: >-
+      target-switching state-feedback PD controller; a half-wave advances only
+      after measured joint state crosses its bounded turning point, then the
+      controller returns to measured neutral before terminal success.
+    output: bounded MuJoCo generalized torque / Webots RotationalMotor target
+    metrics:
+      - completed_half_waves
+      - measured_wave_stroke_rad
+      - peak_commanded_torque_nm
+      - finite_state
+      - minimum_root_height_m
+      - minimum_upright_cosine
+      - stable_base
+    limits:
+      cycles: {min: 1, max: 3}
+      amplitudeRad: {min: 0.15, max: 0.40}
+      maxDurationSec: {min: 5, max: 15}
+  stop:
+    task: safe_stop
+    output: zero torque and zero simulated velocity
+    result: correlated terminal result; interrupted wave returns failure and cannot settle

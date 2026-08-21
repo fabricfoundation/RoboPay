@@ -1,0 +1,20 @@
+[
+  {
+    "skill_id": "wave_right_arm",
+    "description": "Run a bounded closed-loop right-arm wave in the Atlas DRC legacy simulator.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {
+      "cycles": {"type": "integer", "minimum": 1, "maximum": 3},
+      "amplitudeRad": {"type": "number", "minimum": 0.15, "maximum": 0.4},
+      "maxDurationSec": {"type": "number", "minimum": 5, "maximum": 15}
+    }
+  },
+  {
+    "skill_id": "stop",
+    "description": "Safely stop the active Atlas DRC simulation.",
+    "payment_required": true,
+    "price_usdc": "0.001",
+    "params": {}
+  }
+]

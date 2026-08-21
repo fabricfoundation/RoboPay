@@ -1,0 +1,45 @@
+#VRML_SIM R2025a utf8
+# The Atlas PROTO is referenced from the installed Webots distribution.  Do
+# not vendor it: Cyberbotics licenses the asset specifically for Webots use.
+# R2025a releases omit this licensed asset from some binary packages.  Keep it
+# external and pin the official source tag instead of vendoring the PROTO.
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/boston_dynamics/atlas/protos/Atlas.proto"
+
+WorldInfo {
+  CFM 1e-07
+  ERP 0.8
+  basicTimeStep 8
+  lineScale 0.25
+}
+Viewpoint {
+  # Official Atlas sample framing, kept so visual evidence shows the robot
+  # rather than a blank background in a headless recording.
+  orientation -0.12659710552975714 -0.22835578605467902 0.9653117671751635 5.240580919908894
+  position -2.293920734012428 3.7668710396965643 2.01477919250191
+}
+Background {
+  skyColor [ 0.08 0.12 0.18 ]
+}
+DirectionalLight {
+  direction -0.35 -0.45 -1
+  intensity 2.4
+  ambientIntensity 0.55
+  castShadows FALSE
+}
+DEF FLOOR Solid {
+  translation 0 0 -0.05
+  children [
+    Shape {
+      appearance PBRAppearance { baseColor 0.16 0.21 0.25 roughness 0.8 }
+      geometry Box { size 8 8 0.1 }
+    }
+  ]
+  boundingObject Box { size 8 8 0.1 }
+}
+DEF ATLAS_DRC Atlas {
+  translation 0 0 1
+  rotation 0 0 1 1.5708
+  name "atlas-drc-mujoco-webots-sim-01"
+  controller "atlas_wave_controller"
+  supervisor TRUE
+}

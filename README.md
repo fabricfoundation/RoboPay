@@ -12,6 +12,26 @@ The robot-side `tunnel` receives the action request, runs x402 middleware, verif
 
 ![RoboPay action flow](docs/images/flow.png)
 
+## Tier 1 simulator profile: Boston Dynamics Atlas DRC (legacy)
+
+This branch adds a **simulator-only** Tier 1 profile for the legacy DARPA-era
+Atlas DRC/v4 model. It uses the same payment-gated Tunnel and Zenoh security
+boundary as the Reachy Mini and Spot profiles, a bounded measured-state
+right-arm wave policy in MuJoCo, and an independently supplied Webots R2025a
+Atlas cross-check. It deliberately does **not** claim to model Boston
+Dynamics' current electric Atlas product.
+
+Boston Dynamics publishes the electric product's high-level specification
+(56 degrees of freedom and continuous joint range), but no public electric
+Atlas URDF/USD or joint-level kinematic schema is available in its developer
+documentation or NVIDIA's public Isaac Sim 5.1 robot-asset catalog. The pinned
+DRC/v4 URDF has 30 movable one-degree-of-freedom joints, so this branch makes
+no claim that its joint names, axes, limits, dynamics, or controller transfer
+to the electric robot.
+
+Start with the [Atlas DRC bridge README](bridge/boston_dynamics/atlas_drc_bridge/README.md)
+and the [robot profile](registry/vendors/boston-dynamics/atlas/boston-dynamics.atlas-drc.mujoco-webots-wave.v1/robot.profile.yaml).
+
 ## Repository layout
 
 ```
