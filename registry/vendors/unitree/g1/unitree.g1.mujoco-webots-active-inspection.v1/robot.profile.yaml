@@ -1,0 +1,32 @@
+schemaVersion: robot-profile.v1
+vendor: unitree
+robotModel: g1
+robotType: humanoid
+profileId: unitree.g1.mujoco-webots-active-inspection.v1
+profileVersion: 1.0.0
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  metricsTopic: robot/unitree_g1/metrics
+  bridge: bridge/unitree/g1_inspection_bridge
+simulation:
+  scope: simulator-only
+  primaryEngine: MuJoCo
+  validationEngine: Webots R2025a
+  supportFixture: pelvis safety fixture with feet on floor
+  supportPose: feet-on-floor
+  model:
+    variant: g1-29dof
+    license: BSD-3-Clause
+    mujoco:
+      source: https://github.com/unitreerobotics/unitree_mujoco
+      commit: ae6a8403e272733e9996ef59990880330496177f
+      path: unitree_robots/g1/g1_29dof.xml
+    webots:
+      source: https://github.com/unitreerobotics/unitree_ros
+      commit: daadf41ee9afce8f90fdc09a98506012691fa122
+      path: robots/g1_description/g1_29dof.urdf
+maintainers:
+  - github: RobotDeveloper1
+status: experimental

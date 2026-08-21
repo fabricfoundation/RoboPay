@@ -1,0 +1,11 @@
+models/unitree_g1/
+models/unitree_g1_webots/
+artifacts/
+scenes/G129dof.proto
+scenes/G129dofCI.proto
+scenes/G129dof_textures/
+scenes/G129dofCI_textures/
+scenes/webots_inspection_result.json
+scenes/*.wbproj
+__pycache__/
+*.pyc
