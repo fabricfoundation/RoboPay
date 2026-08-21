@@ -52,6 +52,8 @@ trusted_json:
 
 binding_note: >-
   The recording executes source commit f6df47debcb410ac1b9fa4608d3e31535d6cec1d.
-  The following commit only adds these immutable evidence artifacts and updates
-  their documentation; it does not change the Tunnel, controller, simulator
-  behavior, profile contract, or recorded execution path.
+  Later commits only add these immutable evidence artifacts, update their
+  documentation, and make the Webots mesh-count test discover the official
+  uppercase .STL extension consistently on Linux and Windows. They do not
+  change the Tunnel, controller, simulator behavior, profile contract, or
+  recorded execution path.

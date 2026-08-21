@@ -27,7 +27,11 @@ class G1WebotsModelTests(unittest.TestCase):
         self.assertIn("../models/unitree_g1_webots/meshes/", content)
 
     def test_derived_visual_meshes_have_a_bounded_face_count(self):
-        meshes = list((WEBOTS_MODEL / "meshes").glob("*.stl"))
+        meshes = [
+            path
+            for path in (WEBOTS_MODEL / "meshes").iterdir()
+            if path.is_file() and path.suffix.lower() == ".stl"
+        ]
         self.assertGreaterEqual(len(meshes), 30)
         for path in meshes:
             mesh = trimesh.load_mesh(path, process=False)
