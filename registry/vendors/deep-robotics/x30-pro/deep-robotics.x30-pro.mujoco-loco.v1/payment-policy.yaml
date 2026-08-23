@@ -1,0 +1,48 @@
+# deep-robotics-x30-pro payment policy
+schemaVersion: payment-policy.v1
+
+provider:
+  scheme: exact
+  protocol: x402
+  network: eip155:84532
+  chainId: 84532
+  asset:
+    address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    symbol: USDC
+    decimals: 6
+  amount: "0.10"
+  currency: USDC
+  version: "1"
+  payToAddressEnv: X30_PRO_PAYTO_ADDRESS
+
+challenge:
+  resource: "robopay://deep-robotics-x30-pro/{skill}"
+  description: "Pay-to-actuate deep-robotics-x30-pro locomotion skill"
+  maxTimeoutSeconds: 300
+  headerIn: "X-PAYMENT"
+
+lifecycle:
+  - phase: request
+    status: 402
+    description: Payment required before execution
+  - phase: verify
+    status: 200
+    description: Payment verified, action accepted
+  - phase: execute
+    status: 200
+    description: Action executed successfully
+  - phase: settle
+    status: 200
+    description: Payment settled after successful execution
+
+safety:
+  settleOnFailure: false
+  failClosed: true
+  idempotencyKeyRequired: true
+  replayProtection: true
+
+secrets:
+  privateKeyEnv: DEEP_ROBOTICS_X30_PRO_PRIVATE_KEY
+  walletAddressEnv: DEEP_ROBOTICS_X30_PRO_WALLET_ADDRESS
+  payToAddressEnv: X30_PRO_PAYTO_ADDRESS
+  neverCommitToRepo: true

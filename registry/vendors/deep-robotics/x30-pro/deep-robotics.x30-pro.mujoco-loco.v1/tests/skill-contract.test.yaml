@@ -1,0 +1,26 @@
+profileId: deep-robotics.x30-pro.mujoco-loco.v1
+tests:
+  - name: move_forward_contract
+    runner: bridge/deep-robotics/x30-pro/mujoco_loco/tests/test_profiles.py
+    action: move_forward
+    expect: {accepted: true}
+  - name: navigate_obstacle_contract
+    runner: bridge/deep-robotics/x30-pro/mujoco_loco/tests/test_profiles.py
+    action: navigate_obstacle
+    expect: {accepted: true}
+  - name: stop_contract
+    runner: bridge/deep-robotics/x30-pro/mujoco_loco/tests/test_profiles.py
+    action: stop
+    expect: {accepted: true}
+  - name: unknown_action_rejected_before_simulation
+    runner: bridge/deep-robotics/x30-pro/mujoco_loco/tests/test_payment_gate.py
+    action: sprint_through_wall
+    expect: {accepted: false, actionEvents: 0}
+  - name: safe_stop_is_parameterless
+    runner: bridge/deep-robotics/x30-pro/mujoco_loco/tests/test_safe_stop.py
+    action: stop
+    expect: {accepted: true}
+  - name: sim_to_sim
+    runner: bridge/deep-robotics/x30-pro/mujoco_loco/tests/test_sim2sim.py
+    action: move_forward
+    expect: {success: true, simulators: [MuJoCo, PyBullet]}

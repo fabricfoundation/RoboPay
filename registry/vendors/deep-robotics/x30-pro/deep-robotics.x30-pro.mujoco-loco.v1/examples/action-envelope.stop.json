@@ -1,0 +1,7 @@
+{
+  "actionId": "act_deep_robotics_x30_pro_stop_001",
+  "robotId": "deep-robotics-x30-pro",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "deep-robotics-x30-pro-stop-001"
+}

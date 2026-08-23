@@ -1,0 +1,7 @@
+{
+  "actionId": "act_deep_robotics_x30_pro_navigate_obstacle_001",
+  "robotId": "deep-robotics-x30-pro",
+  "skillId": "navigate_obstacle",
+  "params": {},
+  "idempotencyKey": "deep-robotics-x30-pro-navigate_obstacle-001"
+}
