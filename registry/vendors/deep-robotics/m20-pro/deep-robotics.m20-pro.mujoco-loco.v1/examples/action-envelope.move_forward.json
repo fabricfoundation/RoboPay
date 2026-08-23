@@ -1,0 +1,7 @@
+{
+  "actionId": "act_deep_robotics_m20_pro_move_forward_001",
+  "robotId": "deep-robotics-m20-pro",
+  "skillId": "move_forward",
+  "params": {},
+  "idempotencyKey": "deep-robotics-m20-pro-move_forward-001"
+}

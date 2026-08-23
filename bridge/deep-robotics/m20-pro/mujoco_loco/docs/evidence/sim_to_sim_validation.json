@@ -1,0 +1,5 @@
+{
+  "robotId": "deep-robotics-m20-pro",
+  "status": "skipped_windows_no_pybullet_wheel",
+  "ciRuns": true
+}

@@ -1,0 +1,7 @@
+{
+  "actionId": "act_deep_robotics_m20_pro_stop_001",
+  "robotId": "deep-robotics-m20-pro",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "deep-robotics-m20-pro-stop-001"
+}

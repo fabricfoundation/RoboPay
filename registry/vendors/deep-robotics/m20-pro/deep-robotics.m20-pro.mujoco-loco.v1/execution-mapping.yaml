@@ -1,0 +1,51 @@
+# deep-robotics-m20-pro execution mapping
+schemaVersion: execution-mapping.v1
+
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+
+mappings:
+  move_forward:
+    output: gait
+    gait: planar-stepping
+    actuators: 
+      torso_x: "$params.goalDistance"
+      lf_hip: ik
+      lf_knee: ik
+      rf_hip: ik
+      rf_knee: ik
+      lh_hip: ik
+      lh_knee: ik
+      rh_hip: ik
+      rh_knee: ik
+    metrics:
+      - type: position_change
+        description: Torso displacement from start position
+      - type: collision_status
+        description: Curb contact status during traversal
+
+  navigate_obstacle:
+    output: gait
+    gait: planar-stepping
+    actuators: 
+      torso_x: "$params.goal_x"
+      lf_hip: ik
+      lf_knee: ik
+      rf_hip: ik
+      rf_knee: ik
+      lh_hip: ik
+      lh_knee: ik
+      rh_hip: ik
+      rh_knee: ik
+    metrics:
+      - type: path_completion
+        description: Reached goal within tolerance
+      - type: collision_status
+        description: Curb contact status during navigation
+
+  stop:
+    output: hold
+    actuators:
+      torso_x: 0
+    metrics: []

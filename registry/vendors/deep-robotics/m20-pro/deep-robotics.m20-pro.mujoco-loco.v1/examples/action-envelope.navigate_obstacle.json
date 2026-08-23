@@ -1,0 +1,7 @@
+{
+  "actionId": "act_deep_robotics_m20_pro_navigate_obstacle_001",
+  "robotId": "deep-robotics-m20-pro",
+  "skillId": "navigate_obstacle",
+  "params": {},
+  "idempotencyKey": "deep-robotics-m20-pro-navigate_obstacle-001"
+}
