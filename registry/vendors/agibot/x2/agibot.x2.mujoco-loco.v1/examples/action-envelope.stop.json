@@ -1,0 +1,7 @@
+{
+  "actionId": "act_agibot_x2_stop_001",
+  "robotId": "agibot-x2",
+  "skillId": "stop",
+  "params": {},
+  "idempotencyKey": "agibot-x2-stop-001"
+}

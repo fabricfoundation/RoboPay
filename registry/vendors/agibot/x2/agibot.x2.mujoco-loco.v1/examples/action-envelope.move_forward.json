@@ -1,0 +1,7 @@
+{
+  "actionId": "act_agibot_x2_move_forward_001",
+  "robotId": "agibot-x2",
+  "skillId": "move_forward",
+  "params": {},
+  "idempotencyKey": "agibot-x2-move_forward-001"
+}

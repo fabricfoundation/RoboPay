@@ -1,0 +1,43 @@
+# agibot-x2 execution mapping
+schemaVersion: execution-mapping.v1
+
+transport:
+  type: zenoh
+  topic: robot/tunnel/action
+
+mappings:
+  move_forward:
+    output: gait
+    gait: planar-stepping
+    actuators: 
+      torso_x: "$params.goalDistance"
+      left_hip: ik
+      left_knee: ik
+      right_hip: ik
+      right_knee: ik
+    metrics:
+      - type: position_change
+        description: Torso displacement from start position
+      - type: collision_status
+        description: Curb contact status during traversal
+
+  navigate_obstacle:
+    output: gait
+    gait: planar-stepping
+    actuators: 
+      torso_x: "$params.goal_x"
+      left_hip: ik
+      left_knee: ik
+      right_hip: ik
+      right_knee: ik
+    metrics:
+      - type: path_completion
+        description: Reached goal within tolerance
+      - type: collision_status
+        description: Curb contact status during navigation
+
+  stop:
+    output: hold
+    actuators:
+      torso_x: 0
+    metrics: []

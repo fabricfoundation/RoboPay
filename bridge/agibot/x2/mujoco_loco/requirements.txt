@@ -1,0 +1,9 @@
+mujoco>=3.1,<4
+pyyaml
+requests
+numpy
+matplotlib
+imageio
+imageio-ffmpeg
+pytest
+web3  # only for pay.py (real on-chain receipt)

@@ -1,0 +1,7 @@
+{
+  "actionId": "act_agibot_x2_navigate_obstacle_001",
+  "robotId": "agibot-x2",
+  "skillId": "navigate_obstacle",
+  "params": {},
+  "idempotencyKey": "agibot-x2-navigate_obstacle-001"
+}
