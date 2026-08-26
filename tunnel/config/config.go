@@ -65,6 +65,13 @@ type Config struct {
 	MPPRPCURL       string `json:"-"`
 	MPPSecretKey    string `json:"-"`
 
+	// OperatorSigningKey attests the payment requirements this robot advertises,
+	// so a payer can confirm the recipient it signs for came from the operator
+	// and not from anything relaying the 402. Environment only — it is
+	// deliberately not settable over the robot config topic, which is
+	// unauthenticated.
+	OperatorSigningKey string `json:"-"`
+
 	// aIP
 	AIPEnabled       bool   `json:"-"`
 	AIPUserID        string `json:"-"` // wallet address used for registration
@@ -290,6 +297,7 @@ func LoadConfig(path string) (*Config, error) {
 
 	cfg.MPPSecretKey = os.Getenv("MPP_SECRET_KEY")
 	cfg.MPPRPCURL = os.Getenv("MPP_RPC_URL")
+	cfg.OperatorSigningKey = os.Getenv("OPERATOR_SIGNING_KEY")
 
 	if os.Getenv("MPP_ENABLED") != "" {
 		cfg.MPPEnabled = getBoolEnv("MPP_ENABLED", cfg.MPPEnabled)
