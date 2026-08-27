@@ -68,7 +68,7 @@ func (w *attestWriter) WriteString(s string) (int, error) {
 // attach signs the challenge as it currently stands, replacing any attestation
 // that covered an earlier version of it.
 func (w *attestWriter) attach() {
-	if w.Status() != http.StatusPaymentRequired || w.ResponseWriter.Written() {
+	if w.Status() != http.StatusPaymentRequired || w.Written() {
 		return
 	}
 
