@@ -358,3 +358,143 @@ func TestMiddlewareSkipsWhen402HasNoChallenge(t *testing.T) {
 		t.Fatalf("attested a 402 with no challenge header: %q", got)
 	}
 }
+
+// The MPP gate writes its 402 first and x402 adds PAYMENT-REQUIRED afterwards, so a
+// challenge header can be set after WriteHeader and still reach the client — gin only
+// records the status there and flushes later. The attestation must cover the response
+// as served, not a half-built snapshot of it.
+func TestMiddlewareCoversHeadersSetAfterWriteHeader(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	signer := newTestSigner(t, operatorKey)
+
+	router := gin.New()
+	router.Use(signer.Middleware("robot-1", zap.NewNop()))
+	router.POST("/action", func(c *gin.Context) {
+		// MPP advertises and writes the 402...
+		c.Header(headerWWWAuthenticate, `Payment realm="robot-1"`)
+		c.Writer.WriteHeader(http.StatusPaymentRequired)
+		// ...then x402 adds its own challenge before anything reaches the wire.
+		c.Header(headerPaymentRequired, `{"scheme":"exact","payTo":"0xAAAA"}`)
+		_, _ = c.Writer.Write([]byte(`{"error":"payment required"}`))
+	})
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/action", nil))
+
+	if got := rec.Header().Get(headerPaymentRequired); got == "" {
+		t.Fatal("PAYMENT-REQUIRED was not served; the test no longer models the real ordering")
+	}
+
+	value := rec.Header().Get(HeaderName)
+	if value == "" {
+		t.Fatal("no attestation header on the 402")
+	}
+
+	ch := Challenge{
+		RobotID:         "robot-1",
+		Method:          http.MethodPost,
+		Path:            "/action",
+		PaymentRequired: rec.Header().Get(headerPaymentRequired),
+		WWWAuthenticate: rec.Header().Get(headerWWWAuthenticate),
+	}
+	if err := Verify(value, ch, signer.Address().Hex(), DefaultMaxAge, time.Now()); err != nil {
+		t.Fatalf("attestation does not cover the response as served: %v", err)
+	}
+}
+
+// Whichever protocol writes last, the attestation must cover the response as served.
+// This is the "no matter if MPP is enabled or not" guarantee, exercised over every
+// ordering the gate can produce.
+func TestMiddlewareCoversEveryChallengeOrdering(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	const x402Challenge = `{"scheme":"exact","payTo":"0xAAAA"}`
+	const mppChallenge = `Payment realm="robot-1"`
+
+	cases := map[string]struct {
+		handler          func(c *gin.Context)
+		wantPaymentReqd  string
+		wantWWWAuthentic string
+	}{
+		"mpp writes 402, x402 adds its header after": {
+			handler: func(c *gin.Context) {
+				c.Header(headerWWWAuthenticate, mppChallenge)
+				c.Writer.WriteHeader(http.StatusPaymentRequired)
+				c.Header(headerPaymentRequired, x402Challenge)
+				_, _ = c.Writer.Write([]byte(`{}`))
+			},
+			wantPaymentReqd:  x402Challenge,
+			wantWWWAuthentic: mppChallenge,
+		},
+		"x402 writes 402, mpp adds its header after": {
+			handler: func(c *gin.Context) {
+				c.Header(headerPaymentRequired, x402Challenge)
+				c.Writer.WriteHeader(http.StatusPaymentRequired)
+				c.Header(headerWWWAuthenticate, mppChallenge)
+				_, _ = c.Writer.Write([]byte(`{}`))
+			},
+			wantPaymentReqd:  x402Challenge,
+			wantWWWAuthentic: mppChallenge,
+		},
+		"x402 only (MPP disabled)": {
+			handler: func(c *gin.Context) {
+				c.Header(headerPaymentRequired, x402Challenge)
+				c.Writer.WriteHeader(http.StatusPaymentRequired)
+				_, _ = c.Writer.Write([]byte(`{}`))
+			},
+			wantPaymentReqd: x402Challenge,
+		},
+		"mpp only": {
+			handler: func(c *gin.Context) {
+				c.Header(headerWWWAuthenticate, mppChallenge)
+				c.Writer.WriteHeader(http.StatusPaymentRequired)
+				_, _ = c.Writer.Write([]byte(`{}`))
+			},
+			wantWWWAuthentic: mppChallenge,
+		},
+		"402 with no body written": {
+			handler: func(c *gin.Context) {
+				c.Header(headerPaymentRequired, x402Challenge)
+				c.Header(headerWWWAuthenticate, mppChallenge)
+				c.Status(http.StatusPaymentRequired)
+			},
+			wantPaymentReqd:  x402Challenge,
+			wantWWWAuthentic: mppChallenge,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			signer := newTestSigner(t, operatorKey)
+			router := gin.New()
+			router.Use(signer.Middleware("robot-1", zap.NewNop()))
+			router.POST("/action", tc.handler)
+
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/action", nil))
+
+			if got := rec.Header().Get(headerPaymentRequired); got != tc.wantPaymentReqd {
+				t.Fatalf("served PAYMENT-REQUIRED = %q, want %q", got, tc.wantPaymentReqd)
+			}
+			if got := rec.Header().Get(headerWWWAuthenticate); got != tc.wantWWWAuthentic {
+				t.Fatalf("served WWW-Authenticate = %q, want %q", got, tc.wantWWWAuthentic)
+			}
+
+			// Exactly one attestation, no stale value left behind by a re-sign.
+			if n := len(rec.Header().Values(HeaderName)); n != 1 {
+				t.Fatalf("attestation header appears %d times, want 1", n)
+			}
+
+			ch := Challenge{
+				RobotID:         "robot-1",
+				Method:          http.MethodPost,
+				Path:            "/action",
+				PaymentRequired: rec.Header().Get(headerPaymentRequired),
+				WWWAuthenticate: rec.Header().Get(headerWWWAuthenticate),
+			}
+			if err := Verify(rec.Header().Get(HeaderName), ch, signer.Address().Hex(), DefaultMaxAge, time.Now()); err != nil {
+				t.Fatalf("attestation does not cover the response as served: %v", err)
+			}
+		})
+	}
+}

@@ -15,15 +15,6 @@ const (
 
 // Middleware attaches an attestation to every 402 the tunnel emits, whichever
 // payment protocol produced it.
-//
-// It must be registered *before* the payment middleware so that the wrapped
-// writer is in place when the 402 is written. The attestation is attached at
-// WriteHeader time, by which point the challenge headers are set but nothing has
-// been flushed to the wire.
-//
-// A failure to attest is logged and never blocks the response: the payer's own
-// policy decides whether to accept an unattested challenge, and failing the
-// request here would take the robot offline over a signing problem.
 func (s *Signer) Middleware(robotID string, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer = &attestWriter{
@@ -47,32 +38,56 @@ type attestWriter struct {
 	method  string
 	path    string
 	logger  *zap.Logger
-	done    bool
+
+	attached       bool
+	signedRequired string
+	signedWWWAuth  string
 }
 
 func (w *attestWriter) WriteHeader(code int) {
-	if code == http.StatusPaymentRequired && !w.done {
-		w.done = true
-		w.attach()
-	}
 	w.ResponseWriter.WriteHeader(code)
+	w.attach()
 }
 
-// attach signs whatever challenge the payment middleware has just set.
+// WriteHeaderNow is where gin actually emits the status line and headers.
+func (w *attestWriter) WriteHeaderNow() {
+	w.attach()
+	w.ResponseWriter.WriteHeaderNow()
+}
+
+func (w *attestWriter) Write(b []byte) (int, error) {
+	w.attach()
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *attestWriter) WriteString(s string) (int, error) {
+	w.attach()
+	return w.ResponseWriter.WriteString(s)
+}
+
+// attach signs the challenge as it currently stands, replacing any attestation
+// that covered an earlier version of it.
 func (w *attestWriter) attach() {
+	if w.Status() != http.StatusPaymentRequired || w.ResponseWriter.Written() {
+		return
+	}
+
 	header := w.Header()
 
-	// Only the first value of each header is signed: the gateway forwards one
-	// value per header name, so signing more would produce an attestation the
-	// payer could not reproduce.
 	paymentRequired := header.Get(headerPaymentRequired)
 	wwwAuthenticate := header.Get(headerWWWAuthenticate)
 
 	if paymentRequired == "" && wwwAuthenticate == "" {
-		w.logger.Warn("402 response carries no payment challenge header; nothing to attest",
-			zap.String("robot_id", w.robotID),
-			zap.String("path", w.path),
-		)
+		if !w.attached {
+			w.logger.Warn("402 response carries no payment challenge header; nothing to attest",
+				zap.String("robot_id", w.robotID),
+				zap.String("path", w.path),
+			)
+		}
+		return
+	}
+
+	if w.attached && paymentRequired == w.signedRequired && wwwAuthenticate == w.signedWWWAuth {
 		return
 	}
 
@@ -92,4 +107,7 @@ func (w *attestWriter) attach() {
 	}
 
 	header.Set(HeaderName, value)
+	w.attached = true
+	w.signedRequired = paymentRequired
+	w.signedWWWAuth = wwwAuthenticate
 }

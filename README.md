@@ -68,6 +68,7 @@ Set the payee address (and any overrides) in `tunnel/config.json`:
 {
   "robot_id": "my-robot",
   "evm_payee_address": "0xYourAddress",
+  "staking_address": "0xYourStakedAddress",
   "price": "0.002",
   "network": "eip155:84532"
 }
@@ -77,6 +78,7 @@ Set the payee address (and any overrides) in `tunnel/config.json`:
 |--------------------------|---------------|-----------------|------------------------------------------------------------|
 | `robot_id`               | No            | random UUID     | Unique robot identifier                                     |
 | `evm_payee_address`      | **Yes**       | —               | EVM address to receive x402 payments                        |
+| `staking_address`        | **Yes**       | —               | EVM address whose RoboStaking tier authorizes the tunnel. Independent of `evm_payee_address`, no fallback. Declaring it grants nothing — the robot must prove it holds the matching key, see `STAKING_PRIVATE_KEY` |
 | `price`                  | No            | `0.001`         | Price per action, in whole token units                      |
 | `network`                | No            | `eip155:8453`   | CAIP-2 network ID (e.g. `eip155:84532`)                     |
 | `token_address`          | No            | network default | ERC-20 the price is charged in                              |
@@ -175,6 +177,7 @@ a captured challenge cannot be replayed against a later price.
 | Variable | Required | Description |
 |---|---|---|
 | `OPERATOR_SIGNING_KEY` | No | secp256k1 key that attests this robot's payment requirements. Unset disables signing and logs a warning at startup |
+| `STAKING_PRIVATE_KEY` | **Yes** | secp256k1 key for `staking_address`. Signs the proxy's single-use handshake nonce, proving the robot controls that wallet. Its derived address must equal `staking_address` or startup fails. Environment only — deliberately not settable over the unauthenticated robot config topic |
 
 The key is read from the environment only. It is deliberately **not** settable
 over the `robot/config/<robot_id>` topic, which is unauthenticated. If it differs

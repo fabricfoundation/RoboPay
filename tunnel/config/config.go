@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -9,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	tempotx "github.com/tempoxyz/tempo-go/pkg/transaction"
 )
@@ -43,8 +46,10 @@ func getEnvOrDefault(key, defaultVal string) string {
 }
 
 type Config struct {
-	RobotID              string `json:"robot_id"`
-	EVMPayeeAddress      string `json:"evm_payee_address"`
+	RobotID string `json:"robot_id"`
+	EVMPayeeAddress string `json:"evm_payee_address"`
+	StakingAddress string `json:"staking_address"`
+	StakingPrivateKey    string `json:"-"`
 	Price                string `json:"price"`
 	Network              string `json:"network"`
 	TokenAddress         string `json:"token_address"`
@@ -153,12 +158,55 @@ func (c *Config) Validate() error {
 	if c.EVMPayeeAddress == "" {
 		return fmt.Errorf("evm_payee_address is required")
 	}
+	if !addressRegex.MatchString(c.EVMPayeeAddress) {
+		return fmt.Errorf("invalid evm_payee_address format: %q, expected a 0x-prefixed 20-byte hex address", c.EVMPayeeAddress)
+	}
+
+	if c.StakingAddress == "" {
+		return fmt.Errorf("staking_address is required")
+	}
+	if !addressRegex.MatchString(c.StakingAddress) {
+		return fmt.Errorf("invalid staking_address format: %q, expected a 0x-prefixed 20-byte hex address", c.StakingAddress)
+	}
+	if err := c.validateStakingKey(); err != nil {
+		return err
+	}
 
 	if err := c.validateToken(); err != nil {
 		return err
 	}
 
 	return c.validateMPP()
+}
+
+// StakingSigner parses StakingPrivateKey into a usable key.
+func (c *Config) StakingSigner() (*ecdsa.PrivateKey, error) {
+	hexKey := strings.TrimPrefix(strings.TrimSpace(c.StakingPrivateKey), "0x")
+	if hexKey == "" {
+		return nil, fmt.Errorf("STAKING_PRIVATE_KEY is not set")
+	}
+	key, err := crypto.HexToECDSA(hexKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse STAKING_PRIVATE_KEY: %w", err)
+	}
+	return key, nil
+}
+
+// validateStakingKey requires a key whose address is the declared staking_address.
+// Checking the pair here turns a silent authorization failure into a startup error.
+func (c *Config) validateStakingKey() error {
+	key, err := c.StakingSigner()
+	if err != nil {
+		return fmt.Errorf("%w (it signs the proxy handshake that proves you control staking_address %s)",
+			err, c.StakingAddress)
+	}
+
+	derived := crypto.PubkeyToAddress(key.PublicKey)
+	if derived != common.HexToAddress(c.StakingAddress) {
+		return fmt.Errorf("STAKING_PRIVATE_KEY belongs to %s but staking_address is %s: the proxy gates on the address recovered from the signature, so the declared one must match",
+			derived.Hex(), common.HexToAddress(c.StakingAddress).Hex())
+	}
+	return nil
 }
 
 // MPPChainID returns the EIP-155 chain ID of the configured MPP network.
@@ -298,6 +346,7 @@ func LoadConfig(path string) (*Config, error) {
 	cfg.MPPSecretKey = os.Getenv("MPP_SECRET_KEY")
 	cfg.MPPRPCURL = os.Getenv("MPP_RPC_URL")
 	cfg.OperatorSigningKey = os.Getenv("OPERATOR_SIGNING_KEY")
+	cfg.StakingPrivateKey = os.Getenv("STAKING_PRIVATE_KEY")
 
 	if os.Getenv("MPP_ENABLED") != "" {
 		cfg.MPPEnabled = getBoolEnv("MPP_ENABLED", cfg.MPPEnabled)

@@ -93,6 +93,7 @@ func main() {
 		Call: func(sample zenoh.Sample) {
 			var partialCfg struct {
 				EVMPayeeAddress      *string `json:"evm_payee_address"`
+				StakingAddress       *string `json:"staking_address"`
 				Price                *string `json:"price"`
 				Network              *string `json:"network"`
 				TokenAddress         *string `json:"token_address"`
@@ -117,6 +118,10 @@ func main() {
 			updated := false
 			if partialCfg.EVMPayeeAddress != nil && *partialCfg.EVMPayeeAddress != candidate.EVMPayeeAddress {
 				candidate.EVMPayeeAddress = *partialCfg.EVMPayeeAddress
+				updated = true
+			}
+			if partialCfg.StakingAddress != nil && *partialCfg.StakingAddress != candidate.StakingAddress {
+				candidate.StakingAddress = *partialCfg.StakingAddress
 				updated = true
 			}
 			if partialCfg.Price != nil && *partialCfg.Price != candidate.Price {
@@ -202,6 +207,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	stakingKey, err := cfg.StakingSigner()
+	if err != nil {
+		logger.Fatal("staking key is unusable", zap.Error(err))
+	}
+
 	aipSrv := aipagent.Build(cfg, handlers.PublishRobotAction, logger)
 	if aipSrv != nil {
 		go func() {
@@ -213,7 +223,7 @@ func main() {
 
 	for {
 		router := setupRouter(cfg, aipSrv, logger)
-		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, router, logger)
+		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, cfg.StakingAddress, stakingKey, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)
 
