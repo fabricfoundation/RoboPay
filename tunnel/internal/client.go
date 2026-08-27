@@ -3,6 +3,8 @@ package internal
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,12 +12,66 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
+
+const tunnelAuthPrefix = "RoboPay-Tunnel-Auth-v1"
+
+var terminalRejections = map[string]string{
+	"not_staked":             "the staking address does not hold the tier required for tunnel access",
+	"invalid_signature":      "the proxy could not verify the handshake signature",
+	"address_mismatch":       "the handshake signature does not match staking_address",
+	"invalid_address":        "staking_address is not a valid EVM address",
+	"missing_authentication": "the proxy requires a signed handshake this build did not send",
+	"missing_robot_id":       "no robot id was sent",
+	"robot_id_in_use":        "another robot is already connected with this id",
+}
+
+// handshakeRejection reads the proxy's explanation off a failed handshake and reports
+// whether retrying could ever succeed.
+func handshakeRejection(resp *http.Response) (reason, message string, terminal bool) {
+	var body struct {
+		Error  string `json:"error"`
+		Reason string `json:"reason"`
+	}
+
+	if resp.Body != nil {
+		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		_ = resp.Body.Close()
+		if err := json.Unmarshal(raw, &body); err != nil {
+			body.Error = strings.TrimSpace(string(raw))
+		}
+	}
+
+	message = body.Error
+	if message == "" {
+		message = resp.Status
+	}
+
+	reason = body.Reason
+	if reason == "" {
+		switch resp.StatusCode {
+		case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusConflict:
+			return reason, message, true
+		}
+		return reason, message, false
+	}
+
+	_, terminal = terminalRejections[reason]
+	return reason, message, terminal
+}
+
+// tunnelAuthMessage is what the robot signs to prove it holds the staking key.
+func tunnelAuthMessage(robotID, nonce string) string {
+	return tunnelAuthPrefix + "\nrobot_id:" + robotID + "\nnonce:" + nonce
+}
 
 type Envelope struct {
 	Type    string            `json:"type"`
@@ -29,23 +85,97 @@ type Envelope struct {
 }
 
 type Client struct {
-	wsBaseURL string
-	robotID   string
-	handler   http.Handler
-	dialer    *websocket.Dialer
+	wsBaseURL      string
+	robotID        string
+	stakingAddress string
+	stakingKey     *ecdsa.PrivateKey
+	handler        http.Handler
+	dialer         *websocket.Dialer
 
 	writeMu sync.Mutex
 	logger  *zap.Logger
 }
 
-func NewClient(wsBaseURL string, robotID string, handler http.Handler, logger *zap.Logger) *Client {
+func NewClient(wsBaseURL string, robotID string, stakingAddress string, stakingKey *ecdsa.PrivateKey,
+	handler http.Handler, logger *zap.Logger) *Client {
 	return &Client{
-		wsBaseURL: wsBaseURL,
-		robotID:   robotID,
-		handler:   handler,
-		logger:    logger,
-		dialer:    websocket.DefaultDialer,
+		wsBaseURL:      wsBaseURL,
+		robotID:        robotID,
+		stakingAddress: stakingAddress,
+		stakingKey:     stakingKey,
+		handler:        handler,
+		logger:         logger,
+		dialer:         websocket.DefaultDialer,
 	}
+}
+
+// nonceURL derives the proxy's nonce endpoint from the WebSocket base URL, so the
+// two cannot drift apart in configuration.
+func (c *Client) nonceURL() (string, error) {
+	u, err := url.Parse(c.wsBaseURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid ws base url %q: %w", c.wsBaseURL, err)
+	}
+	switch u.Scheme {
+	case "wss":
+		u.Scheme = "https"
+	default:
+		u.Scheme = "http"
+	}
+	u.Path = strings.TrimRight(u.Path, "/") + "/nonce"
+	u.RawQuery = ""
+	return u.String(), nil
+}
+
+// fetchNonce asks the proxy for a single-use handshake nonce.
+func (c *Client) fetchNonce(ctx context.Context) (string, error) {
+	endpoint, err := c.nonceURL()
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch handshake nonce: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("nonce endpoint returned %d", resp.StatusCode)
+	}
+
+	var body struct {
+		Nonce string `json:"nonce"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return "", fmt.Errorf("failed to decode nonce response: %w", err)
+	}
+	if body.Nonce == "" {
+		return "", fmt.Errorf("nonce endpoint returned an empty nonce")
+	}
+	return body.Nonce, nil
+}
+
+// signNonce produces the personal_sign signature the proxy recovers the staking
+// address from.
+func (c *Client) signNonce(nonce string) (string, error) {
+	if c.stakingKey == nil {
+		return "", fmt.Errorf("no staking key configured")
+	}
+
+	hash := accounts.TextHash([]byte(tunnelAuthMessage(c.robotID, nonce)))
+	sig, err := crypto.Sign(hash, c.stakingKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign handshake nonce: %w", err)
+	}
+
+	sig[64] += 27
+	return "0x" + hex.EncodeToString(sig), nil
 }
 
 func (c *Client) Run(ctx context.Context) {
@@ -60,10 +190,26 @@ func (c *Client) Run(ctx context.Context) {
 
 		conn, resp, err := c.dial(ctx)
 		if err != nil {
-			if resp != nil && resp.StatusCode == http.StatusConflict {
-				c.logger.Fatal("robot ID already connected to proxy (409 Conflict)", zap.Error(err))
+			if resp != nil {
+				reason, message, terminal := handshakeRejection(resp)
+				if terminal {
+					c.logger.Fatal("tunnel handshake refused; not retrying",
+						zap.Int("status", resp.StatusCode),
+						zap.String("reason", reason),
+						zap.String("proxy_says", message),
+						zap.String("staking_address", c.stakingAddress),
+						zap.String("robot_id", c.robotID),
+						zap.String("explanation", terminalRejections[reason]),
+					)
+				}
+				c.logger.Warn("ws dial failed; will retry",
+					zap.Int("status", resp.StatusCode),
+					zap.String("reason", reason),
+					zap.String("proxy_says", message),
+				)
+			} else {
+				c.logger.Warn("ws dial failed; will retry", zap.Error(err))
 			}
-			c.logger.Warn("ws dial failed", zap.Error(err))
 			if !sleepWithContext(ctx, backoff) {
 				return
 			}
@@ -93,8 +239,20 @@ func (c *Client) dial(ctx context.Context) (*websocket.Conn, *http.Response, err
 		return nil, nil, fmt.Errorf("invalid ws base url %q: %w", c.wsBaseURL, err)
 	}
 
+	nonce, err := c.fetchNonce(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	signature, err := c.signNonce(nonce)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	query := proxyURL.Query()
 	query.Set("id", c.robotID)
+	query.Set("address", c.stakingAddress)
+	query.Set("nonce", nonce)
+	query.Set("signature", signature)
 	proxyURL.RawQuery = query.Encode()
 
 	headers := make(http.Header)

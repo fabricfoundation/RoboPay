@@ -7,12 +7,21 @@ import (
 
 const validSecret = "test-secret-key-that-is-long-enough-for-hmac"
 
+// stakingKeyHex and stakingAddr are a matching pair: Validate now requires the key to
+// derive the declared staking_address.
+const (
+	stakingKeyHex = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+	stakingAddr   = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+)
+
 func baseConfig() *Config {
 	return &Config{
-		RobotID:         "test-robot",
-		EVMPayeeAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-		Price:           "$0.002",
-		Network:         "eip155:84532",
+		RobotID:           "test-robot",
+		EVMPayeeAddress:   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+		StakingAddress:    stakingAddr,
+		StakingPrivateKey: stakingKeyHex,
+		Price:             "$0.002",
+		Network:           "eip155:84532",
 	}
 }
 
@@ -135,12 +144,14 @@ func TestLoadConfig_MPPEnvOverrides(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{
 		"robot_id": "env-robot",
 		"evm_payee_address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+		"staking_address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
 		"price": "$0.002",
 		"network": "eip155:84532"
 	}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
+	t.Setenv("STAKING_PRIVATE_KEY", stakingKeyHex)
 	t.Setenv("MPP_ENABLED", "true")
 	t.Setenv("MPP_SECRET_KEY", validSecret)
 	t.Setenv("MPP_NETWORK", MPPNetworkModerato)

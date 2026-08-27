@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/fabricfoundation/tunnel/config"
 	"github.com/fabricfoundation/tunnel/internal"
 	"github.com/fabricfoundation/tunnel/internal/aipagent"
+	"github.com/fabricfoundation/tunnel/internal/attest"
 	"github.com/fabricfoundation/tunnel/internal/handlers"
 	"github.com/fabricfoundation/tunnel/internal/mppay"
 )
@@ -91,6 +93,7 @@ func main() {
 		Call: func(sample zenoh.Sample) {
 			var partialCfg struct {
 				EVMPayeeAddress      *string `json:"evm_payee_address"`
+				StakingAddress       *string `json:"staking_address"`
 				Price                *string `json:"price"`
 				Network              *string `json:"network"`
 				TokenAddress         *string `json:"token_address"`
@@ -115,6 +118,10 @@ func main() {
 			updated := false
 			if partialCfg.EVMPayeeAddress != nil && *partialCfg.EVMPayeeAddress != candidate.EVMPayeeAddress {
 				candidate.EVMPayeeAddress = *partialCfg.EVMPayeeAddress
+				updated = true
+			}
+			if partialCfg.StakingAddress != nil && *partialCfg.StakingAddress != candidate.StakingAddress {
+				candidate.StakingAddress = *partialCfg.StakingAddress
 				updated = true
 			}
 			if partialCfg.Price != nil && *partialCfg.Price != candidate.Price {
@@ -200,6 +207,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	stakingKey, err := cfg.StakingSigner()
+	if err != nil {
+		logger.Fatal("staking key is unusable", zap.Error(err))
+	}
+
 	aipSrv := aipagent.Build(cfg, handlers.PublishRobotAction, logger)
 	if aipSrv != nil {
 		go func() {
@@ -211,7 +223,7 @@ func main() {
 
 	for {
 		router := setupRouter(cfg, aipSrv, logger)
-		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, router, logger)
+		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, cfg.StakingAddress, stakingKey, router, logger)
 
 		clientCtx, clientCancel := context.WithCancel(ctx)
 
@@ -326,6 +338,7 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 			"PAYMENT-RESPONSE",
 			"WWW-Authenticate",
 			"Payment-Receipt",
+			attest.HeaderName,
 		},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -359,6 +372,14 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		Timeout: 30 * time.Second,
 	})
 
+	// Registered before the payment middleware so the wrapped writer is in place
+	// when the 402 is written. Signs whichever challenge the payer is served.
+	if signer, signerErr := newRequirementsSigner(cfg, logger); signerErr != nil {
+		logger.Fatal("payment-requirements signing is misconfigured", zap.Error(signerErr))
+	} else if signer != nil {
+		router.Use(signer.Middleware(cfg.RobotID, logger))
+	}
+
 	gate, err := mppay.New(cfg, logger)
 	if err != nil {
 		logger.Error("MPP disabled: failed to build the payment gate", zap.Error(err))
@@ -379,6 +400,37 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 	}
 
 	return router
+}
+
+// newRequirementsSigner builds the payment-requirements signer, or returns
+// (nil, nil) when no operator key is configured. A malformed key is fatal rather
+// than ignored: silently serving unattested challenges is the failure mode this
+// is meant to remove.
+func newRequirementsSigner(cfg *config.Config, logger *zap.Logger) (*attest.Signer, error) {
+	if cfg.OperatorSigningKey == "" {
+		logger.Warn("payment-requirements signing disabled (OPERATOR_SIGNING_KEY not set): " +
+			"a payer cannot verify that the advertised recipient came from this operator")
+		return nil, nil
+	}
+
+	signer, err := attest.NewSigner(cfg.OperatorSigningKey)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("payment-requirements signing enabled",
+		zap.String("signer", signer.Address().Hex()),
+		zap.String("payee", cfg.EVMPayeeAddress),
+	)
+	if !strings.EqualFold(signer.Address().Hex(), cfg.EVMPayeeAddress) {
+		logger.Warn("payment-requirements signer differs from evm_payee_address; "+
+			"payers must be told which address to expect",
+			zap.String("signer", signer.Address().Hex()),
+			zap.String("payee", cfg.EVMPayeeAddress),
+		)
+	}
+
+	return signer, nil
 }
 
 // RegisterAllRoutes registers all real handlers on the router.
