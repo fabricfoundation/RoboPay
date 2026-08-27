@@ -26,6 +26,7 @@ import (
 	"github.com/fabricfoundation/tunnel/internal"
 	"github.com/fabricfoundation/tunnel/internal/aipagent"
 	"github.com/fabricfoundation/tunnel/internal/handlers"
+	"github.com/fabricfoundation/tunnel/internal/mppay"
 )
 
 const (
@@ -66,6 +67,10 @@ func main() {
 		logger.Info("unibase authorization ready", zap.String("wallet", wallet))
 	}
 
+	if _, err := mppay.New(cfg, zap.NewNop()); err != nil {
+		logger.Fatal("MPP configuration error", zap.Error(err))
+	}
+
 	session, err := zenoh.Open(zenoh.NewConfigDefault(), nil)
 	if err != nil {
 		logger.Fatal("failed to open zenoh session", zap.Error(err))
@@ -94,6 +99,12 @@ func main() {
 				TokenDecimals        *int    `json:"token_decimals"`
 				TokenTransferMethod  *string `json:"token_transfer_method"`
 				TokenSupportsEIP2612 *bool   `json:"token_supports_eip2612"`
+				MPPEnabled           *bool   `json:"mpp_enabled"`
+				MPPNetwork           *string `json:"mpp_network"`
+				MPPPayeeAddress      *string `json:"mpp_payee_address"`
+				MPPCurrency          *string `json:"mpp_currency"`
+				MPPDecimals          *int    `json:"mpp_decimals"`
+				MPPRealm             *string `json:"mpp_realm"`
 			}
 			if err := json.Unmarshal(sample.Payload().Bytes(), &partialCfg); err != nil {
 				logger.Warn("failed to parse config update", zap.Error(err))
@@ -136,6 +147,30 @@ func main() {
 			}
 			if partialCfg.TokenSupportsEIP2612 != nil && *partialCfg.TokenSupportsEIP2612 != candidate.TokenSupportsEIP2612 {
 				candidate.TokenSupportsEIP2612 = *partialCfg.TokenSupportsEIP2612
+				updated = true
+			}
+			if partialCfg.MPPEnabled != nil && *partialCfg.MPPEnabled != candidate.MPPEnabled {
+				candidate.MPPEnabled = *partialCfg.MPPEnabled
+				updated = true
+			}
+			if partialCfg.MPPNetwork != nil && *partialCfg.MPPNetwork != candidate.MPPNetwork {
+				candidate.MPPNetwork = *partialCfg.MPPNetwork
+				updated = true
+			}
+			if partialCfg.MPPPayeeAddress != nil && *partialCfg.MPPPayeeAddress != candidate.MPPPayeeAddress {
+				candidate.MPPPayeeAddress = *partialCfg.MPPPayeeAddress
+				updated = true
+			}
+			if partialCfg.MPPCurrency != nil && *partialCfg.MPPCurrency != candidate.MPPCurrency {
+				candidate.MPPCurrency = *partialCfg.MPPCurrency
+				updated = true
+			}
+			if partialCfg.MPPDecimals != nil && *partialCfg.MPPDecimals != candidate.MPPDecimals {
+				candidate.MPPDecimals = *partialCfg.MPPDecimals
+				updated = true
+			}
+			if partialCfg.MPPRealm != nil && *partialCfg.MPPRealm != candidate.MPPRealm {
+				candidate.MPPRealm = *partialCfg.MPPRealm
 				updated = true
 			}
 
@@ -222,6 +257,8 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		ExposeHeaders: []string{
 			"PAYMENT-REQUIRED",
 			"PAYMENT-RESPONSE",
+			"WWW-Authenticate",
+			"Payment-Receipt",
 		},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -246,14 +283,24 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		},
 	}
 
-	router.Use(ginmw.X402Payment(ginmw.Config{
+	x402Middleware := ginmw.X402Payment(ginmw.Config{
 		Routes:      routes,
 		Facilitator: facilitatorClient,
 		Schemes: []ginmw.SchemeConfig{
 			{Network: x402.Network(cfg.Network), Server: evmexact.NewExactEvmScheme()},
 		},
 		Timeout: 30 * time.Second,
-	}))
+	})
+
+	gate, err := mppay.New(cfg, logger)
+	if err != nil {
+		logger.Error("MPP disabled: failed to build the payment gate", zap.Error(err))
+	}
+	if gate != nil {
+		router.Use(gate.Middleware(x402Middleware))
+	} else {
+		router.Use(x402Middleware)
+	}
 
 	RegisterAllRoutes(router, h)
 

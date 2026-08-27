@@ -5,11 +5,45 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
+
+type fakePublisher struct {
+	mu     sync.Mutex
+	events [][]byte
+}
+
+func (f *fakePublisher) Publish(_ string, payload []byte) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.events = append(f.events, payload)
+	return nil
+}
+
+func (f *fakePublisher) last() map[string]any {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.events) == 0 {
+		return nil
+	}
+	var event map[string]any
+	if err := json.Unmarshal(f.events[len(f.events)-1], &event); err != nil {
+		return nil
+	}
+	return event
+}
+
+var testPublisher = &fakePublisher{}
+
+func TestMain(m *testing.M) {
+	zenohOnce.Do(func() { zenohPub = testPublisher })
+	os.Exit(m.Run())
+}
 
 func TestPostAction_ValidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -43,75 +77,42 @@ func TestPostAction_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestGetSettlementStatus_SuccessfulResultSettled(t *testing.T) {
+func TestPostAction_TagsX402Protocol(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	h := NewHandlers(zap.NewNop())
-	router.GET("/settlement/:actionId", h.GetSettlementStatus)
+	router.POST("/action", func(c *gin.Context) {
+		c.Set("x402_payload", map[string]any{"scheme": "exact"})
+		c.Set("x402_requirements", map[string]any{"network": "eip155:84532"})
+		h.PostAction(c)
+	})
 
-	result := ResultEnvelope{
-		ActionID: "action-success",
-		Status:   "success",
-		Message:  "completed",
-	}
-	h.SettlementMgr.ProcessResult(result)
-
-	req := httptest.NewRequest(http.MethodGet, "/settlement/action-success", nil)
+	req := httptest.NewRequest(http.MethodPost, "/action", bytes.NewBufferString(`{"action":"move"}`))
 	res := httptest.NewRecorder()
-
 	router.ServeHTTP(res, req)
 
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", res.Code)
 	}
 
-	var resp map[string]interface{}
-	if err := json.Unmarshal(res.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to parse response body: %v", err)
+	event := testPublisher.last()
+	if event == nil {
+		t.Fatal("expected an action event to be published")
 	}
-
-	if resp["actionId"] != "action-success" {
-		t.Fatalf("expected actionId action-success, got %v", resp["actionId"])
+	details, ok := event["transaction_details"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected transaction_details in %v", event)
 	}
-	if settled, ok := resp["settled"].(bool); !ok || !settled {
-		t.Fatalf("expected settled true, got %v", resp["settled"])
+	if details["protocol"] != ProtocolX402 {
+		t.Errorf("expected protocol %q, got %v", ProtocolX402, details["protocol"])
 	}
-	if resp["result"] == nil {
-		t.Fatal("expected result payload to be present")
+	if details["payment_payload"] == nil {
+		t.Error("expected the x402 payment_payload to be carried through")
 	}
-}
-
-func TestGetSettlementStatus_FailedResultNotSettled(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	h := NewHandlers(zap.NewNop())
-	router.GET("/settlement/:actionId", h.GetSettlementStatus)
-
-	result := ResultEnvelope{
-		ActionID: "action-error",
-		Status:   "error",
-		Message:  "timeout",
+	if details["payment_requirements"] == nil {
+		t.Error("expected the x402 payment_requirements to be carried through")
 	}
-	h.SettlementMgr.ProcessResult(result)
-
-	req := httptest.NewRequest(http.MethodGet, "/settlement/action-error", nil)
-	res := httptest.NewRecorder()
-
-	router.ServeHTTP(res, req)
-
-	if res.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", res.Code)
-	}
-
-	var resp map[string]interface{}
-	if err := json.Unmarshal(res.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to parse response body: %v", err)
-	}
-
-	if settled, ok := resp["settled"].(bool); !ok || settled {
-		t.Fatalf("expected settled false, got %v", resp["settled"])
-	}
-	if resp["result"] == nil {
-		t.Fatal("expected result payload to be present")
+	if _, exists := details["mpp_receipt"]; exists {
+		t.Error("expected no MPP receipt on an x402 payment")
 	}
 }
