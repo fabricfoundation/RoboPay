@@ -1,0 +1,58 @@
+// Example envelopes for skill move_to_pose (robot sim-arm-01), produced by
+// sim_arm_01/flow/envelope.py. Every field required to preserve payment safety
+// end-to-end is present: actionId, robotId, skillId, idempotencyKey,
+// paramsHash, payment. Regenerate the live transcript with:
+//     python -m sim_arm_01.flow.demo
+
+// ---------------------------------------------------------------------------
+// 1. ACTION REQUEST (published to robot/tunnel/action after payment verified)
+// ---------------------------------------------------------------------------
+{
+  "robotId": "sim-arm-01",
+  "skillId": "move_to_pose",
+  "params": { "target_qpos": [1.0, -0.5] },
+  "payment": { "txHash": "0xVALID", "amountUSDC": "0.50", "chain": "base" },
+  "actionId": "b494706a-ac92-4cd0-ba3d-425cf84cfd96",
+  "idempotencyKey": "71cea4b2-85fd-4e2a-8ff2-537f1e5c64f7",
+  "paramsHash": "75fb364c1a3320582169080d47f66326448935e15fe5fafab06c23f7123402ae"
+}
+
+// ---------------------------------------------------------------------------
+// 2. RESULT — SUCCESS (published to robot/tunnel/result, matched by actionId).
+//    The relay settles payment ONLY after consuming a success result like this.
+// ---------------------------------------------------------------------------
+{
+  "actionId": "b494706a-ac92-4cd0-ba3d-425cf84cfd96",
+  "robotId": "sim-arm-01",
+  "skillId": "move_to_pose",
+  "status": "success",
+  "metrics": {
+    "joint_angles": [1.0007, -0.4963],
+    "joint_error": 0.0038,
+    "success": true,
+    "collision": false,
+    "steps_taken": 103
+  },
+  "code": "",
+  "message": ""
+}
+
+// ---------------------------------------------------------------------------
+// 3. RESULT — FAILURE (unreachable target [5.0, 5.0], outside +/-3.14 range).
+//    status=error, so the relay does NOT settle. A failed action is never
+//    reported as success.
+// ---------------------------------------------------------------------------
+{
+  "actionId": "c7d1f0e2-1234-4a5b-9c8d-0f1e2a3b4c5d",
+  "robotId": "sim-arm-01",
+  "skillId": "move_to_pose",
+  "status": "error",
+  "metrics": {
+    "joint_error": 2.6304,
+    "success": false,
+    "collision": false,
+    "steps_taken": 1200
+  },
+  "code": "ACTION_FAILED",
+  "message": "arm did not reach target within step budget"
+}

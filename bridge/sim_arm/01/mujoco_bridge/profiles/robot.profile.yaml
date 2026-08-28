@@ -1,0 +1,22 @@
+# Robot identity and wallet binding.
+# Binds this robot's ID to the wallet that receives skill payments.
+robotId: sim-arm-01
+name: "2-DOF Planar Arm (MuJoCo)"
+description: >
+  Simulated 2-joint planar arm running in MuJoCo. Exposes a closed-loop
+  position-servo skill that drives the arm to a commanded joint pose and
+  reports simulator state metrics.
+vendor: robopay-community
+simulator: mujoco
+scope: simulator-only          # physical | simulator-only | hybrid
+
+# Wallet that receives payment for executed skills. Bound to robotId so a
+# paid action can only settle to this robot's wallet.
+wallet:
+  chain: base
+  address: "0xROBOTWALLETADDRESSPLACEHOLDER"
+
+transport:
+  type: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result

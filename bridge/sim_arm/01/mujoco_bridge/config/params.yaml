@@ -1,0 +1,5 @@
+mujoco_bridge_sim_arm_01:
+  ros__parameters:
+    zenoh_topic: "robot/tunnel/action"
+    zenoh_listen: "tcp/127.0.0.1:7447"
+    cmd_vel_topic: "/cmd_vel"

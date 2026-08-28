@@ -221,6 +221,12 @@ func main() {
 		}()
 	}
 
+	h := handlers.NewHandlers(logger)
+	if err := h.InitZenoh(); err != nil {
+		logger.Fatal("failed to initialize Zenoh result subscription", zap.Error(err))
+	}
+	defer h.Close()
+
 	for {
 		router := setupRouter(cfg, aipSrv, logger)
 		client := internal.NewClient(cfg.ProxyWSURL, cfg.RobotID, cfg.StakingAddress, stakingKey, router, logger)
@@ -246,80 +252,7 @@ func main() {
 	}
 }
 
-// pristineNetworkConfigs is x402's built-in asset table, captured before anything overrides it,
-// so a config update that drops token_address can put the shipped default back.
-var pristineNetworkConfigs = func() map[string]evm.NetworkConfig {
-	snapshot := make(map[string]evm.NetworkConfig, len(evm.NetworkConfigs))
-	for network, cfg := range evm.NetworkConfigs {
-		snapshot[network] = cfg
-	}
-	return snapshot
-}()
-
-// registeredNetwork is the network registerTokenAsset last overrode, so a config update that
-// switches networks does not strand the previous one on a stale asset.
-var registeredNetwork string
-
-// restoreNetworkDefault undoes an override, falling back to whatever x402 shipped for the network.
-func restoreNetworkDefault(network string) {
-	if original, ok := pristineNetworkConfigs[network]; ok {
-		evm.NetworkConfigs[network] = original
-		return
-	}
-	delete(evm.NetworkConfigs, network)
-}
-
-// registerTokenAsset makes cfg.TokenAddress the default asset for cfg.Network. It runs on every
-// (re)start of the router, so it has to undo whatever the previous config registered.
-func registerTokenAsset(cfg *config.Config, logger *zap.Logger) {
-	if registeredNetwork != "" && registeredNetwork != cfg.Network {
-		restoreNetworkDefault(registeredNetwork)
-		registeredNetwork = ""
-	}
-
-	if cfg.TokenAddress == "" {
-		restoreNetworkDefault(cfg.Network)
-		registeredNetwork = ""
-		return
-	}
-
-	chainID, ok := cfg.ChainID()
-	if !ok {
-		logger.Warn("skipping token registration for non-eip155 network", zap.String("network", cfg.Network))
-		return
-	}
-
-	asset := evm.AssetInfo{
-		Address:  cfg.TokenAddress,
-		Name:     cfg.TokenName,
-		Version:  cfg.TokenVersion,
-		Decimals: cfg.TokenDecimals,
-	}
-
-	if cfg.TokenTransferMethod == config.TransferMethodPermit2 {
-		asset.AssetTransferMethod = evm.AssetTransferMethodPermit2
-		asset.SupportsEip2612 = cfg.TokenSupportsEIP2612
-	}
-
-	evm.NetworkConfigs[cfg.Network] = evm.NetworkConfig{
-		ChainID:      chainID,
-		DefaultAsset: asset,
-	}
-	registeredNetwork = cfg.Network
-
-	logger.Info("registered payment token",
-		zap.String("network", cfg.Network),
-		zap.String("address", cfg.TokenAddress),
-		zap.String("name", cfg.TokenName),
-		zap.Int("decimals", cfg.TokenDecimals),
-		zap.String("transfer_method", cfg.TokenTransferMethod),
-		zap.Bool("supports_eip2612", cfg.TokenSupportsEIP2612),
-	)
-}
-
-func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger) *gin.Engine {
-	registerTokenAsset(cfg, logger)
-
+func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logger, h *handlers.Handlers) *gin.Engine {
 	router := gin.New()
 
 	router.Use(cors.New(cors.Config{
@@ -390,7 +323,6 @@ func setupRouter(cfg *config.Config, aipSrv *aipserver.Server, logger *zap.Logge
 		router.Use(x402Middleware)
 	}
 
-	h := handlers.NewHandlers(logger)
 	RegisterAllRoutes(router, h)
 
 	// Serve the AIP A2A contract (/.well-known/agent-card.json, /invoke, ...)
@@ -436,4 +368,5 @@ func newRequirementsSigner(cfg *config.Config, logger *zap.Logger) (*attest.Sign
 // RegisterAllRoutes registers all real handlers on the router.
 func RegisterAllRoutes(router *gin.Engine, h *handlers.Handlers) {
 	router.POST("/action", h.PostAction)
+	router.GET("/settlement/:actionId", h.GetSettlementStatus)
 }
