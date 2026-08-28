@@ -68,6 +68,7 @@ Set the payee address (and any overrides) in `tunnel/config.json`:
 {
   "robot_id": "my-robot",
   "evm_payee_address": "0xYourAddress",
+  "staking_address": "0xYourStakedAddress",
   "price": "0.002",
   "network": "eip155:84532"
 }
@@ -77,6 +78,7 @@ Set the payee address (and any overrides) in `tunnel/config.json`:
 |--------------------------|---------------|-----------------|------------------------------------------------------------|
 | `robot_id`               | No            | random UUID     | Unique robot identifier                                     |
 | `evm_payee_address`      | **Yes**       | —               | EVM address to receive x402 payments                        |
+| `staking_address`        | **Yes**       | —               | EVM address whose RoboStaking tier authorizes the tunnel. Independent of `evm_payee_address`, no fallback. Declaring it grants nothing — the robot must prove it holds the matching key, see `STAKING_PRIVATE_KEY` |
 | `price`                  | No            | `0.001`         | Price per action, in whole token units                      |
 | `network`                | No            | `eip155:8453`   | CAIP-2 network ID (e.g. `eip155:84532`)                     |
 | `token_address`          | No            | network default | ERC-20 the price is charged in                              |
@@ -114,6 +116,73 @@ token as that network's default asset at startup. See
 
 The facilitator has to support the chosen method too — it is the one that submits the settlement
 transaction.
+
+### Payment-requirements signing
+
+The tunnel reaches a payer through the Fabric gateway, which terminates TLS and
+relays the 402 in plaintext. Nothing in the x402 challenge is signed, so an
+intermediary is technically positioned to advertise a different `payTo` address —
+which the payer would then sign. On-chain verification cannot catch that: the
+resulting signature is perfectly valid for whatever address the payer was shown.
+Settlement can only prove that nobody altered an authorization *after* it was
+signed.
+
+Set `OPERATOR_SIGNING_KEY` and the tunnel signs the challenge it serves, so a
+payer can check that the recipient came from the operator:
+
+```bash
+export OPERATOR_SIGNING_KEY="0x<operator private key>"
+```
+
+Every 402 then carries an extra header, whichever protocol produced the
+challenge:
+
+```
+PAYMENT-REQUIREMENTS-SIGNATURE: <base64url JSON>
+```
+
+Decoded, that is `{"v":1,"signer":"0x…","issued_at":<unix>,"nonce":"<hex>","signature":"0x…"}`.
+
+The signature is an EIP-191 `personal_sign` over these exact bytes, newline
+delimited, fields in this order:
+
+```
+RoboPay-Payment-Requirements-v1
+robot_id:<robot_id>
+method:<HTTP method>
+path:<robot-relative path, e.g. /action>
+issued_at:<unix seconds>
+nonce:<hex>
+payment_required:<PAYMENT-REQUIRED header, verbatim, or empty>
+www_authenticate:<WWW-Authenticate header, verbatim, or empty>
+```
+
+`method` and `path` are the **robot-relative** values the tunnel sees (`POST`,
+`/action`) — not the gateway URL the payer called. Only the first value of each
+challenge header is covered, because the gateway forwards one value per header
+name.
+
+**To verify, a payer must already know the operator's expected signing address.**
+Checking the signature against the address inside the attestation proves nothing:
+an intermediary that rewrites the requirements can sign the rewritten version
+with its own key. The out-of-band expectation is what makes this work — the
+address comes from a listing, a registry, or a prior relationship, never from the
+response being checked. `attest.Verify` takes it as an argument for that reason.
+
+A payer that requires an attestation also detects a *stripped* header, since a
+relay that removes it produces a challenge the payer refuses rather than one it
+silently trusts. `issued_at` is bounded by `attest.DefaultMaxAge` (5 minutes) so
+a captured challenge cannot be replayed against a later price.
+
+| Variable | Required | Description |
+|---|---|---|
+| `OPERATOR_SIGNING_KEY` | No | secp256k1 key that attests this robot's payment requirements. Unset disables signing and logs a warning at startup |
+| `STAKING_PRIVATE_KEY` | **Yes** | secp256k1 key for `staking_address`. Signs the proxy's single-use handshake nonce, proving the robot controls that wallet. Its derived address must equal `staking_address` or startup fails. Environment only — deliberately not settable over the unauthenticated robot config topic |
+
+The key is read from the environment only. It is deliberately **not** settable
+over the `robot/config/<robot_id>` topic, which is unauthenticated. If it differs
+from `evm_payee_address` the tunnel logs a warning at startup, since payers must
+be told which address to expect.
 
 ### MPP (Machine Payments Protocol)
 

@@ -19,12 +19,14 @@ const testSecret = "test-secret-key-that-is-long-enough-for-hmac"
 
 func testConfig() *config.Config {
 	cfg := &config.Config{
-		RobotID:         "test-robot",
-		EVMPayeeAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-		Price:           "$0.002",
-		Network:         "eip155:84532",
-		MPPEnabled:      true,
-		MPPSecretKey:    testSecret,
+		RobotID:           "test-robot",
+		EVMPayeeAddress:   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+		StakingAddress:    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+		StakingPrivateKey: "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+		Price:             "$0.002",
+		Network:           "eip155:84532",
+		MPPEnabled:        true,
+		MPPSecretKey:      testSecret,
 	}
 	if err := cfg.Validate(); err != nil {
 		panic(err)
