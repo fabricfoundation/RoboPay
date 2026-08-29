@@ -1,0 +1,25 @@
+{
+  "profile_id": "robopay-webots-spot-tier1",
+  "name": "RoboPay Webots Spot (Tier 1)",
+  "version": "1.0.0",
+  "robot_type": "quadruped",
+  "simulator": "webots",
+  "execution_layer": "robopay-bridge",
+  "capabilities": [
+    "stand",
+    "walk",
+    "sit",
+    "move_forward",
+    "move_backward"
+  ],
+  "pricing": {
+    "default_price": "$0.002",
+    "network": "base-sepolia",
+    "unit": "per-action"
+  },
+  "settlement_requirements": [
+    "tunnel_verified_payment",
+    "terminal_success_state",
+    "action_idempotent_deduplication"
+  ]
+}

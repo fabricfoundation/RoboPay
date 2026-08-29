@@ -1,0 +1,10 @@
+vendor:
+  id: "robopay-sim-v1"
+  name: "RoboPay Webots Integration"
+  archetype: "Master Builder"
+  environment: "Webots"
+  protocol_version: "v25"
+  zenoh:
+    enabled: true
+    mode: "peer"
+    topic_prefix: "robopay/telemetry"
