@@ -1,0 +1,96 @@
+$ # ============================================================
+$ # Terminal 1: Start Fabric Tunnel (x402 payment verification)
+$ # ============================================================
+$ cd tunnel && go run cmd/main.go
+2026-07-25T15:00:00Z INFO  tunnel: Starting Fabric tunnel for robot g1-demo-001
+2026-07-25T15:00:00Z INFO  tunnel: x402 payment middleware initialized
+2026-07-25T15:00:00Z INFO  tunnel: Listening on :8080
+2026-07-25T15:00:00Z INFO  tunnel: Zenoh session opened: tcp/127.0.0.1:7447
+
+$ # ============================================================
+$ # Terminal 2: Start existing G1 bridge (ROS2 → /cmd_vel)
+$ # ============================================================
+$ cd bridge/unitree/g1 && ros2 launch isaac_sim_bridge isaac_sim_bridge.launch.py
+[INFO] [launch]: All log files can be found below /root/.ros/log/...
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [isaac_sim_bridge_go2]: Zenoh subscriber started on robot/tunnel/action
+[INFO] [isaac_sim_bridge_go2]: Publishing cmd_vel to /cmd_vel
+
+$ # ============================================================
+$ # Terminal 3: Start MuJoCo cmd_vel adapter
+$ # ============================================================
+$ python simulation/common/mujoco_cmdvel_adapter.py --scene simulation/mujoco/scenes/unitree_g1.xml
+2026-07-25 15:00:05 [CMDVEL-ADAPTER] Starting MuJoCo cmd_vel adapter
+2026-07-25 15:00:05 [CMDVEL-ADAPTER] Robot: g1-demo-001 | Scene: simulation/mujoco/scenes/unitree_g1.xml
+2026-07-25 15:00:05 [CMDVEL-ADAPTER] Subscribing to /cmd_vel from existing G1 bridge
+2026-07-25 15:00:05 [CMDVEL-ADAPTER] Adapter active. Waiting for /cmd_vel messages...
+
+$ # ============================================================
+$ # Terminal 4: Send unpaid request (expect 402)
+$ # ============================================================
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -d '{"skillId":"move_forward","params":{"speed":0.5,"durationSec":3}}'
+< HTTP/1.1 402 Payment Required
+< {"error":"payment-required","skillId":"move_forward","price":"0.01 USDC"}
+
+$ # ============================================================
+$ # Terminal 4: Send paid request
+$ # ============================================================
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -H "X-PAYMENT: 0xabc123..." \
+    -d '{"skillId":"move_forward","params":{"speed":0.5,"durationSec":3},"idempotencyKey":"demo-001"}'
+< HTTP/1.1 202 Accepted
+< {"status":"accepted","actionId":"act_move_forward_001"}
+
+$ # Terminal 1 (tunnel) shows:
+2026-07-25T15:01:00Z INFO  tunnel: Received paid action: skillId=move_forward
+2026-07-25T15:01:00Z INFO  tunnel: x402 verification: txHash=0xabc123... amount=10000
+2026-07-25T15:01:00Z INFO  tunnel: Payment verified successfully
+2026-07-25T15:01:00Z INFO  tunnel: Publishing to Zenoh: robot/tunnel/action
+
+$ # Terminal 2 (bridge) shows:
+[INFO] [isaac_sim_bridge_go2]: Received action: move_forward
+[INFO] [isaac_sim_bridge_go2]: Mapped to cmd_vel: linear.x=0.5 angular.z=0.0
+[INFO] [isaac_sim_bridge_go2]: Published /cmd_vel
+
+$ # Terminal 3 (adapter) shows:
+2026-07-25 15:01:00 [CMDVEL-ADAPTER] cmd_vel: vx=0.50 vy=0.00 wz=0.00
+2026-07-25 15:01:01 [CMDVEL-ADAPTER] Step 500 | pos=(0.25,0.00,0.75) | cmd_vel=(0.50,0.00,0.00) | actions=1
+2026-07-25 15:01:02 [CMDVEL-ADAPTER] Step 1000 | pos=(0.50,0.00,0.75) | cmd_vel=(0.50,0.00,0.00) | actions=1
+2026-07-25 15:01:03 [CMDVEL-ADAPTER] Step 1500 | pos=(0.75,0.00,0.75) | cmd_vel=(0.50,0.00,0.00) | actions=1
+
+$ # Terminal 3 (result published):
+2026-07-25 15:01:03 [CMDVEL-ADAPTER] Result: {"status":"success","skill":"move_forward","result":{"message":"Action completed","metrics":{"displacement_m":0.75,"collision_status":false}}}
+
+$ # ============================================================
+$ # Terminal 4: Send stop (no payment required)
+$ # ============================================================
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -d '{"skillId":"stop","params":{}}'
+< HTTP/1.1 200 OK
+< {"status":"success","skill":"stop","result":{"message":"Stopped"}}
+
+$ # Terminal 3 shows:
+2026-07-25 15:01:05 [CMDVEL-ADAPTER] cmd_vel: vx=0.00 vy=0.00 wz=0.00
+
+$ # ============================================================
+$ # Terminal 4: Send unknown skill (expect error)
+$ # ============================================================
+$ curl -X POST http://localhost:8080/v1/robots/g1-demo-001/actions \
+    -H "X-PAYMENT: 0xdef456..." \
+    -d '{"skillId":"nonexistent","params":{}}'
+< HTTP/1.1 200 OK
+< {"status":"error","skill":"nonexistent","error":{"code":"UNKNOWN_SKILL","message":"Skill not found"}}
+
+$ # ============================================================
+$ # Simulation Metrics (from MuJoCo)
+$ # ============================================================
+$ python -m simulation.mujoco.runners.g1_runner --task all --output metrics.json
+2026-07-25 15:02:00 [G1] === Obstacle Navigation ===
+2026-07-25 15:02:10 [G1] Step 5000: pos=(0.89,-0.02) dist=2.11m path=0.89m
+2026-07-25 15:02:20 [G1] Step 10000: pos=(1.78,-0.04) dist=1.22m path=1.78m
+2026-07-25 15:02:30 [G1] Step 15000: pos=(2.13,-0.05) dist=0.87m path=2.13m
+2026-07-25 15:02:40 [G1] Results saved to metrics.json
+2026-07-25 15:02:40 [G1]   navigate: displacement=2.13m path_length=3.91m collisions=503146
+2026-07-25 15:02:40 [G1]   wave: displacement=0.07m wave_cycles=159
+2026-07-25 15:02:40 [G1]   pick_place: displacement=1.41m phases_completed=5
