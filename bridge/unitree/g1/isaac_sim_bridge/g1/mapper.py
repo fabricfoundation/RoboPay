@@ -1,4 +1,4 @@
-"""G1-specific Fabric action → geometry_msgs/Twist mapper."""
+"""G1-specific Fabric action -> geometry_msgs/Twist mapper."""
 from geometry_msgs.msg import Twist
 from zenoh_bridge import ActionEvent, CommandMapper, clamp
 
@@ -7,7 +7,7 @@ class G1Mapper(CommandMapper):
     """Maps Fabric actions to Twist commands for Unitree G1 / OM1-sim.
 
     Velocity limits from OM1-sim deploy.yaml:
-      vx: [-0.5, 1.0] m/s   wz: [-0.2, 0.2] rad/s
+      vx: [-0.5, 1.0]  m/s   wz: [-0.2, 0.2] rad/s
     """
 
     def __init__(
@@ -37,5 +37,10 @@ class G1Mapper(CommandMapper):
             msg.angular.z = -clamp(self._turn_ang, 0.0, 0.2)
         elif a == "stop":
             pass  # zero Twist
-        # unknown action → zero Twist (safe default)
+        elif a in ("open_door", "open_door_handle"):
+            # Door-opening is an arm manipulation action, not locomotion.
+            # Zero Twist here; actual arm motion is handled separately
+            # by ArmActionMapper in node.py via a JointTrajectory publisher.
+            pass
+        # unknown action -> zero Twist (safe default)
         return msg
