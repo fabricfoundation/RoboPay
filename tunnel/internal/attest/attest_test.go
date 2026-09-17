@@ -2,6 +2,7 @@ package attest
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,9 @@ import (
 const (
 	operatorKey = "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318"
 	otherKey    = "8f2a559490d3f4dbd1d0b0e0f2f4f3a2f1e0d9c8b7a6958473625140312f1e0d"
+
+	// goldenCanonicalKeccak pins the canonical encoding. See TestGoldenCanonicalEncoding.
+	goldenCanonicalKeccak = "97d0239f540f13759d1865a604b1c0bde833c9385101274b1317443260853bad"
 )
 
 func newTestSigner(t *testing.T, hexKey string) *Signer {
@@ -496,5 +500,60 @@ func TestMiddlewareCoversEveryChallengeOrdering(t *testing.T) {
 				t.Fatalf("attestation does not cover the response as served: %v", err)
 			}
 		})
+	}
+}
+
+// The tunnel signs both the proxy handshake and the payment requirements with
+// its staking key. These two cover what that sharing depends on.
+
+func TestNewSignerFromKeyMatchesHexConstructor(t *testing.T) {
+	key, err := crypto.HexToECDSA(operatorKey)
+	if err != nil {
+		t.Fatalf("HexToECDSA: %v", err)
+	}
+
+	// The staking key is parsed once and handed over already-parsed, so this
+	// must land on the same address the hex constructor would have produced.
+	if got, want := NewSignerFromKey(key).Address(), newTestSigner(t, operatorKey).Address(); got != want {
+		t.Fatalf("NewSignerFromKey address = %s, want %s", got, want)
+	}
+}
+
+// A handshake signature must never verify as a payment-requirements
+// attestation. The two are kept apart by their domain prefixes, so this fails
+// loudly if either prefix is ever changed to collide with the other.
+func TestAttestationDomainIsSeparateFromTunnelAuth(t *testing.T) {
+	const tunnelAuthPrefix = "RoboPay-Tunnel-Auth-v1"
+
+	if messagePrefix == tunnelAuthPrefix {
+		t.Fatalf("attestation and handshake share the domain prefix %q", messagePrefix)
+	}
+	if strings.HasPrefix(messagePrefix, tunnelAuthPrefix) || strings.HasPrefix(tunnelAuthPrefix, messagePrefix) {
+		t.Fatalf("one domain prefix is a prefix of the other: %q vs %q", messagePrefix, tunnelAuthPrefix)
+	}
+}
+
+// goldenChallenge is a fixed challenge whose canonical encoding is pinned below.
+// The gateway (fabric-foundation-api) reimplements this encoding, because this
+// package is internal to another module and cannot be imported. The same vector
+// is asserted there, so if either side's encoding drifts, that side's tests fail
+// instead of every payment challenge silently failing verification in production.
+func goldenChallenge() Challenge {
+	return Challenge{
+		RobotID:         "golden-robot",
+		Method:          "POST",
+		Path:            "/action",
+		PaymentRequired: `{"accepts":[{"payTo":"0x1111111111111111111111111111111111111111"}]}`,
+		WWWAuthenticate: `Payment realm="golden-robot", method="tempo"`,
+		IssuedAt:        1700000000,
+		Nonce:           "0123456789abcdef0123456789abcdef",
+	}
+}
+
+func TestGoldenCanonicalEncoding(t *testing.T) {
+	got := hex.EncodeToString(crypto.Keccak256(goldenChallenge().canonical()))
+	t.Logf("golden canonical keccak256 = %s", got)
+	if got != goldenCanonicalKeccak {
+		t.Fatalf("canonical encoding changed.\n got %s\nwant %s\nIf this change is intended, update the same vector in fabric-foundation-api's internal/attest.", got, goldenCanonicalKeccak)
 	}
 }

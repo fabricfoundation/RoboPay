@@ -115,6 +115,13 @@ type Signer struct {
 	address common.Address
 }
 
+// NewSignerFromKey wraps an already-parsed key. The tunnel signs both the proxy
+// handshake and these payment requirements with its staking key, so it parses
+// that key once and hands it to both.
+func NewSignerFromKey(key *ecdsa.PrivateKey) *Signer {
+	return &Signer{key: key, address: crypto.PubkeyToAddress(key.PublicKey)}
+}
+
 // NewSigner parses a hex-encoded secp256k1 private key, with or without the 0x prefix.
 func NewSigner(hexKey string) (*Signer, error) {
 	hexKey = strings.TrimPrefix(strings.TrimSpace(hexKey), "0x")
