@@ -127,15 +127,17 @@ resulting signature is perfectly valid for whatever address the payer was shown.
 Settlement can only prove that nobody altered an authorization *after* it was
 signed.
 
-Set `OPERATOR_SIGNING_KEY` and the tunnel signs the challenge it serves, so a
-payer can check that the recipient came from the operator:
+The tunnel signs every challenge it serves with its staking key, so a payer can
+check that the recipient came from the operator. There is nothing to enable:
+`STAKING_PRIVATE_KEY` is already required to open the tunnel at all, so a robot
+that can serve a 402 can always attest it.
 
-```bash
-export OPERATOR_SIGNING_KEY="0x<operator private key>"
-```
+The expected signer is therefore the robot's `staking_address` — the same
+address a payer needs to know to find the robot, and one it can check on-chain
+against the staking contract, rather than an opaque key it has to be told about
+separately.
 
-Every 402 then carries an extra header, whichever protocol produced the
-challenge:
+Every 402 carries an extra header, whichever protocol produced the challenge:
 
 ```
 PAYMENT-REQUIREMENTS-SIGNATURE: <base64url JSON>
@@ -176,13 +178,12 @@ a captured challenge cannot be replayed against a later price.
 
 | Variable | Required | Description |
 |---|---|---|
-| `OPERATOR_SIGNING_KEY` | No | secp256k1 key that attests this robot's payment requirements. Unset disables signing and logs a warning at startup |
-| `STAKING_PRIVATE_KEY` | **Yes** | secp256k1 key for `staking_address`. Signs the proxy's single-use handshake nonce, proving the robot controls that wallet. Its derived address must equal `staking_address` or startup fails. Environment only — deliberately not settable over the unauthenticated robot config topic |
+| `STAKING_PRIVATE_KEY` | **Yes** | secp256k1 key for `staking_address`. Signs the proxy's single-use handshake nonce, proving the robot controls that wallet, **and** the payment requirements this robot advertises. Its derived address must equal `staking_address` or startup fails. Environment only |
 
-The key is read from the environment only. It is deliberately **not** settable
-over the `robot/config/<robot_id>` topic, which is unauthenticated. If it differs
-from `evm_payee_address` the tunnel logs a warning at startup, since payers must
-be told which address to expect.
+One key covers both signatures. That is safe because the two signed messages
+carry distinct, versioned domain prefixes — `RoboPay-Tunnel-Auth-v1` for the
+handshake and `RoboPay-Payment-Requirements-v1` for the attestation — so
+neither signature is valid input to the other's verifier.
 
 ### MPP (Machine Payments Protocol)
 
@@ -246,8 +247,8 @@ export MPP_SECRET_KEY="$(openssl rand -base64 32)"
 | `mpp_realm`         | No       | `robot_id`           | Authentication realm advertised in the challenge                   |
 
 MPP reuses `price`, so a robot charges the same amount over either protocol.
-Like the x402 fields, all of these can be hot-reloaded over the
-`robot/config/<robot_id>` Zenoh topic.
+Like the x402 fields, these are read once at startup; changing one means editing
+`config.json` (or the environment) and restarting the tunnel.
 
 | Variable            | Required | Description                                                                    |
 |---------------------|----------|--------------------------------------------------------------------------------|
