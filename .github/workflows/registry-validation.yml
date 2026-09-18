@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Validate Registry Profiles
+#
+# Every bounty submission extends registry/vendors/ with robot profiles. This
+# job gives reviewers a safety net: any YAML/JSON that stops parsing, or any
+# two profiles that collide on their directory name, blocks the PR before a
+# human has to squint at the diff. See scripts/validate_registry.py for the
+# exact (permissive-by-design) rules.
+#
+# The job also acts as the CI shell for stricter per-profile validators: any
+# scripts/registry/validate_*.py that lands is auto-discovered and enforced
+# here too, so the ecosystem converges on ONE registry gate instead of many.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Validate Registry Profiles
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'registry/**'
+      - 'scripts/**'
+  pull_request:
+    paths:
+      - 'registry/**'
+      - 'scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML
+        run: python -m pip install --quiet pyyaml
+
+      - name: Validate registry structure
+        run: |
+          set -euo pipefail
+          python scripts/validate_registry.py registry
+          if [ -d scripts/registry ]; then
+            for validator in scripts/registry/validate_*.py; do
+              [ -f "$validator" ] || continue
+              python "$validator" registry
+            done
+          fi
