@@ -2,6 +2,16 @@
 
 Fabric RoboPay connects robots, simulators, cameras, drones, and other physical devices to the Fabric network. It provides a secure paid-action runtime that receives remote action requests, verifies payment through the robot-side tunnel flow, and routes approved actions to connected machines.
 
+## Table of contents
+
+- [Overview](#overview)
+- [Repository layout](#repository-layout)
+- [Contributing](#contributing)
+- [1. Start the simulator (Isaac Sim / OM1-sim)](#1-start-the-simulator-isaac-sim--om1-sim)
+- [2. Start the bridge](#2-start-the-bridge)
+- [3. Start the tunnel](#3-start-the-tunnel)
+- [4. Register the robot on BitAgent (Unibase AIP) — optional](#4-register-the-robot-on-bitagent-unibase-aip--optional)
+
 ## Overview
 
 Fabric introduces a payment layer for machines. RoboPay is the execution component of this stack, exposing machine capabilities as paid endpoints.
@@ -18,14 +28,25 @@ The robot-side `tunnel` receives the action request, runs its payment middleware
 .
 ├── tunnel/          # Go tunnel + x402 paid-action runtime
 │   └── config.json  # robot_id, payee address, price, network
-├── bridge/          # ROS2 bridge: Zenoh action events → robot /cmd_vel
+├── bridge/          # ROS2 + Python adapters: Zenoh action events → robot commands
 │   ├── common/zenoh_bridge/                 # shared Zenoh + action parsing
 │   └── unitree/{g1,go2,tron1}/isaac_sim_bridge/   # per-robot ROS2 packages
+├── registry/        # robot profiles (bounty submissions): vendors/<vendor>/<robot>/<profile>.v1/
+├── scripts/         # validators and tooling (registry validation, …)
+├── docs/            # architecture docs and images
+├── pyproject.toml   # Python quality baseline (ruff + pytest)
 └── Makefile         # builds/runs the tunnel and the bridge
 ```
 
 The simulator itself is **not** vendored here. Isaac Sim scenes and policies live in the [OM1-sim](https://github.com/OpenMind/OM1-sim) repo.
 
+## Contributing
+
+Robot profiles (bounty submissions) and platform improvements (tunnel,
+bridges, CI, validators, docs) are both welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: registry structure,
+the Zenoh action contract, honesty rules for `validation-report.md`, code
+conventions, and what reviewers verify.
 
 ## 1. Start the simulator (Isaac Sim / OM1-sim)
 
