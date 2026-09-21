@@ -1,0 +1,53 @@
+# RoboPay Spot Tier-1 — CI terminal logs (spot-simulation-tests)
+
+Source: GitHub Actions run on `ubuntu-latest` (Python 3.12), `EslaM-X/RoboPay`
+branch `feature/spot-tier1-sim` — `spot-simulation-tests` workflow.
+
+## Fetch Spot model assets (`cd simulation && bash setup.sh`)
+
+```
+Cloning into 'models/mujoco_menagerie'...
+OK: models ready (menagerie boston_dynamics_spot)
+```
+
+## Skill acceptance (`python3 test_spot_control.py`)
+
+```
+PASS
+```
+
+Wave (pawLift 0.212 m), sit (sitDepth 0.133 m), stand (standHeight 0.435 m),
+stop (returns to home stance, |bodyZ - 0.434| < 0.02), bow (bowPitchDeg
+16.9 deg), nod (nodDepth 0.055 m), turn_to_face (10.7 deg toward heading 30),
+hold (stable at 0.434 m), unknown skill (UNKNOWN_SKILL error).
+
+## Payment gate (`python3 test_payment_gate.py`)
+
+```
+PASS
+```
+
+Unpaid -> 402 + PAYMENT-REQUIRED, forged/expired receipts -> 402, replay ->
+409, settle only on status=success.
+
+## Result semantics (`python3 test_result_semantics.py`)
+
+Runs the full link over peer-mode Zenoh; every failure path (UNPAID,
+INVALID_PARAMS, UNKNOWN_SKILL, WRONG_ROBOT, DUPLICATE, tampered paramsHash)
+returns an error result and never settles.
+
+## E2E link (`python3 test_link.py`)
+
+Paid action -> Zenoh `robot/tunnel/action` -> episode -> result correlated by
+actionId on `robot/tunnel/result`.
+
+## Sim-to-sim (`python3 test_sim2sim.py`)
+
+```
+max error 0.06 cm -> PASS
+```
+
+MuJoCo and PyBullet run the same joint configurations; foot-tip positions
+agree to 0.06 cm across all salient poses.
+
+Run ID: 31495601540 — conclusion: success.

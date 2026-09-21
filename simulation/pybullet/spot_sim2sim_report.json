@@ -1,0 +1,59 @@
+{
+  "simulators": [
+    "mujoco-menagerie-spot",
+    "pybullet-spot_simple_kin"
+  ],
+  "tolerance_m": 0.01,
+  "poses": {
+    "hold": {
+      "foot_errors_m": {
+        "fl": 0.0,
+        "fr": 0.0,
+        "hl": 0.0,
+        "hr": 0.0
+      }
+    },
+    "wave": {
+      "foot_errors_m": {
+        "fl": 0.0,
+        "fr": 0.0,
+        "hl": 0.0,
+        "hr": 0.0
+      }
+    },
+    "sit": {
+      "foot_errors_m": {
+        "fl": 0.0,
+        "fr": 0.0,
+        "hl": 0.0,
+        "hr": 0.0
+      }
+    },
+    "bow": {
+      "foot_errors_m": {
+        "fl": 0.0,
+        "fr": 0.0,
+        "hl": 0.0006,
+        "hr": 0.0006
+      }
+    },
+    "nod": {
+      "foot_errors_m": {
+        "fl": 0.0002,
+        "fr": 0.0001,
+        "hl": 0.0,
+        "hr": 0.0
+      }
+    },
+    "turn_to_face": {
+      "foot_errors_m": {
+        "fl": 0.0,
+        "fr": 0.0,
+        "hl": 0.0001,
+        "hr": 0.0
+      }
+    }
+  },
+  "max_error_m": 0.0006,
+  "verdict": "pass"
+}
