@@ -1,0 +1,25 @@
+{
+  "actionId": "act_example_x2_nav_001",
+  "robotId": "agibot-x2-tier1-demo-001",
+  "skillId": "x2_obstacle_avoid_nav",
+  "params": {
+    "targetX": 3.0,
+    "targetY": 0.0,
+    "maxDurationSec": 30.0
+  },
+  "paramsHash": "dbf849aa26bd661cc71c458c68195a79892812a9bc5dfb529c0442f546f22290",
+  "idempotencyKey": "example-x2-nav-001",
+  "payment": {
+    "provider": "x402",
+    "authorizationId": "auth_example_x2_nav_001",
+    "verified": true,
+    "status": "authorized",
+    "settled": false,
+    "network": "eip155:84532",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount": "2000",
+    "payTo": "0x0000000000000000000000000000000000000001",
+    "issuedAt": "2026-08-01T00:00:00Z",
+    "expiresAt": "2026-08-01T00:05:00Z"
+  }
+}

@@ -1,0 +1,31 @@
+schemaVersion: robot-profile.v1
+vendor: agibot
+robotModel: x2
+robotType: simulated-humanoid
+profileId: agibot.x2.tier1-mujoco-webots.v1
+profileVersion: 1.0.0
+scope: simulator-only
+tier: 1
+brand: Fabric Foundation × AgiBot
+
+runtime:
+  transport: zenoh
+  actionTopic: robot/tunnel/action
+  resultTopic: robot/tunnel/result
+  bridge: bridge/agibot_x2_tier1_bridge.py
+  primarySimulator: mujoco
+  validationSimulator: webots
+
+simulators:
+  mujoco:
+    model: bridge/simulators/assets/mujoco/x2.xml
+    source: ioai-tech/robot_description
+  webots:
+    world: bridge/simulators/assets/webots/x2_obstacle_course.wbt
+
+safety:
+  notes:
+    - Simulator-only submission; no physical actuation.
+    - Task is not a replay of predefined animation; motion is policy-driven.
+
+status: experimental

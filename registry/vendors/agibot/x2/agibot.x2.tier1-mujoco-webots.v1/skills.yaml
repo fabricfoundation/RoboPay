@@ -1,0 +1,30 @@
+schemaVersion: robot-skills.v1
+profileId: agibot.x2.tier1-mujoco-webots.v1
+
+skills:
+  - skillId: x2_obstacle_avoid_nav
+    name: Obstacle-avoidance navigation
+    description: >-
+      Drive AgiBot X2 from a start pose to a target pose in a cluttered
+      simulated environment, avoiding obstacles via a reactive policy
+      (not a predefined animation or trajectory). Validated in MuJoCo,
+      cross-checked in Webots (Sim-to-Sim).
+    params:
+      targetX:
+        type: number
+        required: true
+        description: Target X coordinate in the simulated world frame.
+      targetY:
+        type: number
+        required: true
+        description: Target Y coordinate in the simulated world frame.
+      maxDurationSec:
+        type: number
+        required: true
+        description: Maximum simulated time allotted before the episode is marked failed.
+    paymentRequired: true
+    limits:
+      timeoutSec: 60
+      concurrency: 1
+    safety:
+      note: Simulator-only; no physical safety constraints apply.

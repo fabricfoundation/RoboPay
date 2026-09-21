@@ -1,0 +1,166 @@
+<mujoco model="agibot_x2_primitives">
+  <!-- AgiBot X2 kinematic chain with collision-primitive geometry.
+       Vendor mesh assets unavailable at submission time; see docs/README.md. -->
+  <compiler angle="radian" eulerseq="XYZ" autolimits="true"/>
+  <option timestep="0.01" gravity="0 0 -9.81"/>
+
+  <default>
+    <default class="x2">
+      <joint damping="0.5" armature="0.02" frictionloss="0.1"/>
+      <default class="collision">
+        <geom type="capsule" rgba="0.7 0.7 0.75 1" contype="1" conaffinity="1"/>
+      </default>
+      <default class="fixed_pose">
+        <joint damping="5.0" stiffness="50.0"/>
+      </default>
+    </default>
+  </default>
+
+  <worldbody>
+    <light diffuse=".6 .6 .6" pos="0 0 5" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="10 10 0.1" rgba="0.9 0.9 0.9 1"/>
+
+    <body name="pelvis" pos="0 0 0.68" childclass="x2">
+      <joint name="base_x" type="slide" axis="1 0 0" damping="5" limited="false"/>
+      <joint name="base_y" type="slide" axis="0 1 0" damping="5" limited="false"/>
+      <joint name="base_yaw" type="hinge" axis="0 0 1" damping="2" limited="false"/>
+      <geom class="collision" name="pelvis_geom" size="0.09 0.08" pos="0 0 0" quat="0.7071 0.7071 0 0"/>
+
+      <body name="left_hip_pitch_link" pos="0 0.07135 0">
+        <joint name="left_hip_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.2 0.2"/>
+        <geom class="collision" name="left_hip_pitch_geom" size="0.04 0.03" pos="0 0 -0.03"/>
+        <body name="left_hip_roll_link" pos="-0.000575 0.0657 0">
+          <joint name="left_hip_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.15 0.15"/>
+          <geom class="collision" name="left_hip_roll_geom" size="0.04 0.03" pos="0 0 -0.03"/>
+          <body name="left_hip_yaw_link" pos="0.000575 0 -0.13685">
+            <joint name="left_hip_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.15 0.15"/>
+            <geom class="collision" name="left_thigh_geom" size="0.045 0.09" pos="0 0 -0.09"/>
+            <body name="left_knee_link" pos="-0.00766 0.000225 -0.1831">
+              <joint name="left_knee_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="0 0.3"/>
+              <geom class="collision" name="left_shank_geom" size="0.04 0.14" pos="0 0 -0.14"/>
+              <body name="left_ankle_pitch_link" pos="-0.01 -0.000125 -0.282">
+                <joint name="left_ankle_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.15 0.15"/>
+                <geom class="collision" name="left_ankle_pitch_geom" size="0.025 0.02" pos="0 0 -0.02"/>
+                <body name="left_ankle_roll_link" pos="-0.00175 0 0">
+                  <joint name="left_ankle_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.1 0.1"/>
+                  <geom class="collision" name="left_foot_geom" type="box" size="0.11 0.045 0.015" pos="0.05 0 -0.02"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <body name="right_hip_pitch_link" pos="0 -0.07135 0">
+        <joint name="right_hip_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.2 0.2"/>
+        <geom class="collision" name="right_hip_pitch_geom" size="0.04 0.03" pos="0 0 -0.03"/>
+        <body name="right_hip_roll_link" pos="0 -0.0657 0">
+          <joint name="right_hip_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.15 0.15"/>
+          <geom class="collision" name="right_hip_roll_geom" size="0.04 0.03" pos="0 0 -0.03"/>
+          <body name="right_hip_yaw_link" pos="0 0 -0.13685">
+            <joint name="right_hip_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.15 0.15"/>
+            <geom class="collision" name="right_thigh_geom" size="0.045 0.09" pos="0 0 -0.09"/>
+            <body name="right_knee_link" pos="-0.00766 -0.000225 -0.1831">
+              <joint name="right_knee_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="0 0.3"/>
+              <geom class="collision" name="right_shank_geom" size="0.04 0.14" pos="0 0 -0.14"/>
+              <body name="right_ankle_pitch_link" pos="-0.01 0.000125 -0.282">
+                <joint name="right_ankle_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.15 0.15"/>
+                <geom class="collision" name="right_ankle_pitch_geom" size="0.025 0.02" pos="0 0 -0.02"/>
+                <body name="right_ankle_roll_link" pos="-0.00175 0 0">
+                  <joint name="right_ankle_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.1 0.1"/>
+                  <geom class="collision" name="right_foot_geom" type="box" size="0.11 0.045 0.015" pos="0.05 0 -0.02"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <body name="waist_yaw_link" pos="0 0 0.06706">
+        <joint name="waist_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.1 0.1"/>
+        <geom class="collision" name="waist_yaw_geom" size="0.07 0.03" pos="0 0 0.03"/>
+        <body name="waist_pitch_link" pos="0 0 0.0880106">
+          <joint name="waist_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.1 0.1"/>
+          <geom class="collision" name="waist_pitch_geom" size="0.07 0.03" pos="0 0 0.03"/>
+          <body name="torso_link">
+            <joint name="waist_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.1 0.1"/>
+            <geom class="collision" type="box" name="torso_geom" size="0.09 0.13 0.14" pos="0 0 0.14"/>
+
+            <body name="left_shoulder_pitch_link" pos="0.0033 0.143032 0.241648">
+              <joint name="left_shoulder_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.2 0.2"/>
+              <geom class="collision" name="left_shoulder_geom" size="0.035 0.04" pos="0 0 -0.02"/>
+              <body name="left_shoulder_roll_link" pos="-0.0005 0.0495 0">
+                <joint name="left_shoulder_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.15 0.15"/>
+                <geom class="collision" name="left_upper_arm_geom" size="0.035 0.06" pos="0 0 -0.06"/>
+                <body name="left_shoulder_yaw_link" pos="0.00122 0 -0.121195">
+                  <joint name="left_shoulder_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.15 0.15"/>
+                  <geom class="collision" name="left_upper_arm2_geom" size="0.03 0.04" pos="0 0 -0.04"/>
+                  <body name="left_elbow_link" pos="0.014 0.0002 -0.08295">
+                    <joint name="left_elbow_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="0 0.2"/>
+                    <geom class="collision" name="left_forearm_geom" size="0.03 0.06" pos="0 0 -0.06"/>
+                    <body name="left_wrist_yaw_link" pos="-0.01328 -0.0001 -0.120576">
+                      <joint name="left_wrist_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.1 0.1"/>
+                      <geom class="collision" name="left_wrist_geom" size="0.02 0.03" pos="0 0 -0.03"/>
+                      <body name="left_wrist_pitch_link" pos="0.00049 0 -0.081999">
+                        <joint name="left_wrist_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.1 0.1"/>
+                        <geom class="collision" name="left_wrist_pitch_geom" size="0.018 0.015" pos="0 0 -0.015"/>
+                        <body name="left_wrist_roll_link">
+                          <joint name="left_wrist_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.1 0.1"/>
+                          <geom class="collision" name="left_hand_geom" size="0.02 0.03" pos="0 0 -0.03"/>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+
+            <body name="right_shoulder_pitch_link" pos="0.0033 -0.143031 0.241648">
+              <joint name="right_shoulder_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.2 0.2"/>
+              <geom class="collision" name="right_shoulder_geom" size="0.035 0.04" pos="0 0 -0.02"/>
+              <body name="right_shoulder_roll_link" pos="-0.0005 -0.0495 0">
+                <joint name="right_shoulder_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.15 0.15"/>
+                <geom class="collision" name="right_upper_arm_geom" size="0.035 0.06" pos="0 0 -0.06"/>
+                <body name="right_shoulder_yaw_link" pos="0.0005 0 -0.1212">
+                  <joint name="right_shoulder_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.15 0.15"/>
+                  <geom class="collision" name="right_upper_arm2_geom" size="0.03 0.04" pos="0 0 -0.04"/>
+                  <body name="right_elbow_link" pos="0.014 -0.0002 -0.08295">
+                    <joint name="right_elbow_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="0 0.2"/>
+                    <geom class="collision" name="right_forearm_geom" size="0.03 0.06" pos="0 0 -0.06"/>
+                    <body name="right_wrist_yaw_link" pos="-0.014 0.0001 -0.120694">
+                      <joint name="right_wrist_yaw_joint" class="fixed_pose" type="hinge" axis="0 0 1" range="-0.1 0.1"/>
+                      <geom class="collision" name="right_wrist_geom" size="0.02 0.03" pos="0 0 -0.03"/>
+                      <body name="right_wrist_pitch_link" pos="0 0 -0.0818">
+                        <joint name="right_wrist_pitch_joint" class="fixed_pose" type="hinge" axis="0 1 0" range="-0.1 0.1"/>
+                        <geom class="collision" name="right_wrist_pitch_geom" size="0.018 0.015" pos="0 0 -0.015"/>
+                        <body name="right_wrist_roll_link">
+                          <joint name="right_wrist_roll_joint" class="fixed_pose" type="hinge" axis="1 0 0" range="-0.1 0.1"/>
+                          <geom class="collision" name="right_hand_geom" size="0.02 0.03" pos="0 0 -0.03"/>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+
+            <body name="head_yaw_link" pos="0.00835 0 0.309397">
+              <geom class="collision" name="head_yaw_geom" size="0.03 0.02" pos="0 0 0.02"/>
+              <body name="head_pitch_link" pos="0 0 0.0889">
+                <geom class="collision" type="box" name="head_geom" size="0.06 0.06 0.07" pos="0 0 0.07"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Obstacle placeholders for the navigation task; positions are
+         overridden per-episode by the episode config, not hardcoded here. -->
+  </worldbody>
+
+  <actuator>
+    <velocity name="drive_x" joint="base_x" kv="200" ctrlrange="-0.6 0.6"/>
+    <velocity name="drive_y" joint="base_y" kv="200" ctrlrange="-0.6 0.6"/>
+  </actuator>
+</mujoco>
