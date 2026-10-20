@@ -37,7 +37,7 @@ WORKDIR /app
 
 ENV GIN_MODE=release
 ENV PROXY_WS_URL=wss://api.fabric.foundation/api/core/ws/robot
-ENV FACILITATOR_URL=https://x402.org/facilitator
+ENV FACILITATOR_URL=https://api.fabric.foundation/api/core/v1/facilitator
 
 COPY --from=builder /opt/zenoh-c/lib/libzenohc.so /usr/lib/
 COPY --from=builder /app/config.json ./config.json
