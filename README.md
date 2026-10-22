@@ -314,7 +314,7 @@ Common environment overrides:
 | Variable          | Default                                          | Description                       |
 |-------------------|--------------------------------------------------|-----------------------------------|
 | `PROXY_WS_URL`    | `wss://api.fabric.foundation/api/core/ws/robot`  | WebSocket URL of the tunnel proxy |
-| `FACILITATOR_URL` | `https://x402.org/facilitator`                   | x402 payment facilitator endpoint |
+| `FACILITATOR_URL` | `https://api.fabric.foundation/api/core/v1/facilitator` | x402 payment facilitator endpoint |
 | `GIN_MODE`        | `release`                                        | `debug` for verbose HTTP logs     |
 
 ## 4. Register the robot on BitAgent (Unibase AIP) — optional

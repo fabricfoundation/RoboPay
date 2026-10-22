@@ -18,7 +18,7 @@ import (
 
 const (
 	DefaultProxyWSURL       = "ws://localhost:8080/api/core/ws/robot"
-	DefaultFacilitatorURL   = "https://x402.org/facilitator"
+	DefaultFacilitatorURL   = "https://api.fabric.foundation/api/core/v1/facilitator"
 	DefaultAIPPublicBaseURL = "https://api.fabric.foundation/api/core"
 	DefaultAIPEndpoint      = "https://api.aip.unibase.com"
 	DefaultAIPGatewayURL    = "https://gateway.aip.unibase.com"
