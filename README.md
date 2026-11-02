@@ -12,6 +12,14 @@ The robot-side `tunnel` receives the action request, runs its payment middleware
 
 ![RoboPay action flow](docs/images/flow.png)
 
+## Payments and robot access
+
+RoboPay relays payment requests and signed authorizations. At the configuration described in this README, payments settle directly from payer to robot operator; Robotics Economy Holdings, S.A. ("Holdings"), which operates the Fabric gateway and facilitator, does not hold or pool payer funds or charge a RoboPay transaction fee. There is no protocol reversal or refund; compensation is a separate transfer. Before signing, verify the recipient, amount, network and token. Screening varies by payment route and provider.
+
+The staking gate admits robot connections; it does not verify payer eligibility. A robot connects only if its `staking_address` holds tier T1 or above on the RoboStaking contract, read at every connection, and a connection that cannot be checked is refused. The gateway rechecks each open connection once a day and closes it if the address no longer holds the tier. If a recheck cannot complete, the connection stays open and the check is retried every hour.
+
+The receiving address, price, network and token are set by the robot operator in `tunnel/config.json` and the environment, and are read once at startup; changing any of them requires restarting the tunnel.
+
 ## Repository layout
 
 ```
